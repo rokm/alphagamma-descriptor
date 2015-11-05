@@ -1,0 +1,3 @@
+[submodule "external/mexopencv"]
+	path = external/mexopencv
+	url = https://github.com/kyamagu/mexopencv.git
