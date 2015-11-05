@@ -1,0 +1,1 @@
+mex mex/compute_keypoint_distances.cpp -I/opt/opencv-3.0.0-matlab/include -L/opt/opencv-3.0.0-matlab/lib -lopencv_core
