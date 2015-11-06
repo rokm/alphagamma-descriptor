@@ -1,5 +1,5 @@
-function [ keypoints1, keypoints2, distances ] = detect_corresponding_keypoints (I1, I2, H12, keypoint_detector, varargin)
-    % [ keypoints1, keypoints2, distances ] = DETECT_CORRESPONDING_KEYPOINTS (I1, I2, H12, keypoint_detector, varargin)
+function result = detect_corresponding_keypoints (I1, I2, H12, keypoint_detector, varargin)
+    % result = DETECT_CORRESPONDING_KEYPOINTS (I1, I2, H12, keypoint_detector, varargin)
     % 
     % Finds a set of corresponding keypoints. Keypoints are detected in the
     % pair of input images, and geometric correspondences are established
@@ -17,16 +17,22 @@ function [ keypoints1, keypoints2, distances ] = detect_corresponding_keypoints 
     %       establishing geometric correspondences (default: 2.5)
     %     - filter_border: image border size used when filtering the
     %       keypoints (default: 25 pixels)
-    %     - num_points: number of correspondences to select (default: 500)
+    %     - num_points: number of correspondences to select (default: 1000)
+    %     - num_sets: number of randomly-selected correspondence subsets
+    %       (default: 1). Useful for multiple repetitions of the experiment
+    %       (because the keypoint pairs that we sample from will not change
+    %       between repetitions).
     %     - visualize: visualize the correspondences (default: false)
     %
     % Output:
-    %  - keypoints1: selected keypoints in I1
-    %  - keypoints2: selected keypoints in I2
-    %  - distances: matrix of pair-wise distances between the selected
-    %    keypoints I1 and back-projected keypoints from I2. Columns
-    %    correspond to keypoints from I1, and rows correspond to
-    %    back-projected keypoints from I2.
+    %  - result: a structure or array of structures (depending on the
+    %    num_sets parameter), with the following fields
+    %     - keypoints1: selected keypoints in I1
+    %     - keypoints2: selected keypoints in I2
+    %     - distances: matrix of pair-wise distances between the selected
+    %       keypoints I1 and back-projected keypoints from I2. Columns
+    %       correspond to keypoints from I1, and rows correspond to
+    %       back-projected keypoints from I2.
     %
     % Note: keypoints1 and keypoints2 are arrays of OpenCV keypoint
     % structures. The class_id field has been modified to contain the
@@ -42,13 +48,15 @@ function [ keypoints1, keypoints2, distances ] = detect_corresponding_keypoints 
     parser = inputParser();
     parser.addParameter('distance_threshold', 2.5, @isnumeric);
     parser.addParameter('filter_border', 25, @isnumeric);
-    parser.addParameter('num_points', 500, @isnumeric);
+    parser.addParameter('num_points', 1000, @isnumeric);
+    parser.addParameter('num_sets', 1, @isnumeric);
     parser.addParameter('visualize', false, @islogical);
     parser.parse(varargin{:});
     
     distance_threshold = parser.Results.distance_threshold;
     filter_border = parser.Results.filter_border;
     num_points = parser.Results.num_points;
+    num_sets = parser.Results.num_sets;
     visualize = parser.Results.visualize;
 
     %% Detect keypoints
@@ -92,46 +100,41 @@ function [ keypoints1, keypoints2, distances ] = detect_corresponding_keypoints 
     % correspondences
     num_correspondences = max(correspondences(:));
 
-    % Select subset of correspondences
+    %% Select subset(s) of correspondences
     num_points = min(num_points, num_correspondences);
-    selected_idx = randperm(num_correspondences, num_points);
+    
+    for r = num_sets:-1:1,
+        % Select random subset
+        selected_idx = randperm(num_correspondences, num_points);
 
-    % Find the indices of selected correspondences
-    [ i2, i1 ] = find(ismember(correspondences, selected_idx));
+        % Find the indices of selected correspondences
+        [ i2, i1 ] = find(ismember(correspondences, selected_idx));
 
-    assert( all(sqrt( sum((pts1(:,i1) - pts2p(:,i2)).^2) ) < distance_threshold), 'Bug in the code!');
+        assert( all(sqrt( sum((pts1(:,i1) - pts2p(:,i2)).^2) ) < distance_threshold), 'Bug in the code!');
 
-    %% Select the points
-    keypoints1 = keypoints1(i1);
-    keypoints2 = keypoints2(i2);
+        %% Select the points
+        % Augment keypoints with class IDs; this will allow us to identify any
+        % keypoints that might be dropped during descriptor computation
+        result(r).keypoints1 = augment_keypoints_with_id( keypoints1(i1) );
+        result(r).keypoints2 = augment_keypoints_with_id( keypoints2(i2) );
 
-    pts1 = pts1(:,i1);
-    pts2 = pts2(:,i2);
+        result(r).distances = distances(i2,i1);
 
-    pts1p = pts1p(:,i1);
-    pts2p = pts2p(:,i2);
+        %% Display
+        if visualize,
+            colors = rand(3,num_points);
 
-    distances = distances(i2,i1);
-
-    % Augment keypoints with class IDs; this will allow us to identify any
-    % keypoints that might be dropped during descriptor computation
-    keypoints1 = augment_keypoints_with_id(keypoints1);
-    keypoints2 = augment_keypoints_with_id(keypoints2);
-
-    %% Display
-    if visualize,
-        colors = rand(3,num_points);
-
-        figure('Name', '1st image');
-        imshow(I1);
-        hold on;
-        scatter(pts1(1,:)', pts1(2,:)', [], colors');
-        drawnow();
-
-        figure('Name', '2nd image');
-        imshow(I2);
-        hold on;
-        scatter(pts2(1,:)', pts2(2,:)', [], colors');
-        drawnow();
+            selected_pts1 = pts1(:, i1);
+            selected_pts2 = pts2(:, i2);
+            
+            % New plot
+            figure('Name', sprintf('Correspondences: set #%d', r));
+            II = horzcat(I1, I2);
+            imshow(II);
+            hold on;
+            scatter(selected_pts1(1,:), selected_pts1(2,:), [], colors');
+            scatter(size(I1,2)+selected_pts2(1,:), selected_pts2(2,:), [], colors');
+            drawnow();
+        end
     end
 end
