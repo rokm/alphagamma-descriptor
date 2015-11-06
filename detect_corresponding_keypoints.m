@@ -10,7 +10,8 @@ function [ keypoints1, keypoints2, distances ] = detect_corresponding_keypoints 
     %  - I1: first image
     %  - I2: second image
     %  - H: homography describing transformation from I1 to I2
-    %  - keypoint_detector: keypoint detector
+    %  - keypoint_detector: keypoint detector (instance of
+    %    vicos.keypoint_detector.KeypointDetector)
     %  - varargin: key/value pairs with optional parameters:
     %     - distance_threshold: keypoint distance threshold for
     %       establishing geometric correspondences (default: 2.5)
@@ -34,6 +35,8 @@ function [ keypoints1, keypoints2, distances ] = detect_corresponding_keypoints 
     % computation phase.
     %
     % (C) 2015, Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
+    
+    assert(isa(keypoint_detector, 'vicos.keypoint_detector.KeypointDetector'), 'keypoint_detector must inherit from vicos.keypoint_detector.KeypointDetector!'); 
     
     %% Gather optional arguments
     parser = inputParser();
