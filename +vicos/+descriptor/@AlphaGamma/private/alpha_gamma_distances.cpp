@@ -28,37 +28,29 @@ inline double alpha_gamma_distance (const unsigned char *desc1, const unsigned c
 
     const int lenA = numCircles;
     const int lenB = numRays;
-    const int lenG = (numRays-1)*numCircles;
+    const int lenG = numRays*numCircles - numRays;
 
     int distAlpha = 0;
     int distBeta = 0;
     int distGamma = 0;
 
     // Repeat either once or twice
-    for (int r = 0; r < extended; r++) {
+    for (int r = 0; r <= extended; r++) {
         // Alpha effects
         for (int i = 0; i < lenA; i++) {
-            distAlpha += (desc1[i] != desc2[i]);
+            distAlpha += *desc1++ != *desc2++;
         }
-        desc1 += lenA;
-        desc2 += lenA;
 
         // Beta effects
         for (int i = 0; i < lenB; i++) {
-            distBeta += (desc1[i] != desc2[i]);
+            distBeta += *desc1++ != *desc2++;
         }
-        desc1 += lenB;
-        desc2 += lenB;
 
         // Gamma effects
         for (int i = 0; i < lenG; i++) {
-            distGamma += (desc1[i] != desc2[i]);
+            distGamma += *desc1++ != *desc2++;
         }
-        desc1 += lenG;
-        desc2 += lenG;
     }
-
-    std::cout << "DIST: " << distAlpha << " " << distBeta << " " << distGamma << std::endl;
 
     return A*distAlpha + B*distBeta + G*distGamma;
 }
@@ -90,8 +82,6 @@ void mexFunction (int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
     const int numCircles = mxGetScalar(prhs[2]);
     const int numRays = mxGetScalar(prhs[3]);
     const int descriptorSize = numCircles + numCircles*numRays;
-
-    std::cout << "NUM C: " << numCircles << " NUM R: " << numRays << " DESC: " << descriptorSize << " M1: " <<mxGetM(prhs[0]) << std::endl;
 
     if (mxGetClassID(prhs[0]) != mxUINT8_CLASS || (mxGetM(prhs[0]) != descriptorSize && mxGetM(prhs[0]) != 2*descriptorSize)) {
         mexErrMsgTxt("desc1 matrix must be a DxN1 uint8 matrix!");

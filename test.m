@@ -21,7 +21,11 @@ descriptor_extractor(end+1, :) = { 'SURF',  vicos.descriptor.SURF() };
 descriptor_extractor(end+1, :) = { 'O-BRIEF-64', vicos.descriptor.BRIEF('Bytes', 64, 'UseOrientation', true) };
 descriptor_extractor(end+1, :) = { 'O-LATCH-64', vicos.descriptor.LATCH('Bytes', 64, 'RotationInvariance', true) };
 descriptor_extractor(end+1,:) = { 'U-AlphaGamma-C23 E', vicos.descriptor.AlphaGamma('orientation', false, 'extended', true, 'sampling', 'gaussian', 'use_scale', false, 'num_rays', 23) };
+descriptor_extractor(end+1,:) = { 'OD: U-AlphaGamma-C23 E', vicos.descriptor.AlphaGamma('orientation', false, 'extended', true, 'sampling', 'gaussian', 'use_scale', false, 'num_rays', 23, 'slow_distance', true) };
+descriptor_extractor(end+1,:) = { 'Orig: U-AlphaGamma-C23 E', vicos.descriptor.AlphaGammaOld('orientation', false, 'extended', true, 'sampling', 'gaussian', 'use_scale', false, 'num_rays', 23) };
 descriptor_extractor(end+1,:) = { 'O-AlphaGamma-C23 E', vicos.descriptor.AlphaGamma('orientation', true, 'extended', true, 'sampling', 'gaussian', 'use_scale', false, 'num_rays', 23) };
+descriptor_extractor(end+1,:) = { 'OD: O-AlphaGamma-C23 E', vicos.descriptor.AlphaGamma('orientation', true, 'extended', true, 'sampling', 'gaussian', 'use_scale', false, 'num_rays', 23, 'slow_distance', true) };
+descriptor_extractor(end+1,:) = { 'Orig: O-AlphaGamma-C23 E', vicos.descriptor.AlphaGammaOld('orientation', true, 'extended', true, 'sampling', 'gaussian', 'use_scale', false, 'num_rays', 23) };
 
 %% Gather a set of corresponding keypoints
 fprintf('Obtaining set(s) of correspondences from the image pair...\n');

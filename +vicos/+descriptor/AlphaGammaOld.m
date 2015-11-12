@@ -1,4 +1,4 @@
-classdef AlphaGamma < vicos.descriptor.Descriptor
+classdef AlphaGammaOld < vicos.descriptor.Descriptor
     % ALPHAGAMMA - AlphaGamma descriptor (Matlab version)
     %
     % (C) 2015, Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
@@ -25,14 +25,11 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
         orientation
         orient_cos
         orient_sin
-        
-        % Slow distance
-        slow_distance
     end
     
     % vicos.descriptor.Descriptor implementation
     methods
-        function self = AlphaGamma (varargin)
+        function self = AlphaGammaOld (varargin)
             % self = ALPHAGAMMA (varargin)
             %
             % Construct AlphaGamma descriptor extractor.
@@ -78,7 +75,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             parser.addParameter('base_sigma', sqrt(1.7), @isnumeric);
             parser.addParameter('use_scale', false, @islogical);
             parser.addParameter('extended_threshold', 0.674, @isnumeric);
-            parser.addParameter('slow_distance', false, @islogical);
             
             parser.parse(varargin{:});
             
@@ -91,7 +87,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             self.base_sigma = parser.Results.base_sigma;
             self.use_scale = parser.Results.use_scale;
             self.extended_threshold = parser.Results.extended_threshold;
-            self.slow_distance = parser.Results.slow_distance;
             
             assert(ismember(self.sampling, { 'simple', 'gaussian', 'mixed' }), 'Invalid sampling type!');
             
@@ -189,17 +184,13 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             end
 
             num_points = numel(keypoints);            
-            descriptor_size = self.num_circles + self.num_circles*self.num_rays;
-            if self.extended,
-                descriptor_size = 2*descriptor_size;
-            end
-            
-            desc = zeros(descriptor_size, num_points, 'uint8');
             
             if self.use_scale,
                 % Use scale; crop each patch and rescale it to the
-                % reference size, then build a pyramid on top of that               
-                for p = 1:num_points,
+                % reference size, then build a pyramid on top of that
+                desc = repmat(struct('alpha', [], 'gamma', []), num_points, 1);
+                
+                for p = num_points:-1:1,
                     w = floor(keypoints(p).size * 3/2);
                     h = floor(keypoints(p).size * 3/2);
                     x = keypoints(p).pt(1);
@@ -228,7 +219,11 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                     
                     % Extract
                     new_center = (size(patch) - 1)/2 + 1;
-                    desc(:,p) = extract_descriptor_from_keypoint(self, pyramid, new_center);
+                    if self.extended,
+                        [ desc(p).alpha, desc(p).gamma, desc(p).alpha_ext, desc(p).gamma_ext ] = extract_descriptor_from_keypoint(self, pyramid, new_center);
+                    else
+                        [ desc(p).alpha, desc(p).gamma ] = extract_descriptor_from_keypoint(self, pyramid, new_center);
+                    end
                 end
             else
                 % Use fixed-size windows; build a single image pyramid for
@@ -245,29 +240,83 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                 end
            
                 % Now extract for each point
-                for p = 1:num_points,
-                    desc(:,p) = extract_descriptor_from_keypoint(self, pyramid, keypoints(p).pt);
+                desc = repmat(struct('alpha', [], 'gamma', []), num_points, 1);
+                for p = num_points:-1:1,
+                    if self.extended,
+                        [ desc(p).alpha, desc(p).gamma, desc(p).alpha_ext, desc(p).gamma_ext ] = extract_descriptor_from_keypoint(self, pyramid, keypoints(p).pt);
+                    else
+                        [ desc(p).alpha, desc(p).gamma ] = extract_descriptor_from_keypoint(self, pyramid, keypoints(p).pt);
+                    end
                 end
             end
         end
         
-        function distances = compute_pairwise_distances (self, desc1, desc2)
-            if self.slow_distance,
-                % Original Matlab function
-                distances = compute_pairwise_distances_slow(self, desc1, desc2);
-            else
-                % Fast MEX version
-                distances = alpha_gamma_distances(desc1, desc2, self.num_circles, self.num_rays, self.extended);
+        function distances = compute_pairwise_distances (self, desc1, desc2, varargin)
+            parser = inputParser();
+            parser.addParameter('A', 5.0, @isnumeric);
+            parser.addParameter('B', 0.5, @isnumeric);
+            parser.addParameter('G', 1.0, @isnumeric);
+            parser.parse(varargin{:});
+            
+            A = parser.Results.A;
+            B = parser.Results.B;
+            G = parser.Results.G;
+
+            extended_descriptor = isfield(desc1, 'alpha_ext'); % Do we have an extended descriptor?
+
+            % Merge values (faster access in Matlab)
+            alpha1 = [ desc1.alpha ];
+            alpha2 = [ desc2.alpha ];
+            gamma1 = [ desc1.gamma ];
+            gamma2 = [ desc2.gamma ];
+                        
+            if extended_descriptor,
+                alpha_ext1 = [ desc1.alpha_ext ];
+                alpha_ext2 = [ desc2.alpha_ext ];
+                gamma_ext1 = [ desc1.gamma_ext ];
+                gamma_ext2 = [ desc2.gamma_ext ];
+            end
+            
+            % Compute dimensions of the descriptors
+            assert(self.num_circles == size(alpha1, 1), 'Descriptor size mismatch!');
+            assert(self.num_rays == size(gamma1, 1) / self.num_circles, 'Descriptor size mismatch!');
+            
+            num_points1 = numel(desc1);
+            num_points2 = numel(desc2);
+                        
+            % Distance matrix
+            distances = nan(num_points2, num_points1);
+            
+            for i = 1:num_points1,
+                for j = 1:num_points2,
+                    score_a = sum( abs( alpha1(:,i) - alpha2(:,j) ) );
+                    score_b = sum( abs( gamma1(1:self.num_rays,i) - gamma2(1:self.num_rays,j) ) );
+                    score_g = sum( abs( gamma1(self.num_rays+1:end,i) - gamma2(self.num_rays+1:end,j) ) );
+                        
+                    if extended_descriptor,
+                        score_a_ext = sum( abs( alpha_ext1(:,i) - alpha_ext2(:,j) ) );
+                        score_b_ext = sum( abs( gamma_ext1(1:self.num_rays,i) - gamma_ext2(1:self.num_rays, j) ) );
+                        score_g_ext = sum( abs( gamma_ext1(self.num_rays+1:end,i) - gamma_ext2(self.num_rays+1:end, j) ) );
+                    else
+                        score_a_ext = 0;
+                        score_b_ext = 0;
+                        score_g_ext = 0;
+                    end
+                    
+                    distances(j,i) = A*score_a + A*score_a_ext + ...
+                                     B*score_b + B*score_b_ext + ...
+                                     G*score_g + G*score_g_ext;
+                end
             end
         end
     end
     
     % Internal methods
     methods 
-        function descriptor = extract_descriptor_from_keypoint (self, pyramid, center)
-            % descriptor = EXTRACT_DESCRIPTOR_FROM_KEYPOINT (self, pyramid, center)
+        function [ alpha, gamma, alpha_ext, gamma_ext ] = extract_descriptor_from_keypoint (self, pyramid, center)
+            % [ alpha, gamma, alpha_ext, gamma_ext ] = EXTRACT_DESCRIPTOR_FROM_KEYPOINT (self, pyramid, center)
             %
-            % Extracts alpha-gamma descriptor from a given keypoint.
+            % Extracts alpha and gamma descriptor from a given keypoint.
             
             center = round(center);
             
@@ -323,19 +372,8 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                 gamma_ext = reshape(gamma_ext, [], 1);
             end
             
-            % Note: the original function used a sign function here, which
-            % mean that descriptor could take three values; -1, 0, 1; this
-            % implied three possible distances: 0, 1, and 2... now, we are
-            % using binary values, so only two distances are possible...
-            % and this seems to drop our performance by cca. 2.5 %
-            gamma = reshape(gamma > 0, [], 1);
-            alpha = reshape(a > 0, [], 1);
-            
-            if self.extended,
-                descriptor = uint8( vertcat(alpha, gamma, alpha_ext, gamma_ext) );
-            else
-                descriptor = uint8( vertcat(alpha, gamma) );
-            end
+            gamma = reshape(sign(gamma), [], 1);
+            alpha = reshape(sign(a), [], 1);
         end
         
         function fig = visualize_descriptor (self)
@@ -356,72 +394,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                     plot(x, y, 'r+');
                 end
             end
-        end
-        
-        function distances = compute_pairwise_distances_slow (self, desc1, desc2, varargin)
-            parser = inputParser();
-            parser.addParameter('A', 5.0, @isnumeric);
-            parser.addParameter('B', 0.5, @isnumeric);
-            parser.addParameter('G', 1.0, @isnumeric);
-            parser.parse(varargin{:});
-            
-            A = parser.Results.A;
-            B = parser.Results.B;
-            G = parser.Results.G;
-
-            descriptor_size = self.num_circles*self.num_rays + self.num_circles;
-            assert(size(desc1, 1) == descriptor_size || size(desc1, 1) == 2*descriptor_size, 'Invalid descriptor size!');
-            assert(size(desc2, 1) == descriptor_size || size(desc2, 1) == 2*descriptor_size, 'Invalid descriptor size!');
-            assert(size(desc1, 1) == size(desc2, 1), 'Descriptors must be of same dimension!');
-            
-            extended_descriptor = size(desc1, 1) == 2*descriptor_size; % Do we have an extended descriptor?
-            
-            num_points1 = size(desc1, 2);
-            num_points2 = size(desc2, 2);
-                        
-            % Distance matrix
-            distances = nan(num_points2, num_points1);
-            
-            for i = 1:num_points1,
-                for j = 1:num_points2,
-                    diff = desc1(:,i) ~= desc2(:,j);
-                    
-                    % Alpha
-                    idx1 = 1;
-                    idx2 = self.num_circles;
-                    score_a = sum( diff(idx1:idx2) );
-                    
-                    % Beta
-                    idx1 = idx1 + self.num_circles;
-                    idx2 = idx2 + self.num_rays;
-                    score_b = sum( diff(idx1:idx2) );
-                    
-                    % Gamma
-                    idx1 = idx1 + self.num_rays;
-                    idx2 = idx2 + (self.num_circles*self.num_rays - self.num_rays);
-                    score_g = sum( diff(idx1:idx2) );
-                    
-                    if extended_descriptor,
-                        % Alpha
-                        idx1 = idx1 + (self.num_circles*self.num_rays - self.num_rays);
-                        idx2 = idx2 + self.num_circles;
-                        score_a = score_a + sum( diff(idx1:idx2) );
-                        
-                        % Beta
-                        idx1 = idx1 + self.num_circles;
-                        idx2 = idx2 + self.num_rays;
-                        score_b = score_b + sum( diff(idx1:idx2) );
-                        
-                        % Gamma
-                        idx1 = idx1 + self.num_rays;
-                        idx2 = idx2 + (self.num_circles*self.num_rays - self.num_rays);
-                        score_g = score_g + sum( diff(idx1:idx2) );
-                    end
-                    
-                    distances(j,i) = A*score_a + B*score_b + G*score_g;
-                end
-            end
-        end
+        end            
     end
     
     methods (Static)
