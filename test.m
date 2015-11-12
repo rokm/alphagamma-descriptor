@@ -2,9 +2,9 @@ clear;
 close all;
 
 keypoint_distance_threshold = 2.5;
-filter_border = 25;
+filter_border = 50;
 num_points = 1000;
-num_repetitions = 10;
+num_repetitions = 1;
 visualize_sets = false;
 
 dataset = AffineDataset();
@@ -12,15 +12,16 @@ dataset = AffineDataset();
 %[ I1, I2, H12 ] = dataset.get_rotated_image('graffiti', 1, -30);
 [ I1, I2, H12 ] = dataset.get_image_pair('graffiti', 1, 2);
 
-keypoint_detector = vicos.keypoint_detector.SURF('Preset', 'opencv2.3');
+keypoint_detector = vicos.keypoint_detector.SURF('HessianThreshold', 400, 'NOctaves', 3, 'NOctaveLayers', 4);
 %keypoint_detector = cv.FeatureDetector('SIFT');
 
-descriptor_extractor(1, :) = { 'SURF',  vicos.descriptor.SURF() };
-descriptor_extractor(2, :) = { 'BRIEF', vicos.descriptor.BRIEF() };
-descriptor_extractor(3, :) = { 'LATCH', vicos.descriptor.LATCH() };
+descriptor_extractor = cell(0, 2);
 
-%descriptor_extractor = cv.DescriptorExtractor('BriefDescriptorExtractor');
-
+descriptor_extractor(end+1, :) = { 'SURF',  vicos.descriptor.SURF() };
+descriptor_extractor(end+1, :) = { 'O-BRIEF-64', vicos.descriptor.BRIEF('Bytes', 64, 'UseOrientation', true) };
+descriptor_extractor(end+1, :) = { 'O-LATCH-64', vicos.descriptor.LATCH('Bytes', 64, 'RotationInvariance', true) };
+descriptor_extractor(end+1,:) = { 'U-AlphaGamma-C23 E', vicos.descriptor.AlphaGamma('orientation', false, 'extended', true, 'sampling', 'gaussian', 'use_scale', false, 'num_rays', 23) };
+descriptor_extractor(end+1,:) = { 'O-AlphaGamma-C23 E', vicos.descriptor.AlphaGamma('orientation', true, 'extended', true, 'sampling', 'gaussian', 'use_scale', false, 'num_rays', 23) };
 
 %% Gather a set of corresponding keypoints
 fprintf('Obtaining set(s) of correspondences from the image pair...\n');

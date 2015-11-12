@@ -45,14 +45,14 @@ void mexFunction (int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
     if (mxGetClassID(prhs[1]) != mxDOUBLE_CLASS || mxGetM(prhs[1]) != 2) {
         mexErrMsgTxt("keypoints2 matrix must be a 2xN2 double matrix!");
     }
-    
+
     double distanceThreshold = 2.5;
     if (nrhs > 2) {
         distanceThreshold = mxGetScalar(prhs[2]);
     }
 
-    // We manually cast the input matrices to CV_64FC2 type, in order to
-    // have faster access to the data
+    // Cast the input matrices to CV_64FC2 type in order to have
+    // faster access to the data
     const cv::Mat keypoints1 = cv::Mat(mxGetN(prhs[0]), 1, CV_64FC2, mxGetData(prhs[0]));
     const cv::Mat keypoints2 = cv::Mat(mxGetN(prhs[1]), 1, CV_64FC2, mxGetData(prhs[1]));
 

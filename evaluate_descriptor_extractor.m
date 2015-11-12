@@ -51,11 +51,15 @@ function recognition_rate = evaluate_descriptor_extractor (I1, I2, keypoints1, k
     num_keypoint_pairs = numel(keypoints1);
 
     %% Extract descriptors
+    t = tic();
     [ desc1, keypoints1b ] = descriptor_extractor.compute(I1, keypoints1);
     [ desc2, keypoints2b ] = descriptor_extractor.compute(I2, keypoints2);
+    fprintf('  >>> descriptor computation: %f seconds\n', toc(t));
 
     % Compute N2xN1 distance matrix (hence first desc2, then desc1)
+    t = tic();
     descriptor_distances = descriptor_extractor.compute_pairwise_distances(desc1, desc2);
+    fprintf('  >>> distance matrix computation: %f seconds\n', toc(t));
 
     %% Evaluate
     % Validate the matches; here, we need to be able to handle the cases when
