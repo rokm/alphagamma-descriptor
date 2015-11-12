@@ -17,7 +17,8 @@ classdef OpenCvDescriptor < vicos.descriptor.Descriptor
             % Query the implementation for default norm type
             normType = self.implementation.defaultNorm();
             
-            % Compute the distances using cv::batchDistance()
+            % Compute the distances using cv::batchDistance(); in order to
+            % get an N2xN1 matrix, we switch desc1 and desc2
             distances = cv.batchDistance(desc2, desc1, 'K', 0, 'NormType', normType);
         end
     end

@@ -55,7 +55,7 @@ function recognition_rate = evaluate_descriptor_extractor (I1, I2, keypoints1, k
     [ desc2, keypoints2b ] = descriptor_extractor.compute(I2, keypoints2);
 
     % Compute N2xN1 distance matrix (hence first desc2, then desc1)
-    descriptor_distances = descriptor_extractor.compute_pairwise_distances(desc2, desc1);
+    descriptor_distances = descriptor_extractor.compute_pairwise_distances(desc1, desc2);
 
     %% Evaluate
     % Validate the matches; here, we need to be able to handle the cases when

@@ -8,8 +8,37 @@ classdef BRIEF < vicos.descriptor.OpenCvDescriptor
     end
     
     methods
-        function self = BRIEF ()
-            self.implementation = cv.DescriptorExtractor('BriefDescriptorExtractor');
+        function self = BRIEF (varargin)
+            % self = BRIEF (varargin)
+            %
+            % Creates BRIEF descriptor extractor.
+            %
+            % Input: optional key/value pairs that correspond directly to
+            % the implementation's parameters:
+            %  - Bytes
+            %  - UseOrientation
+            %
+            % Output:
+            %  - @BRIEF instance
+            
+            % Input parser
+            parser = inputParser();
+            parser.addParameter('Bytes', [], @isnumeric);
+            parser.addParameter('UseOrientation', [], @islogical);  
+            parser.parse(varargin{:});
+            
+            %% Gather parameters   
+            fields = fieldnames(parser.Results);
+            params = {};
+            for f = 1:numel(fields),
+                field = fields{f};
+                if ~isempty(parser.Results.(field)),
+                    params = [ params, field, parser.Results.(field) ];
+                end
+            end
+            
+            %% Create implementation
+            self.implementation = cv.DescriptorExtractor('BriefDescriptorExtractor', params{:});
         end
     end
 end
