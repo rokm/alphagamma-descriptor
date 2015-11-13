@@ -301,7 +301,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             b = mean(field, 2) - field_avg; % Beta effects
             
             if self.extended,
-                sa = sqrt((sum(a.*a) - sum(a)^2/self.num_circles) / self.num_circles);
+                sa = sqrt((sum(a.*a) - sum(a)^2/self.num_circles) / self.num_circles); % TODO: self.num_circles - 1
                 aa = abs(a) > sa*self.extended_threshold;
                 alpha_ext = aa - (1 - aa);
                 alpha_ext = reshape(alpha_ext, [], 1);
@@ -317,7 +317,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             gamma = field - gamma - field_avg;
             
             if self.extended,
-                sg = sqrt((sum(sum(gamma.*gamma)) - sum(sum(gamma))^2/numel(gamma)) / numel(gamma));
+                sg = sqrt((sum(sum(gamma.*gamma)) - sum(sum(gamma))^2/numel(gamma)) / numel(gamma)); % TODO: self.num_rays - 1, varianca po stolpcih.
                 gg = abs(gamma) > sg*self.extended_threshold;
                 gamma_ext = gg - (1 - gg);
                 gamma_ext = reshape(gamma_ext, [], 1);

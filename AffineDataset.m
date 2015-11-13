@@ -7,7 +7,7 @@ classdef AffineDataset
         dataset_path
         
         % Valid sequence names
-        valid_sequences = { 'bark', 'bikes', 'boat', 'graffiti', 'leuven', 'trees', 'ubc', 'wall' };
+        valid_sequences = { 'bark', 'bikes', 'boat', 'graffiti', 'leuven', 'trees', 'ubc', 'wall', 'day_night' };
     end
     
     methods

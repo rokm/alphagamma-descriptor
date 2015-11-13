@@ -5,6 +5,8 @@ classdef SIFT < vicos.keypoint_detector.OpenCvKeypointDetector
     
     properties
         implementation
+        
+        upright
     end
     
     methods
@@ -20,6 +22,7 @@ classdef SIFT < vicos.keypoint_detector.OpenCvKeypointDetector
             %  - ConstrastThreshold
             %  - EdgeThreshold
             %  - Sigma
+            %  - UpRight: manually zero the angles returned by the detector
             %
             % Output:
             %  - @SIFT instance
@@ -31,10 +34,14 @@ classdef SIFT < vicos.keypoint_detector.OpenCvKeypointDetector
             parser.addParameter('ConstrastThreshold', [], @isnumeric);
             parser.addParameter('EdgeThreshold', [], @isnumeric);
             parser.addParameter('Sigma', [], @isnumeric);  
+            parser.addParameter('UpRight', false, @islogical);  
             parser.parse(varargin{:});
+            
+            self.upright = parser.Results.UpRight;
             
             %% Gather parameters   
             fields = fieldnames(parser.Results);
+            fields = setdiff(fields, 'UpRight'); % exclude
             params = {};
             for f = 1:numel(fields),
                 field = fields{f};
@@ -45,6 +52,15 @@ classdef SIFT < vicos.keypoint_detector.OpenCvKeypointDetector
             
             %% Create implementation            
             self.implementation = cv.FeatureDetector('SIFT', params{:});
+        end
+        
+        function keypoints = detect (self, I)
+            % Detect keypoints using the child-provided implementation
+            keypoints = self.implementation.detect(I);
+            
+            if self.upright,
+                [ keypoints.angle ] = deal(0);
+            end
         end
     end
 end
