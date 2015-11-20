@@ -13,6 +13,11 @@ classdef OpenCvDescriptor < vicos.descriptor.Descriptor
             [ descriptors, keypoints ] = self.implementation.compute(I, keypoints);
         end
         
+        function descriptor_size = get_descriptor_size (self)
+            % Query the implementation for descriptor size
+            descriptor_size = self.implementation.descriptorSize();
+        end
+        
         function distances = compute_pairwise_distances (self, desc1, desc2)
             % Query the implementation for default norm type
             normType = self.implementation.defaultNorm();

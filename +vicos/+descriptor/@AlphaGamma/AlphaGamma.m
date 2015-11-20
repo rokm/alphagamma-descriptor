@@ -116,8 +116,10 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                     step = sqrt(2);
                     for i = 1:self.num_circles,
                         if i == 1,
-                            sigmas(i) = 0.3;
-                            radii(i) = 0.71;
+                            %sigmas(i) = 0.3;
+                            %radii(i) = 0.71;
+                            sigmas(i) = 0.3; % Variable
+                            radii(i) = 0.71/0.3 * sigmas(i);
                         else
                             sigmas(i) = sigmas(i-1)*step;
                             radii(i) = radii(i-1) + step*sigmas(i);
