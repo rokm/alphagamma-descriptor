@@ -5,6 +5,8 @@ classdef SIFT < vicos.descriptor.OpenCvDescriptor
     
     properties
         implementation
+        
+        patch_scale_factor = 10
     end
     
     methods
@@ -45,6 +47,13 @@ classdef SIFT < vicos.descriptor.OpenCvDescriptor
             
             %% Create implementation           
             self.implementation = cv.DescriptorExtractor('SIFT', params{:});
+        end
+        
+        function desc = compute_from_patch (self, I)            
+            keypoint.pt = size(I) / 2;
+            keypoint.size = size(I, 1) / self.patch_scale_factor;
+                        
+            [ desc, pts ] = self.compute(I, keypoint);
         end
     end
 end
