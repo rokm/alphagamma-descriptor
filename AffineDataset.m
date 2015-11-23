@@ -105,4 +105,9 @@ classdef AffineDataset
             H12 = T2*R*T1;
         end
     end
+    
+    methods (Static)
+        function [ distances, correspondences ] = 
+    end
+    
 end

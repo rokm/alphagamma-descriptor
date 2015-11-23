@@ -17,7 +17,7 @@ function recognition_rate = evaluate_descriptor_extractor (I1, I2, keypoints1, k
     %
     % This function assumes that the input keypoints are already
     % correspondence pairs, for example computed using
-    % DETECT_CORRESPONDING_KEYPOINTS() function.
+    % AFFINE_DETECT_CORRESPONDING_KEYPOINTS() function.
     %
     % Input:
     %  - I1: first image

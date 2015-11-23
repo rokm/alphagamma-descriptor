@@ -1,4 +1,20 @@
 function fig = visualize_results_image_pairs (results)
+    % fig = VISUALIZE_RESULTS_IMAGE_PAIRS (results)
+    %
+    % Visualizes results of image-pair batch experiments.
+    %
+    % Input:
+    %  - results: results structure or .mat filename
+    %
+    % Output:
+    %  - fig: figure with visualization
+    %
+    % (C) 2015, Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
+    
+    if isa(results, 'char'),
+        results = load(results);
+    end
+    
      %% Compute mean and std
     recognition_rates_mean = squeeze( mean(results.recognition_rates) );
     recognition_rates_std = squeeze( std(results.recognition_rates) );
@@ -36,5 +52,5 @@ function fig = visualize_results_image_pairs (results)
         errorbar(x, recognition_rates_mean(i,:), recognition_rates_std(i,:), 'k', 'LineWidth', 1.5, 'LineStyle', 'none');
     end
     
-    title(results.title);
+    title(results.title, 'Interpreter', 'none');
 end

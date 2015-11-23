@@ -1,8 +1,14 @@
+% AFFINE_RUN_EXPERIMENTS_IMAGE_PAIRS
+%
+% Runs all image pair experiments on Affine Dataset sequences.
+%
+% (C) 2015, Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
+
 clear;
 close all;
 
 visualize = true;
-result_dir = 'results-affine';
+result_dir = 'results-affine-pairs';
 
 sequences = { 'bark', 'bikes', 'boat', 'day_night', 'graffiti', 'leuven', 'trees', 'ubc', 'wall' };
 
@@ -33,7 +39,7 @@ for s = 1:numel(sequences),
         descriptors(end+1,:) = { 'O-\alpha\gamma C55x2', vicos.descriptor.AlphaGamma('orientation', true, 'extended', true, 'sampling', 'gaussian', 'use_scale', false) };
         descriptors(end+1,:) = { 'O-\alpha\gamma C23x2', vicos.descriptor.AlphaGamma('orientation', true, 'extended', true, 'sampling', 'gaussian', 'use_scale', false, 'num_rays', 23) };
 
-        results = batch_experiment_image_pairs(keypoint_detector, descriptors, 'sequence', sequence);
+        results = affine_batch_experiment_image_pairs(keypoint_detector, descriptors, 'sequence', sequence);
         results.title = experiment_title;
 
         save(result_file, '-struct', 'results');
@@ -65,7 +71,7 @@ for s = 1:numel(sequences),
         descriptors(end+1,:) = { 'U-\alpha\gamma C55x2', vicos.descriptor.AlphaGamma('orientation', false, 'extended', true, 'sampling', 'gaussian', 'use_scale', false) };
         descriptors(end+1,:) = { 'U-\alpha\gamma C23x2', vicos.descriptor.AlphaGamma('orientation', false, 'extended', true, 'sampling', 'gaussian', 'use_scale', false, 'num_rays', 23) };
 
-        results = batch_experiment_image_pairs(keypoint_detector, descriptors, 'sequence', sequence);
+        results = affine_batch_experiment_image_pairs(keypoint_detector, descriptors, 'sequence', sequence);
         results.title = experiment_title;
 
         save(result_file, '-struct', 'results');
@@ -97,7 +103,7 @@ for s = 1:numel(sequences),
         descriptors(end+1,:) = { 'O-\alpha\gamma C55x2', vicos.descriptor.AlphaGamma('orientation', true, 'extended', true, 'sampling', 'gaussian', 'use_scale', false) };
         descriptors(end+1,:) = { 'O-\alpha\gamma C23x2', vicos.descriptor.AlphaGamma('orientation', true, 'extended', true, 'sampling', 'gaussian', 'use_scale', false, 'num_rays', 23) };
 
-        results = batch_experiment_image_pairs(keypoint_detector, descriptors, 'sequence', sequence);
+        results = affine_batch_experiment_image_pairs(keypoint_detector, descriptors, 'sequence', sequence);
         results.title = experiment_title;
 
         save(result_file, '-struct', 'results');
@@ -129,7 +135,7 @@ for s = 1:numel(sequences),
         descriptors(end+1,:) = { 'U-\alpha\gamma C55x2', vicos.descriptor.AlphaGamma('orientation', false, 'extended', true, 'sampling', 'gaussian', 'use_scale', false) };
         descriptors(end+1,:) = { 'U-\alpha\gamma C23x2', vicos.descriptor.AlphaGamma('orientation', false, 'extended', true, 'sampling', 'gaussian', 'use_scale', false, 'num_rays', 23) };
 
-        results = batch_experiment_image_pairs(keypoint_detector, descriptors, 'sequence', sequence);
+        results = affine_batch_experiment_image_pairs(keypoint_detector, descriptors, 'sequence', sequence);
         results.title = experiment_title;
 
         save(result_file, '-struct', 'results');

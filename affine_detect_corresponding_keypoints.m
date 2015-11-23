@@ -1,5 +1,5 @@
-function result = detect_corresponding_keypoints (I1, I2, H12, keypoint_detector, varargin)
-    % result = DETECT_CORRESPONDING_KEYPOINTS (I1, I2, H12, keypoint_detector, varargin)
+function result = affine_detect_corresponding_keypoints (I1, I2, H12, keypoint_detector, varargin)
+    % result = AFFINE_DETECT_CORRESPONDING_KEYPOINTS (I1, I2, H12, keypoint_detector, varargin)
     % 
     % Finds a set of corresponding keypoints. Keypoints are detected in the
     % pair of input images, and geometric correspondences are established
