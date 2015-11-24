@@ -5,6 +5,8 @@ classdef LATCH < vicos.descriptor.OpenCvDescriptor
     
     properties
         implementation
+        
+        patch_size = 56
     end
     
     methods
@@ -48,10 +50,12 @@ classdef LATCH < vicos.descriptor.OpenCvDescriptor
             % thus it filters out points that are less than 24 + 3 = 27 
             % pixels from the image border. Hence, the patch must be larger 
             % than 54x54 pixels, and we opt to use 56x56.
-            I = imresize(I, [ 56, 56 ]);
+            %I = imresize(I, [ 56, 56 ]);
+            
+            I = imresize(I, [ self.patch_size, self.patch_size ]);
             
             keypoint.pt = size(I) / 2;
-            keypoint.size = size(I, 1) / 2;
+            keypoint.size = size(I, 1) / 2; % Does not really matter
             
             desc = self.compute(I, keypoint);
         end

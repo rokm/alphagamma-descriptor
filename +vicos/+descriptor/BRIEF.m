@@ -5,6 +5,8 @@ classdef BRIEF < vicos.descriptor.OpenCvDescriptor
     
     properties
         implementation
+        
+        patch_size = 58
     end
     
     methods
@@ -42,14 +44,16 @@ classdef BRIEF < vicos.descriptor.OpenCvDescriptor
         end
         
         function desc = compute_from_patch (self, I)            
-            % BRIEF implementation used 48x48 patch and 9x9 smoothing
+            % BRIEF implementation uses 48x48 patch and 9x9 smoothing
             % kernel, thus it filters out points that are less than 
             % 24 + 4 = 28 pixels from the image border. Hence, the patch 
             % must be larger than 56x56 pixels, and we opt to use 58x58.
-            I = imresize(I, [ 58, 58 ]);
+            
+            %I = imresize(I, [ 58, 58 ]);
+            I = imresize(I, [ self.patch_size, self.patch_size ]);
             
             keypoint.pt = size(I) / 2;
-            keypoint.size = size(I, 1) / 2;
+            keypoint.size = size(I, 1) / 2; % Does not really matter
             
             desc = self.compute(I, keypoint);
         end

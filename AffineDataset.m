@@ -60,8 +60,8 @@ classdef AffineDataset
             H12 = load( fullfile(data_path, sprintf('H%dto%dp', i1, i2)) );
         end
         
-        function [ I1, I2, H12 ] = get_rotated_image (self, sequence, i, angle)
-            % [ I1, I2, H12 ] = GET_ROTATED_IMAGE (self, sequence, i1, angle)
+        function [ I1, I2, H12 ] = get_rotated_image (self, sequence, img, angle)
+            % [ I1, I2, H12 ] = GET_ROTATED_IMAGE (self, sequence, img, angle)
             %
             % Loads an image from the affine dataset and rotates it for the
             % specified angle.
@@ -77,13 +77,13 @@ classdef AffineDataset
             %  - H12: homography between both images
 
             % Validate parameters
-            assert(i >= 1 && i <= 6, 'Second image must be image #1..#6!');
+            assert(img >= 1 && img <= 6, 'Second image must be image #1..#6!');
             assert(ismember(sequence, self.valid_sequences), 'Invalid sequence name!');
 
             % Load
             data_path = fullfile(self.dataset_path, sequence);
 
-            I1 = imread( fullfile(data_path, sprintf('img%d.ppm', i)) );
+            I1 = imread( fullfile(data_path, sprintf('img%d.ppm', img)) );
             I2 = imrotate(I1, -angle, 'bilinear', 'loose'); % NOTE: imrotate rotates in counter-clockwise, while we expect rotation to be clockwise!
 
             % Construct the homography
@@ -105,9 +105,4 @@ classdef AffineDataset
             H12 = T2*R*T1;
         end
     end
-    
-    methods (Static)
-        function [ distances, correspondences ] = 
-    end
-    
 end

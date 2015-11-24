@@ -191,12 +191,8 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             end
 
             num_points = numel(keypoints);            
-            descriptor_size = self.num_circles + self.num_circles*self.num_rays;
-            if self.extended,
-                descriptor_size = 2*descriptor_size;
-            end
             
-            desc = zeros(descriptor_size, num_points, 'uint8');
+            desc = zeros(get_descriptor_size(self), num_points, 'uint8');
             
             if self.use_scale,
                 % Use scale; crop each patch and rescale it to the
@@ -260,6 +256,17 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             else
                 % Fast MEX version
                 distances = alpha_gamma_distances(desc1, desc2, self.num_circles, self.num_rays, self.extended);
+            end
+        end
+        
+        function desc = compute_from_patch (self, I)            
+            error('FIXME: implement compute_from_patch method!');
+        end
+        
+        function descriptor_size = get_descriptor_size (self)
+            descriptor_size = self.num_circles + self.num_circles*self.num_rays;
+            if self.extended,
+                descriptor_size = 2*descriptor_size;
             end
         end
     end
