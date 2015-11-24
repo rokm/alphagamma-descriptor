@@ -30,7 +30,7 @@ classdef SURF < vicos.keypoint_detector.OpenCvKeypointDetector
             parser.addParameter('NOctaves', [], @isnumeric);
             parser.addParameter('NOctaveLayers', [], @isnumeric);
             parser.addParameter('Extended', [], @islogical);
-            parser.addParameter('UpRight', [], @islogical);  
+            parser.addParameter('Upright', [], @islogical);  
             parser.parse(varargin{:});
             
             %% Gather parameters   
