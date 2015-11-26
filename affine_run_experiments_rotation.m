@@ -7,7 +7,7 @@
 clear;
 close all;
 
-visualize = false;
+visualize = true;
 result_dir = 'results-affine-rotation';
 
 %sequences = { 'bark', 'bikes', 'boat', 'day_night', 'graffiti', 'leuven', 'trees', 'ubc', 'wall' };

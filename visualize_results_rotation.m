@@ -1,5 +1,5 @@
-function fig = visualize_results_image_rotation (results)
-    % fig = VISUALIZE_RESULTS_IMAGE_ROTATION (results)
+function fig = visualize_results_rotation (results)
+    % fig = VISUALIZE_RESULTS_ROTATION (results)
     %
     % Visualizes results of rotation batch experiments.
     %
