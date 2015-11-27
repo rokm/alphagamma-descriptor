@@ -259,15 +259,19 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             end
         end
         
-        function desc = compute_from_patch (self, I)            
-            error('FIXME: implement compute_from_patch method!');
-        end
-        
         function descriptor_size = get_descriptor_size (self)
             descriptor_size = self.num_circles + self.num_circles*self.num_rays;
             if self.extended,
                 descriptor_size = 2*descriptor_size;
             end
+        end
+        
+        function decriptor = compute_from_patch (self, I)
+            I = imresize(I, [ 95, 95 ]);
+            keypoint.pt = size(I) / 2;
+            keypoint.size = size(I, 1) / 2; % Irrelevant
+            
+            decriptor = self.compute(I, keypoint);
         end
     end
     
