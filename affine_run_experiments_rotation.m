@@ -7,11 +7,11 @@
 clear;
 close all;
 
-visualize = true;
+visualize = false;
 result_dir = 'results-affine-rotation';
 
 %sequences = { 'bark', 'bikes', 'boat', 'day_night', 'graffiti', 'leuven', 'trees', 'ubc', 'wall' };
-sequences = { 'wall' };
+sequences = { 'wall', 'graffiti' };
 image = 1;
 angles = 0:5:180;
 
@@ -58,7 +58,7 @@ for s = 1:numel(sequences),
     %% Experiment: SURF keypoints, unoriented descriptors
     experiment_name = sprintf('%s-%d-surf-unoriented', sequence, image);
     experiment_title = sprintf('%s #%d - SURF keypoints (unoriented)', sequence, image);
-    
+
     % Perform experiment if necessary
     result_file = sprintf('%s-results.mat', experiment_name);
     result_file = fullfile(result_dir, result_file);
@@ -90,7 +90,7 @@ for s = 1:numel(sequences),
     %% Experiment: SURF keypoints, oriented descriptors
     experiment_name = sprintf('%s-%d-sift-oriented', sequence, image);
     experiment_title = sprintf('%s #%d - SIFT keypoints (oriented)', sequence, image);
-    
+
     % Perform experiment if necessary
     result_file = sprintf('%s-results.mat', experiment_name);
     result_file = fullfile(result_dir, result_file);
@@ -118,7 +118,7 @@ for s = 1:numel(sequences),
     if visualize,
         visualize_results_rotation(results);
     end
-    
+
     %% Experiment: SIFT keypoints, unoriented descriptors
     experiment_name = sprintf('%s-%d-sift-unoriented', sequence, image);
     experiment_title = sprintf('%s #%d - SIFT keypoints (unoriented)', sequence, image);

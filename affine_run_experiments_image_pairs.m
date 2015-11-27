@@ -7,7 +7,7 @@
 clear;
 close all;
 
-visualize = true;
+visualize = false;
 result_dir = 'results-affine-pairs';
 
 sequences = { 'bark', 'bikes', 'boat', 'day_night', 'graffiti', 'leuven', 'trees', 'ubc', 'wall' };
@@ -115,7 +115,7 @@ for s = 1:numel(sequences),
     if visualize,
         visualize_results_image_pairs(results);
     end
-    
+
     %% Experiment: SIFT keypoints, unoriented descriptors
     experiment_name = sprintf('%s-sift-unoriented', sequence);
     experiment_title = sprintf('%s - SIFT keypoints (unoriented)', sequence);
