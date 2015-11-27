@@ -11,18 +11,25 @@ function fig = visualize_results_image_pairs (results)
     %
     % (C) 2015, Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
     
-    if isa(results, 'char'),
+    if ischar(results),
         results = load(results);
     end
     
+    num_repetitions = size(results.recognition_rates, 1);
+    num_descriptors = size(results.recognition_rates, 2);
+    num_pairs = size(results.recognition_rates, 3);
+
      %% Compute mean and std
-    recognition_rates_mean = squeeze( mean(results.recognition_rates) );
-    recognition_rates_std = squeeze( std(results.recognition_rates) );
+    recognition_rates_mean = mean(results.recognition_rates, 1);
+    recognition_rates_std = std(results.recognition_rates, [], 1);
+    
+    recognition_rates_mean = reshape(recognition_rates_mean, num_descriptors, num_pairs);
+    recognition_rates_std = reshape(recognition_rates_std, num_descriptors, num_pairs);
     
     %% Print
-    for p = 1:size(results.recognition_rates, 3),
+    for p = 1:num_pairs,
         fprintf('Pair: 1|%d\n', results.pairs(p));
-        for d = 1:size(results.recognition_rates, 2),
+        for d = 1:num_descriptors,
             fprintf(' %s: %.2f +/- %.2f %%\n', results.descriptor_names{d}, recognition_rates_mean(d,p)*100, recognition_rates_std(d,p)*100);
         end
     end
@@ -43,7 +50,7 @@ function fig = visualize_results_image_pairs (results)
     legend(results.descriptor_names);
 
     % Error bars
-    num_groups = size(recognition_rates_mean, 2); 
+    num_groups = size(recognition_rates_mean, 2);
     num_bars = size(recognition_rates_mean, 1); 
     group_width = min(0.8, num_bars/(num_bars+1.5));
 
