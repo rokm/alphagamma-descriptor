@@ -93,6 +93,7 @@ function result = affine_detect_corresponding_keypoints (I1, I2, H12, keypoint_d
     % both images. Note that when performing the actual evaluation, we will 
     % consider all possible correspondences between the selected points 
     % instead...
+    fprintf(' > computing distances: %d x %d\n', size(pts1, 2), size(pts2, 2));
     [ distances, correspondences ] = compute_keypoint_distances(pts1, pts2p, distance_threshold);
 
     % The correspondences matrix contains non-zero entries that effectively 
@@ -122,19 +123,7 @@ function result = affine_detect_corresponding_keypoints (I1, I2, H12, keypoint_d
 
         %% Display
         if visualize,
-            colors = rand(3,num_points);
-
-            selected_pts1 = pts1(:, i1);
-            selected_pts2 = pts2(:, i2);
-            
-            % New plot
-            figure('Name', sprintf('Correspondences: set #%d', r));
-            II = horzcat(I1, I2);
-            imshow(II);
-            hold on;
-            scatter(selected_pts1(1,:), selected_pts1(2,:), [], colors');
-            scatter(size(I1,2)+selected_pts2(1,:), selected_pts2(2,:), [], colors');
-            drawnow();
+            affine_visualize_correspondences(I1, I2, pts1, pts2, pts1p, pts2p, i1, i2);
         end
     end
 end
