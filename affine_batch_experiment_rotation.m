@@ -27,14 +27,22 @@ function results = affine_batch_experiment_rotation (keypoint_detector, descript
     %
     % Output:
     %  - results: results structure, containing the following fields:
-    %     - recognition_rates: RxNxP matrix of resulting recongition rates,
+    %     - recognition_rates: RxNxA matrix of resulting recongition rates,
     %       where R is number of repetitions, N is number of descriptors,
-    %       and P is number of tested image pairs
+    %       and A is number of angles
     %     - descriptor_names: copy of the input Nx1 cell array of 
     %       descriptor name strings
     %     - image: copy of the input image number
     %     - angles: copy of the input angles array
     %     - sequence: copy of the input sequence name
+    %     - num_keypoints1: Ax1 vector of numbers of keypoints detected in 
+    %       the original image
+    %     - num_keypoints2: Ax1 vector of numbers of keypoints detectd in
+    %       the rotated image(s)
+    %     - num_established_correspondences: Ax1 vector of numbers of 
+    %       correspondences established between the two sets of keypoints
+    %     - num_requested_correspondences: number of requested 
+    %       correspondences (copy of the num_points parameter)
     %
     % (C) 2015 Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
     
@@ -61,12 +69,18 @@ function results = affine_batch_experiment_rotation (keypoint_detector, descript
     filter_border = parser.Results.filter_border;
     visualize_sets = parser.Results.visualize_sets;
 
+    num_angles = numel(angles);
+    
     %% Dataset
     dataset = AffineDataset();
 
     %% Process all image pairs
     recognition_rates = nan(num_repetitions, size(descriptor_extractors, 1), numel(angles));
-    for i = 1:numel(angles),
+    num_keypoints1 = nan(num_angles, 1);
+    num_keypoints2 = nan(num_angles, 1);
+    num_established_correspondences = nan(num_angles, 1);
+    
+    for i = 1:num_angles,
         angle = angles(i);
 
         fprintf('\n--- Angle: %d/%d: %f deg ---\n', i, numel(angles), angle);
@@ -75,7 +89,7 @@ function results = affine_batch_experiment_rotation (keypoint_detector, descript
         [ I1, I2, H12 ] = dataset.get_rotated_image(sequence, image, angle);
 
         % Experiment
-        recognition_rates(:,:,i) = affine_evaluate_descriptor_extractors_on_image_pair(I1, I2, H12, keypoint_detector, descriptor_extractors, keypoint_distance_threshold, num_points, num_repetitions, filter_border, visualize_sets);
+        [ recognition_rates(:,:,i), num_keypoints1(i), num_keypoints2(i), num_established_correspondences(i) ] = affine_evaluate_descriptor_extractors_on_image_pair(I1, I2, H12, keypoint_detector, descriptor_extractors, keypoint_distance_threshold, num_points, num_repetitions, filter_border, visualize_sets);
     end
         
     %% Store results
@@ -84,4 +98,8 @@ function results = affine_batch_experiment_rotation (keypoint_detector, descript
     results.image = image;
     results.angles = angles;
     results.sequence = sequence;
+    results.num_keypoints1 = num_keypoints1;
+    results.num_keypoints2 = num_keypoints2;
+    results.num_established_correspondences = num_established_correspondences;
+    results.num_requested_correspondences = num_points;
 end

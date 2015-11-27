@@ -1,5 +1,5 @@
-function result = affine_detect_corresponding_keypoints (I1, I2, H12, keypoint_detector, varargin)
-    % result = AFFINE_DETECT_CORRESPONDING_KEYPOINTS (I1, I2, H12, keypoint_detector, varargin)
+function [ result, num_keypoints1, num_keypoints2, num_correspondences ] = affine_detect_corresponding_keypoints (I1, I2, H12, keypoint_detector, varargin)
+    % [ result, num_keypoints1, num_keypoints2, num_correspondences ] = AFFINE_DETECT_CORRESPONDING_KEYPOINTS (I1, I2, H12, keypoint_detector, varargin)
     % 
     % Finds a set of corresponding keypoints. Keypoints are detected in the
     % pair of input images, and geometric correspondences are established
@@ -33,6 +33,10 @@ function result = affine_detect_corresponding_keypoints (I1, I2, H12, keypoint_d
     %       keypoints I1 and back-projected keypoints from I2. Columns
     %       correspond to keypoints from I1, and rows correspond to
     %       back-projected keypoints from I2.
+    %  - num_keypoints1: number of keypoints detected in I1
+    %  - num_keypoints2: number of keypoints detected in I2
+    %  - num_correspondences: number of established geometric
+    %    correspondences between the two sets of keypoints
     %
     % Note: keypoints1 and keypoints2 are arrays of OpenCV keypoint
     % structures. The class_id field has been modified to contain the
@@ -93,7 +97,11 @@ function result = affine_detect_corresponding_keypoints (I1, I2, H12, keypoint_d
     % both images. Note that when performing the actual evaluation, we will 
     % consider all possible correspondences between the selected points 
     % instead...
-    fprintf(' > computing distances: %d x %d\n', size(pts1, 2), size(pts2, 2));
+        
+    num_keypoints1 = size(pts1, 2);
+    num_keypoints2 = size(pts2, 2);
+    fprintf(' > computing distances: %d x %d\n', num_keypoints1, num_keypoints2);
+    
     [ distances, correspondences ] = compute_keypoint_distances(pts1, pts2p, distance_threshold);
 
     % The correspondences matrix contains non-zero entries that effectively 
@@ -101,6 +109,8 @@ function result = affine_detect_corresponding_keypoints (I1, I2, H12, keypoint_d
     % correspondences
     num_correspondences = max(correspondences(:));
 
+    fprintf(' > found %d correspondences!\n', num_correspondences);
+    
     %% Select subset(s) of correspondences
     num_points = min(num_points, num_correspondences);
     

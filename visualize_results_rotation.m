@@ -28,7 +28,8 @@ function fig = visualize_results_rotation (results)
     
     %% Print
     for a = 1:num_angles,
-        fprintf('Angle: %f deg\n', results.angles(a));
+        num_correspondences = min(results.num_requested_correspondences, results.num_established_correspondences(a));
+        fprintf('Angle: %f deg (%d correspondences)\n', results.angles(a), num_correspondences);
         for d = 1:num_descriptors,
             fprintf(' %s: %.2f +/- %.2f %%\n', results.descriptor_names{d}, recognition_rates_mean(d,a)*100, recognition_rates_std(d,a)*100);
         end

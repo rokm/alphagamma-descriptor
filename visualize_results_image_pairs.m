@@ -28,7 +28,8 @@ function fig = visualize_results_image_pairs (results)
     
     %% Print
     for p = 1:num_pairs,
-        fprintf('Pair: 1|%d\n', results.pairs(p));
+        num_correspondences = min(results.num_requested_correspondences, results.num_established_correspondences(p));
+        fprintf('Pair: 1|%d (%d correspondences)\n', results.pairs(p), num_correspondences);
         for d = 1:num_descriptors,
             fprintf(' %s: %.2f +/- %.2f %%\n', results.descriptor_names{d}, recognition_rates_mean(d,p)*100, recognition_rates_std(d,p)*100);
         end

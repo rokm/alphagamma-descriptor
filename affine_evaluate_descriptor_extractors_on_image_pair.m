@@ -1,4 +1,4 @@
-function recognition_rates = affine_evaluate_descriptor_extractors_on_image_pair (I1, I2, H12, keypoint_detector, descriptor_extractors, keypoint_distance_threshold, num_points, num_repetitions, filter_border, visualize_sets)
+function [ recognition_rates, num_detected_keypoints1, num_detected_keypoints2, num_established_correspondences ] = affine_evaluate_descriptor_extractors_on_image_pair (I1, I2, H12, keypoint_detector, descriptor_extractors, keypoint_distance_threshold, num_points, num_repetitions, filter_border, visualize_sets)
     % recognition_rates = EVALUATE_DESCRIPTOR_EXTRACTORS_ON_IMAGE_PAIR (I1, I2, H12, keypoint_detector, descriptor_extractors, keypoint_distance_threshold, num_points, num_repetitions, filter_border, visualize_sets)
     %
     % Evaluates given set of descriptor extractors on a pair of input
@@ -27,13 +27,19 @@ function recognition_rates = affine_evaluate_descriptor_extractors_on_image_pair
     %  - recognition_rates: RxNxP matrix of resulting recognition rates,
     %    with R being number of repetitions, N being number of descriptor
     %    extractors, and P being number of pairs
+    %  - num_detected_keypoints1: number of keypoints detected in I1
+    %  - num_detected_keypoints2: number of keypoints detected in I2
+    %  - num_established_correspondences: number of geometric
+    %    correspondences established between the two sets of keypoints
+    %  - num_chosen_correspondences: number of selected correspondences
+    %    (copy of the num_points parameter)
     %
     % (C) 2015, Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
     
     %% Gather a set of corresponding keypoints
     fprintf('Obtaining set(s) of correspondences from the image pair...\n');
     %t = tic();
-    correspondence_sets = affine_detect_corresponding_keypoints(I1, I2, H12, keypoint_detector, 'distance_threshold', keypoint_distance_threshold, 'num_points', num_points, 'num_sets', num_repetitions, 'filter_border', filter_border, 'visualize', visualize_sets);
+    [ correspondence_sets, num_detected_keypoints1, num_detected_keypoints2, num_established_correspondences ] = affine_detect_corresponding_keypoints(I1, I2, H12, keypoint_detector, 'distance_threshold', keypoint_distance_threshold, 'num_points', num_points, 'num_sets', num_repetitions, 'filter_border', filter_border, 'visualize', visualize_sets);
     %fprintf('Done (%f seconds)!\n', toc(t));
 
     fprintf('Evaluating descriptors...\n');
