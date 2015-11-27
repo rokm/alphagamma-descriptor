@@ -75,6 +75,10 @@ classdef AffineDataset
             %  - I1: original image
             %  - I2: rotated image
             %  - H12: homography between both images
+            %
+            % NOTE: following the OpenCV keypoint convention, the returned 
+            % homography assumes a 0-based coordinate system (unlike the
+            % Matlab's 1-based image coordinate system)
 
             % Validate parameters
             assert(img >= 1 && img <= 6, 'Second image must be image #1..#6!');

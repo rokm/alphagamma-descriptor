@@ -185,6 +185,12 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
         end
         
         function [ desc, keypoints ] = compute (self, I, keypoints)
+            
+            % NOTE: keypoints' coordinates are zero-based as we use OpenCV
+            % convention; therefore, we need to convert them to 1-based
+            % indices (and round them) - this is done below, when calling
+            % extract_descriptor_from_keypoint()
+            
             % Convert to grayscale
             if size(I, 3) == 3,
                 I = rgb2gray(I);
@@ -200,8 +206,8 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                 for p = 1:num_points,
                     w = floor(keypoints(p).size * 3/2);
                     h = floor(keypoints(p).size * 3/2);
-                    x = keypoints(p).pt(1);
-                    y = keypoints(p).pt(2);
+                    x = keypoints(p).pt(1) + 1; % 0-based to 1-based coordinate system conversion
+                    y = keypoints(p).pt(2) + 1;
                     
                     xmin = round(x - w);
                     xmax = round(x + w);
@@ -242,9 +248,10 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                     end
                 end
            
-                % Now extract for each point
+                % Now extract for each point (note the 0-based to 1-based
+                % coordinate system conversion)
                 for p = 1:num_points,
-                    desc(:,p) = extract_descriptor_from_keypoint(self, pyramid, keypoints(p).pt);
+                    desc(:,p) = extract_descriptor_from_keypoint(self, pyramid, keypoints(p).pt + 1);
                 end
             end
         end
