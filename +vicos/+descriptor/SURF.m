@@ -57,9 +57,14 @@ classdef SURF < vicos.descriptor.OpenCvDescriptor
             % and multiplies it by 1.2/9.0, and divides by (PATCH_SIZE+1)
             % to obtain the sampling window around the keypoint...
             
-            keypoint.pt = size(I) / 2;
+            % Keypoint position: center of the patch
+            [ h, w, ~ ] = size(I);
+            keypoint.pt = ([ w, h ] - 1) / 2;
+            
+            % Keypoint size: determined by patch_scale_factor parameter
             keypoint.size = size(I, 1) / self.patch_scale_factor;
-                        
+            
+            % Compute descriptor for the keypoint
             desc = self.compute(I, keypoint);
         end
     end

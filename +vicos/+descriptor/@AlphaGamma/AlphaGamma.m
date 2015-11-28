@@ -274,10 +274,17 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
         end
         
         function decriptor = compute_from_patch (self, I)
+            % Resize to patch size
             I = imresize(I, [ 95, 95 ]);
-            keypoint.pt = size(I) / 2;
-            keypoint.size = size(I, 1) / 2; % Irrelevant
             
+            % Keypoint position: center of the patch
+            [ h, w, ~ ] = size(I);
+            keypoint.pt = ([ w, h ] - 1) / 2; % NOTE: we use OpenCV convention and 0-based coordinate system here, because compute() method will convert it to 1-based one...
+            
+            % We do not need to specify keypoint size here, because we are
+            % not using mexopencv...
+            
+            % Compute descriptor for the keypoint
             decriptor = self.compute(I, keypoint);
         end
     end
