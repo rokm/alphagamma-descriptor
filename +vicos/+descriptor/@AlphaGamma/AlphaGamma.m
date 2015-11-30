@@ -28,6 +28,9 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
         
         % Slow distance
         slow_distance
+        
+        %
+        effective_patch_size = 95
     end
     
     % vicos.descriptor.Descriptor implementation
@@ -257,6 +260,17 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
         end
         
         function distances = compute_pairwise_distances (self, desc1, desc2)
+            
+            % Compatibility layer; if descriptors are given in N1xD and
+            % N2xD, transpose them
+            desc_size = get_descriptor_size(self);
+            if (size(desc1, 1) ~= desc_size && size(desc1, 2) == desc_size),
+                desc1 = desc1';
+            end
+            if (size(desc2, 1) ~= desc_size && size(desc2, 2) == desc_size),
+                desc2 = desc2';
+            end
+            
             if self.slow_distance,
                 % Original Matlab function
                 distances = compute_pairwise_distances_slow(self, desc1, desc2);
@@ -275,7 +289,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
         
         function decriptor = compute_from_patch (self, I)
             % Resize to patch size
-            I = imresize(I, [ 95, 95 ]);
+            I = imresize(I, [ self.effective_patch_size, self.effective_patch_size ]);
             
             % Keypoint position: center of the patch
             [ h, w, ~ ] = size(I);
