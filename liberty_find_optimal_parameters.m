@@ -1,5 +1,5 @@
-function liberty_find_optimal_parameters (experiment_id)
-    % LIBERTY_FIND_OPTIMAL_PARAMETERS (experiment_id)
+function fig = liberty_find_optimal_parameters (experiment_id)
+    % fig = LIBERTY_FIND_OPTIMAL_PARAMETERS (experiment_id)
     %
     % Performs experiments on Liberty dataset with aim of producing results
     % across a wide range of parameters for a descriptor extractor (e.g., a
@@ -11,6 +11,9 @@ function liberty_find_optimal_parameters (experiment_id)
     %
     % Input:
     %  - experiment_id: experiment id
+    %
+    % Output:
+    %  - fig: handle of resulting figure
     %
     % (C) 2015, Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
     
@@ -132,36 +135,8 @@ function liberty_find_optimal_parameters (experiment_id)
         save(results_file, '-struct', 'results');
     end
     
-    %% Visualize    
-    num_repetitions = size(results.recognition_rate, 1);
-    num_values = size(results.recognition_rate, 2);
-    num_patchsets = size(results.recognition_rate, 3);
-    
-    recognition_rate_mean = mean(results.recognition_rate, 1);
-    recognition_rate_std = std(results.recognition_rate, [], 1);
-    
-    recognition_rate_mean = reshape(recognition_rate_mean, num_values, num_patchsets);
-    recognition_rate_std = reshape(recognition_rate_std, num_values, num_patchsets);
-    
-    % Plot
-    legend_entries = cell(1, num_patchsets);
-    h = nan(1, num_patchsets);
-    
-    figure;
-    for n = 1:num_patchsets, 
-        h(n) = errorbar(results.parameter_values, 100*recognition_rate_mean(:,n), 100*recognition_rate_std(:,n));
-        hold on;
-        
-        legend_entries{n} = sprintf('#%d', results.patchset_sizes(n));
-    end
-    
-    title(results.experiment_title);
-    xlabel(results.parameter_description);
-    xlim([ results.parameter_values(1), results.parameter_values(end) ]);
-    ylabel('Recognition rate [%]');
-    ylim([ 0, 100 ]);
-    grid on;
-    legend(h, legend_entries);
+    %% Visualize
+    fig = liberty_visualize_parameter_search_results(results);
 end
 
 function results = liberty_evaluate_descriptor_extractor_parameters (descriptor_extractor, experiment_title, parameter_field, parameter_values, parameter_description, patchset_sizes, num_repetitions)
