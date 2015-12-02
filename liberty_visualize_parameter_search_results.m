@@ -13,6 +13,10 @@ function fig = liberty_visualize_parameter_search_results (results)
     %
     % (C) 2015 Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
     
+    if ischar(results),
+        results = load(results);
+    end
+    
     % Determine data dimensions
     num_repetitions = size(results.recognition_rate, 1);
     num_values = size(results.recognition_rate, 2);
