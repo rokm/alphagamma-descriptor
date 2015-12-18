@@ -86,7 +86,7 @@ function results = affine_batch_experiment_image_pairs (keypoint_detector, descr
         [ I1, I2, H12 ] = dataset.get_image_pair(sequence, 1, p);
 
         % Experiment
-        [ recognition_rates(:,:,i), num_keypoints1(i), num_keypoints2(i), num_established_correspondences(i) ] = affine_evaluate_descriptor_extractors_on_image_pair(I1, I2, H12, keypoint_detector, descriptor_extractors, keypoint_distance_threshold, num_points, num_repetitions, filter_border, visualize_sets);
+        [ recognition_rates(:,:,i), num_keypoints1(i), num_keypoints2(i), num_established_correspondences(i) ] = affine_evaluate_descriptor_extractors_on_image_pair(I1, I2, H12, keypoint_detector, descriptor_extractors, false, keypoint_distance_threshold, num_points, num_repetitions, filter_border, visualize_sets);
     end
         
     %% Store results

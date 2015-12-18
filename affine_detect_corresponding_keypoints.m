@@ -3,8 +3,11 @@ function [ result, num_keypoints1, num_keypoints2, num_correspondences ] = affin
     % 
     % Finds a set of corresponding keypoints. Keypoints are detected in the
     % pair of input images, and geometric correspondences are established
-    % based on the provided homography. A subset of correspondences are
-    % randomly chosen, and returned for further processing.
+    % based on the provided homography. Alternatively, keypoints are
+    % detected in the first image, and directly projected into the second
+    % image using the provided homography. One or more subsets of 
+    % correspondences are randomly chosen, and returned for further 
+    % processing.
     %
     % Input:
     %  - I1: first image
@@ -13,6 +16,11 @@ function [ result, num_keypoints1, num_keypoints2, num_correspondences ] = affin
     %  - keypoint_detector: keypoint detector (instance of
     %    vicos.keypoint_detector.KeypointDetector)
     %  - varargin: key/value pairs with optional parameters:
+    %     - project_keypoints: if set to false (default), keypoints are 
+    %       detected in both first and second image, and then matched via 
+    %       homography and distance constraints. If set to true, the 
+    %       keypoints are detected only in the first image, and then 
+    %       directly projected to the second image via homography. 
     %     - distance_threshold: keypoint distance threshold for
     %       establishing geometric correspondences (default: 2.5)
     %     - filter_border: image border size used when filtering the
@@ -50,6 +58,7 @@ function [ result, num_keypoints1, num_keypoints2, num_correspondences ] = affin
     
     %% Gather optional arguments
     parser = inputParser();
+    parser.addParameter('project_keypoints', false, @islogical);
     parser.addParameter('distance_threshold', 2.5, @isnumeric);
     parser.addParameter('filter_border', 25, @isnumeric);
     parser.addParameter('num_points', 1000, @isnumeric);
@@ -57,15 +66,25 @@ function [ result, num_keypoints1, num_keypoints2, num_correspondences ] = affin
     parser.addParameter('visualize', false, @islogical);
     parser.parse(varargin{:});
     
+    do_project_keypoints = parser.Results.project_keypoints;
+    
     distance_threshold = parser.Results.distance_threshold;
     filter_border = parser.Results.filter_border;
     num_points = parser.Results.num_points;
     num_sets = parser.Results.num_sets;
     visualize = parser.Results.visualize;
 
-    %% Detect keypoints
+    %% Detect keypoints in first image
     keypoints1 = keypoint_detector.detect(I1);
-    keypoints2 = keypoint_detector.detect(I2);
+    
+    %% Obtain keypoints in second image
+    if do_project_keypoints,
+        % Projection
+        keypoints2 = project_keypoints(keypoints1, H12);
+    else
+        % Detection
+        keypoints2 = keypoint_detector.detect(I2);
+    end
 
     %% Image-border-based filtering
     % Project points in both direction, and filter out the ones that fall
@@ -76,9 +95,14 @@ function [ result, num_keypoints1, num_keypoints2, num_correspondences ] = affin
     pts1p = project_points(pts1, H12);
     pts2p = project_points(pts2, inv(H12));
 
-    invalid_idx1 = pts1p(1,:) < filter_border | pts1p(1,:) >= (size(I2, 2) - filter_border) | pts1p(2,:) < filter_border | pts1p(2,:) >= (size(I2, 1) - filter_border);
-    invalid_idx2 = pts2p(1,:) < filter_border | pts2p(1,:) >= (size(I1, 2) - filter_border) | pts2p(2,:) < filter_border | pts2p(2,:) >= (size(I1, 1) - filter_border);
-
+    invalid_idx1 = find_invalid_points(pts1, I1, filter_border) | find_invalid_points(pts1p, I2, filter_border);
+    invalid_idx2 = find_invalid_points(pts2, I2, filter_border) | find_invalid_points(pts2p, I1, filter_border);
+    
+    % Sanity check: if we are projecting keypoints, invalid_idx1 and
+    % invalid_idx2 should be equal
+    assert(~do_project_keypoints || isequal(invalid_idx1, invalid_idx2), 'Sanity check failed!');
+    
+    % Remove
     keypoints1(invalid_idx1) = [];
     keypoints2(invalid_idx2) = [];
 
@@ -97,12 +121,25 @@ function [ result, num_keypoints1, num_keypoints2, num_correspondences ] = affin
     % both images. Note that when performing the actual evaluation, we will 
     % consider all possible correspondences between the selected points 
     % instead...
-        
+
     num_keypoints1 = size(pts1, 2);
     num_keypoints2 = size(pts2, 2);
     fprintf(' > computing distances: %d x %d\n', num_keypoints1, num_keypoints2);
-    
-    [ distances, correspondences ] = compute_keypoint_distances(pts1, pts2p, distance_threshold);
+
+    if do_project_keypoints,
+        % In case of projected keypoints, we only need to compute distances
+        % as we already know which points are correspondences
+        assert(num_keypoints1 == num_keypoints2, 'Sanity check failed!');
+        
+        correspondences = diag(1:num_keypoints1);
+        distances = compute_keypoint_distances(pts1, pts2p, distance_threshold);
+        
+        % Diagonal of distances matrix must be zero!
+        assert(all( diag(distances) < 1e-6 ), 'Sanity check failed!');
+    else
+        % Compute both distances and correspondences
+        [ distances, correspondences ] = compute_keypoint_distances(pts1, pts2p, distance_threshold);
+    end
 
     % The correspondences matrix contains non-zero entries that effectively 
     % denote the ranking of the match; so max value is the total number of 
@@ -121,7 +158,7 @@ function [ result, num_keypoints1, num_keypoints2, num_correspondences ] = affin
         % Find the indices of selected correspondences
         [ i2, i1 ] = find(ismember(correspondences, selected_idx));
 
-        assert( all(sqrt( sum((pts1(:,i1) - pts2p(:,i2)).^2) ) < distance_threshold), 'Bug in the code!');
+        assert( all(sqrt( sum((pts1(:,i1) - pts2p(:,i2)).^2) ) < distance_threshold), 'Sanity check failed!');
 
         %% Select the points
         % Augment keypoints with class IDs; this will allow us to identify any
@@ -136,4 +173,14 @@ function [ result, num_keypoints1, num_keypoints2, num_correspondences ] = affin
             affine_visualize_correspondences(I1, I2, pts1, pts2, pts1p, pts2p, i1, i2);
         end
     end
+end
+
+function invalid_idx = find_invalid_points (pts, I, filter_border)
+    % invalid_idx = FIND_INVALID_POINTS (pts, I, filter_border)
+    %
+    % Returns indices of points whose coordinates fall too close to image
+    % borders.
+   
+    % Check all four borders
+    invalid_idx = pts(1,:) < filter_border | pts(1,:) >= (size(I, 2) - filter_border) | pts(2,:) < filter_border | pts(2,:) >= (size(I, 1) - filter_border);
 end

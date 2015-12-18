@@ -7,13 +7,19 @@
 clear;
 close all;
 
+%% Settings
+project_keypoints = true; % Project points instead of matching them
 visualize = false;
 result_dir = 'results-affine-rotation';
 
-%sequences = { 'bark', 'bikes', 'boat', 'day_night', 'graffiti', 'leuven', 'trees', 'ubc', 'wall' };
 sequences = { 'wall', 'graffiti' };
 image = 1;
 angles = 0:5:180;
+
+% Distinction between results with matching and those with projection
+if project_keypoints,
+    result_dir = [ result_dir, '-proj' ];
+end
 
 %% Process
 if ~exist(result_dir, 'dir'),
@@ -42,7 +48,7 @@ for s = 1:numel(sequences),
         descriptors(end+1,:) = { 'O-\alpha\gamma C55x2', vicos.descriptor.AlphaGamma('orientation', true, 'extended', true, 'sampling', 'gaussian', 'use_scale', false) };
         descriptors(end+1,:) = { 'O-\alpha\gamma C23x2', vicos.descriptor.AlphaGamma('orientation', true, 'extended', true, 'sampling', 'gaussian', 'use_scale', false, 'num_rays', 23) };
 
-        results = affine_batch_experiment_rotation(keypoint_detector, descriptors, 'sequence', sequence, 'image', image, 'angles', angles);
+        results = affine_batch_experiment_rotation(keypoint_detector, descriptors, 'sequence', sequence, 'image', image, 'angles', angles, 'project_keypoints', project_keypoints);
         results.title = experiment_title;
 
         save(result_file, '-struct', 'results');
@@ -74,7 +80,7 @@ for s = 1:numel(sequences),
         descriptors(end+1,:) = { 'U-\alpha\gamma C55x2', vicos.descriptor.AlphaGamma('orientation', false, 'extended', true, 'sampling', 'gaussian', 'use_scale', false) };
         descriptors(end+1,:) = { 'U-\alpha\gamma C23x2', vicos.descriptor.AlphaGamma('orientation', false, 'extended', true, 'sampling', 'gaussian', 'use_scale', false, 'num_rays', 23) };
 
-        results = affine_batch_experiment_rotation(keypoint_detector, descriptors, 'sequence', sequence, 'image', image, 'angles', angles);
+        results = affine_batch_experiment_rotation(keypoint_detector, descriptors, 'sequence', sequence, 'image', image, 'angles', angles, 'project_keypoints', project_keypoints);
         results.title = experiment_title;
 
         save(result_file, '-struct', 'results');
@@ -106,7 +112,7 @@ for s = 1:numel(sequences),
         descriptors(end+1,:) = { 'O-\alpha\gamma C55x2', vicos.descriptor.AlphaGamma('orientation', true, 'extended', true, 'sampling', 'gaussian', 'use_scale', false) };
         descriptors(end+1,:) = { 'O-\alpha\gamma C23x2', vicos.descriptor.AlphaGamma('orientation', true, 'extended', true, 'sampling', 'gaussian', 'use_scale', false, 'num_rays', 23) };
 
-        results = affine_batch_experiment_rotation(keypoint_detector, descriptors, 'sequence', sequence, 'image', image, 'angles', angles);
+        results = affine_batch_experiment_rotation(keypoint_detector, descriptors, 'sequence', sequence, 'image', image, 'angles', angles, 'project_keypoints', project_keypoints);
         results.title = experiment_title;
 
         save(result_file, '-struct', 'results');
@@ -138,7 +144,7 @@ for s = 1:numel(sequences),
         descriptors(end+1,:) = { 'U-\alpha\gamma C55x2', vicos.descriptor.AlphaGamma('orientation', false, 'extended', true, 'sampling', 'gaussian', 'use_scale', false) };
         descriptors(end+1,:) = { 'U-\alpha\gamma C23x2', vicos.descriptor.AlphaGamma('orientation', false, 'extended', true, 'sampling', 'gaussian', 'use_scale', false, 'num_rays', 23) };
 
-        results = affine_batch_experiment_rotation(keypoint_detector, descriptors, 'sequence', sequence, 'image', image, 'angles', angles);
+        results = affine_batch_experiment_rotation(keypoint_detector, descriptors, 'sequence', sequence, 'image', image, 'angles', angles, 'project_keypoints', project_keypoints);
         results.title = experiment_title;
 
         save(result_file, '-struct', 'results');
