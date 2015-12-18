@@ -409,7 +409,11 @@ int main (int argc, char **argv)
     int imageHeight;
     QMatrix4x4 pvmMatrix;
 
-    loadCameraFile(cameraFilename, pvmMatrix, imageWidth, imageHeight);
+    try {
+        loadCameraFile(cameraFilename, pvmMatrix, imageWidth, imageHeight);
+    } catch (const QString &errorMessage) {
+        qFatal(qUtf8Printable(QString("Failed to load camera file: %1").arg(errorMessage)));
+    }
 
     // Initialize OpenGL context on top of an off-screen surface
     qDebug() << "Initializing OpenGL context...";
@@ -477,7 +481,7 @@ int main (int argc, char **argv)
     try {
         uploadModelFromPlyFile(plyFilename, vertexBuffer, colorBuffer, numFaces);
     } catch (const QString &errorMessage) {
-        qFatal(qUtf8Printable(errorMessage));
+        qFatal(qUtf8Printable(QString("Failed to (up)load model: %1").arg(errorMessage)));
     }
 
     // *** Set up data for rendering ***
@@ -570,7 +574,7 @@ int main (int argc, char **argv)
     try {
         writePixelData(outputFilename, pixelBufferPtr, imageWidth, imageHeight);
     } catch (const QString &errorMessage) {
-        qFatal(qUtf8Printable(errorMessage));
+        qFatal(qUtf8Printable(QString("Failed to write output file: %1").arg(errorMessage)));
     }
 
     // Exit
