@@ -14,6 +14,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
         extended_threshold
         
         use_scale
+        scale_factor = 23 % Default for SIFT keypoints
         
         base_sigma
         
@@ -207,19 +208,31 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                 % Use scale; crop each patch and rescale it to the
                 % reference size, then build a pyramid on top of that               
                 for p = 1:num_points,
-                    w = floor(keypoints(p).size * 3/2);
-                    h = floor(keypoints(p).size * 3/2);
-                    x = keypoints(p).pt(1) + 1; % 0-based to 1-based coordinate system conversion
-                    y = keypoints(p).pt(2) + 1;
+                    % Round the keypoint coordinates to integer; convert
+                    % from 0-based to 1-based coordinate system
+                    x = round(keypoints(p).pt(1)) + 1;
+                    y = round(keypoints(p).pt(2)) + 1;
                     
-                    xmin = round(x - w);
-                    xmax = round(x + w);
-                    ymin = round(y - h);
-                    ymax = round(y + h);
+                    % Apply patch scale conversion
+                    w = round(keypoints(p).size * self.scale_factor);
+                    h = round(keypoints(p).size * self.scale_factor);
+                    
+                    % Keep scale odd
+                    if ~mod(w, 2),
+                        w = w + 1;
+                    end
+                    if ~mod(h, 2),
+                        h = h + 1;
+                    end
                     
                     % Crop the patch
-                    patch = self.cut_patch_from_image(I, xmin, xmax, ymin, ymax);
-                    patch = imresize(patch, [ self.patch_size, self.patch_size ]);
+                    patch = self.cut_patch_from_image(I, x, y, w, h);
+                    
+                    % Resize patch to the reference size (patch size plus
+                    % 2 x size of the largest filter)
+                    filter_size = (size(self.filters{end},1) - 1) / 2;
+                    reference_size = self.patch_size + 2*filter_size;
+                    patch = imresize(patch, [ reference_size, reference_size ]);
                     
                     % Compute image pyramid on top of the patch
                     pyramid = zeros(size(patch, 1), size(patch, 2), self.num_circles);
@@ -234,7 +247,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                     end
                     
                     % Extract
-                    new_center = (size(patch) - 1)/2 + 1;
+                    new_center = (size(patch) - 1)/2;
                     desc(:,p) = extract_descriptor_from_keypoint(self, pyramid, new_center);
                 end
             else
@@ -488,16 +501,22 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             filt = filt / sum(filt(:));
         end
 
-        function patch = cut_patch_from_image (I, x1, x2, y1, y2)
-            % patch = CUT_PATCH_FROM_IMAGE (I, x1, x2, y1, y2)
+        function patch = cut_patch_from_image (I, x, y, w, h)
+            % patch = CUT_PATCH_FROM_IMAGE (I, x, y, w, h)
             %
             % Cuts patch from image with border replication, if necessary.
 
+            assert(mod(w,2) == 1, 'Patch must be of odd size!');
+            assert(mod(h,2) == 1, 'Patch must be of odd size!');
+            
+            w2 = (w-1)/2;
+            h2 = (h-1)/2;
+            
             % Border replication
-            xidx = x1:x2;
+            xidx = (x-w2):(x+w2);
             xidx = min(max(xidx, 1), size(I, 2));
 
-            yidx = y1:y2;
+            yidx = (y-h2):(y+h2);
             yidx = min(max(yidx, 1), size(I, 1));
 
             patch = I(yidx, xidx, :);
