@@ -1,40 +1,41 @@
-classdef SURF < vicos.descriptor.OpenCvDescriptor
-    % SURF - OpenCV SURF descriptor extractor
+classdef KAZE < vicos.descriptor.OpenCvDescriptor
+    % KAZE - OpenCV KAZE descriptor extractor
     %
     % (C) 2015-2016, Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
     
     properties
         implementation
         
-        % The following scale factor should theoretically make use of the 
-        % whole patch
-        patch_scale_factor = 1 / (9.0/1.2 * 1/(20+1))
+        % The following should make use of the whole patch
+        patch_size = 24
     end
     
     methods
-        function self = SURF (varargin)
-            % self = SURF (varargin)
+        function self = KAZE (varargin)
+            % self = KAZE (varargin)
             %
-            % Creates SURF descriptor extractor.
+            % Creates KAZE descriptor extractor.
             %
             % Input: optional key/value pairs that correspond directly to
             % the implementation's parameters:
-            %  - HessianThreshold
-            %  - NOctaves
-            %  - NOctaveLayers
             %  - Extended
             %  - Upright
+            %  - Threshold
+            %  - NOctaves
+            %  - NOctaveLayers
+            %  - Diffusivity
             %
             % Output:
-            %  - @SURF instance
+            %  - @KAZE instance
             
             % Input parser
             parser = inputParser();
-            parser.addParameter('HessianThreshold', [], @isnumeric);
+            parser.addParameter('Extended', [], @islogical);
+            parser.addParameter('Upright', [], @islogical);
+            parser.addParameter('Threshold', [], @isnumeric);
             parser.addParameter('NOctaves', [], @isnumeric);
             parser.addParameter('NOctaveLayers', [], @isnumeric);
-            parser.addParameter('Extended', [], @islogical);
-            parser.addParameter('Upright', [], @islogical);  
+            parser.addParameter('Diffusivity', [], @isnumeric);
             parser.parse(varargin{:});
             
             %% Gather parameters   
@@ -47,22 +48,17 @@ classdef SURF < vicos.descriptor.OpenCvDescriptor
                 end
             end
             
-            %% Create implementation           
-            self.implementation = cv.DescriptorExtractor('SURF', params{:});
+            %% Create implementation
+            self.implementation = cv.DescriptorExtractor('KAZE', params{:});
         end
         
-        function desc = compute_from_patch (self, I)            
-            % SURF implementation has a PATCH_SIZE constant of 20; when
-            % computing descriptor, it takes the keypoint's size parameter,
-            % and multiplies it by 1.2/9.0, and divides by (PATCH_SIZE+1)
-            % to obtain the sampling window around the keypoint...
-            
+        function desc = compute_from_patch (self, I)
             % Keypoint position: center of the patch
             [ h, w, ~ ] = size(I);
             keypoint.pt = ([ w, h ] - 1) / 2;
             
             % Keypoint size: determined by patch_scale_factor parameter
-            keypoint.size = size(I, 1) / self.patch_scale_factor;
+            keypoint.size = size(I, 1) / self.patch_size;
             
             % Compute descriptor for the keypoint
             desc = self.compute(I, keypoint);

@@ -1,7 +1,7 @@
 classdef OpenCvDescriptor < vicos.descriptor.Descriptor
     % OPENCVDESCRIPTOR - base class for OpenCV descriptor implementations
     %
-    % (C) 2015, Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
+    % (C) 2015-2016, Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
     
     properties (Abstract)
         implementation

@@ -1,5 +1,5 @@
-classdef SURF < vicos.keypoint_detector.OpenCvKeypointDetector
-    % SURF - OpenCV SURF keypoint detector
+classdef KAZE < vicos.keypoint_detector.OpenCvKeypointDetector
+    % KAZE - OpenCV KAZE keypoint detector
     %
     % (C) 2015-2016, Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
     
@@ -8,29 +8,31 @@ classdef SURF < vicos.keypoint_detector.OpenCvKeypointDetector
     end
     
     methods
-        function self = SURF (varargin)
-            % self = SURF (varargin)
+        function self = KAZE (varargin)
+            % self = KAZE (varargin)
             %
-            % Creates SURF keypoint detector.
+            % Creates KAZE keypoint detector.
             %
             % Input: optional key/value pairs that correspond directly to
             % the implementation's parameters:
-            %  - HessianThreshold
-            %  - NOctaves
-            %  - NOctaveLayers
             %  - Extended
             %  - Upright
+            %  - Threshold
+            %  - NOctaves
+            %  - NOctaveLayers
+            %  - Diffusivity
             %
             % Output:
-            %  - @SURF instance
+            %  - @KAZE instance
             
             % Input parser
             parser = inputParser();
-            parser.addParameter('HessianThreshold', [], @isnumeric);
+            parser.addParameter('Extended', [], @islogical);
+            parser.addParameter('Upright', [], @islogical);
+            parser.addParameter('Threshold', [], @isnumeric);
             parser.addParameter('NOctaves', [], @isnumeric);
             parser.addParameter('NOctaveLayers', [], @isnumeric);
-            parser.addParameter('Extended', [], @islogical);
-            parser.addParameter('Upright', [], @islogical);  
+            parser.addParameter('Diffusivity', [], @isnumeric);
             parser.parse(varargin{:});
             
             %% Gather parameters   
@@ -44,7 +46,7 @@ classdef SURF < vicos.keypoint_detector.OpenCvKeypointDetector
             end
             
             %% Create implementation
-            self.implementation = cv.FeatureDetector('SURF', params{:});
+            self.implementation = cv.FeatureDetector('KAZE', params{:});
         end
     end
 end

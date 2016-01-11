@@ -1,7 +1,7 @@
 classdef BRIEF < vicos.descriptor.OpenCvDescriptor
     % BRIEF - OpenCV BRIEF descriptor extractor
     %
-    % (C) 2015, Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
+    % (C) 2015-2016, Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
     
     properties
         implementation

@@ -1,7 +1,7 @@
 classdef Descriptor < handle
     % DESCRIPTOR - base class for keypoint detector implementations
     %
-    % (C) 2015, Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
+    % (C) 2015-2016, Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
     
     methods (Abstract)
         % [ descriptors, keypoints ] = COMPUTE (self, I, keypoints)

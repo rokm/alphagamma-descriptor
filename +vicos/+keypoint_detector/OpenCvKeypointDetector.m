@@ -1,7 +1,7 @@
 classdef OpenCvKeypointDetector < vicos.keypoint_detector.KeypointDetector
     % OPENCVKEYPOINTDETECTOR - base class for OpenCV keypoint detector implementations
     %
-    % (C) 2015, Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
+    % (C) 2015-2016, Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
     
     properties (Abstract)
         % Provided by child via cv::featureDetector()

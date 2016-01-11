@@ -1,7 +1,7 @@
 classdef SIFT < vicos.keypoint_detector.OpenCvKeypointDetector
     % SIFT - SIFT keypoint detector
     %
-    % (C) 2015, Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
+    % (C) 2015-2016, Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
     
     properties
         implementation
