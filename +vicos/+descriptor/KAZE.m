@@ -58,7 +58,9 @@ classdef KAZE < vicos.descriptor.OpenCvDescriptor
             keypoint.pt = ([ w, h ] - 1) / 2;
             
             % Keypoint size: determined by patch_scale_factor parameter
-            keypoint.size = size(I, 1) / self.patch_size;
+            keypoint.size = 10; %size(I, 1);% / self.patch_size;
+            
+            keypoint.class_id = 1;
             
             % Compute descriptor for the keypoint
             desc = self.compute(I, keypoint);

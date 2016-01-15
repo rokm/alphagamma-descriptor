@@ -72,6 +72,22 @@ function fig = liberty_find_optimal_parameters (experiment_id)
                 experiment_title = 'U-BRIEF64';
                 
                 descriptor_extractor = vicos.descriptor.BRIEF('Bytes', 64);
+            
+            case 'o-kaze',
+                parameter_field = 'patch_size';
+                parameter_values = 22:2:30;
+                parameter_description = 'target Patch size';
+                experiment_title = 'O-KAZE';
+                
+                descriptor_extractor = vicos.descriptor.KAZE('Upright', false);
+                
+            case 'u-kaze',
+                parameter_field = 'patch_size';
+                parameter_values = 22:2:30;
+                parameter_description = 'target Patch size';
+                experiment_title = 'U-KAZE';
+                
+                descriptor_extractor = vicos.descriptor.KAZE('Upright', true);
                 
             %% AlphaGamma variants
             case 'o-ag-basic',
