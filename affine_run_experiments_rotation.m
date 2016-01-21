@@ -33,6 +33,8 @@ for s = 1:numel(sequences),
     experiment_name = sprintf('%s-%d-surf-oriented', sequence, image);
     experiment_title = sprintf('%s #%d - SURF keypoints (oriented)', sequence, image);
 
+    fprintf('***** %s *****\n', experiment_title);
+
     % Perform experiment if necessary
     result_file = sprintf('%s-results.mat', experiment_name);
     result_file = fullfile(result_dir, result_file);
@@ -65,6 +67,8 @@ for s = 1:numel(sequences),
     experiment_name = sprintf('%s-%d-surf-unoriented', sequence, image);
     experiment_title = sprintf('%s #%d - SURF keypoints (unoriented)', sequence, image);
 
+    fprintf('***** %s *****\n', experiment_title);
+
     % Perform experiment if necessary
     result_file = sprintf('%s-results.mat', experiment_name);
     result_file = fullfile(result_dir, result_file);
@@ -93,10 +97,12 @@ for s = 1:numel(sequences),
         visualize_results_rotation(results);
     end
 
-    %% Experiment: SURF keypoints, oriented descriptors
+    %% Experiment: SIFT keypoints, oriented descriptors
     experiment_name = sprintf('%s-%d-sift-oriented', sequence, image);
     experiment_title = sprintf('%s #%d - SIFT keypoints (oriented)', sequence, image);
 
+    fprintf('***** %s *****\n', experiment_title);    
+    
     % Perform experiment if necessary
     result_file = sprintf('%s-results.mat', experiment_name);
     result_file = fullfile(result_dir, result_file);
@@ -126,6 +132,8 @@ for s = 1:numel(sequences),
     end
 
     %% Experiment: SIFT keypoints, unoriented descriptors
+    fprintf('***** %s *****\n', experiment_title);
+
     experiment_name = sprintf('%s-%d-sift-unoriented', sequence, image);
     experiment_title = sprintf('%s #%d - SIFT keypoints (unoriented)', sequence, image);
 
