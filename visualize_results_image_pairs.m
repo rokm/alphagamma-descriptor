@@ -44,8 +44,14 @@ function fig = visualize_results_image_pairs (results)
 
     % Annotations
     set(gca,'YGrid','on');
-    set(gca, 'XTickLabel', arrayfun(@(x) sprintf('1|%d', x), results.pairs', 'UniformOutput', false));
-    xlabel('Image pair');
+    xlabels = cell(numel(results.pairs), 1);
+    for i = 1:numel(xlabels),
+        num_text = sprintf('%d|%d', 1, results.pairs(i));
+        corr_text = sprintf('(%d)', results.num_established_correspondences(i));
+        xlabels{i} = sprintf('%*s\\newline%s', numel(corr_text), num_text, corr_text);
+    end
+    set(gca, 'XTickLabel', xlabels);
+    xlabel('Image pair (num. correspondences)');
     ylabel('Recognition rate [%]');
     ylim([0, 1]);
     legend(results.descriptor_names);
