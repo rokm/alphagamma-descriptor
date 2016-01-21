@@ -12,6 +12,11 @@ result_dir = 'results-affine-pairs';
 
 sequences = { 'bark', 'bikes', 'boat', 'day_night', 'graffiti', 'leuven', 'trees', 'ubc', 'wall' };
 
+% FIXME
+sequences = { 'graffiti' };
+result_dir = 'test-rok';
+% FIXME
+
 %% Process
 if ~exist(result_dir, 'dir'),
     mkdir(result_dir);

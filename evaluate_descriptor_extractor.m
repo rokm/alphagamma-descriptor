@@ -64,8 +64,12 @@ function recognition_rate = evaluate_descriptor_extractor (I1, I2, keypoints1, k
     %% Evaluate
     % Validate the matches; here, we need to be able to handle the cases when
     % the descriptor extractor dropped some points (may happen with OpenCV
-    % implementations), hence the round-about way with indexing via the
-    % class_id fields...
+    % implementations)... therefore, we compare the new point set with the
+    % original one, and obtain list of point IDs with respect to original
+    % point sets.
+    ids1 = determine_point_ids(keypoints1, keypoints1b);
+    ids2 = determine_point_ids(keypoints2, keypoints2b);
+    
     num_correct_matches = 0;
 
     for i1 = 1:numel(keypoints1b),    
@@ -74,15 +78,66 @@ function recognition_rate = evaluate_descriptor_extractor (I1, I2, keypoints1, k
 
         % Get the keypoints' "true" indices (the ones they had before going to
         % the descriptor extractor)
-        idx1 = keypoints1b(i1).class_id;
-        idx2 = keypoints2b(i2).class_id;
+        idx1 = ids1(i1);
+        idx2 = ids2(i2);
 
         % Validate the match
         %fprintf('%d <-> %d; true: %d\n', idx1, idx2, correspondences(idx2, idx1));
-        if correspondences(idx2, idx1),
+        if idx1 > 0 && idx2 > 0 && correspondences(idx2, idx1),
             num_correct_matches = num_correct_matches + 1;
         end
     end
    
     recognition_rate = num_correct_matches / num_keypoint_pairs;
+end
+
+function point_ids = determine_point_ids (original_keypoints, new_keypoints)
+    % point_ids = DETERMINE_POINT_IDS (original_keypoints, new_keypoints)
+    %
+    % Compares two sets of keypoints - original ones, and ones that were
+    % left after descriptor detection - and determines the IDs of the new
+    % points, i.e., the corresponding linear indices in the original point
+    % set.
+    %
+    % Input:
+    %  - original_keypoints: 1xN array of original keypoints
+    %  - new_keypoints: 1xM array of new keypoints. Some keypoints may be
+    %    missing, while some may have been added.
+    %
+    % Output:
+    %  - point_ids: 1xM array of point IDs, denoting the new points'
+    %    linear indices in the original point set. If new points have been
+    %    added, their ID will be set to 0
+    
+    point_ids = zeros(1, numel(new_keypoints));
+    
+    % Copy the fields from origianl point sets to vectors for a significant 
+    % speed-up during comparisons....
+    xy = vertcat(original_keypoints.pt);
+    x = xy(:,1);
+    y = xy(:,2);
+    
+    size = vertcat(original_keypoints.size);
+    angle = vertcat(original_keypoints.angle);
+    response = vertcat(original_keypoints.response);
+    octave = vertcat(original_keypoints.octave);
+    class_id = vertcat(original_keypoints.class_id);
+    
+    % Compare each new keypoint against the original ones
+    for p = 1:numel(new_keypoints),
+        kpt = new_keypoints(p);
+        
+        % Compare all fields; equivalent to 
+        %  matches = arrayfun(@(x) isequal(x, new_keypoints(p)), original_keypoints)
+        % but significantly faster...
+        matches = kpt.pt(1) == x & kpt.pt(2) == y & kpt.size == size & kpt.angle == angle & kpt.response == response & kpt.octave == octave & kpt.class_id == class_id;
+        
+        % Determine the index of the match
+        id = find(matches);
+        if ~isempty(id),
+            % Allow only one match
+            assert(isscalar(id), 'Multiple point matches?!');
+            point_ids(p) = id;
+        end
+    end
 end

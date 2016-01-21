@@ -47,10 +47,7 @@ function [ result, num_keypoints1, num_keypoints2, num_correspondences ] = affin
     %    correspondences between the two sets of keypoints
     %
     % Note: keypoints1 and keypoints2 are arrays of OpenCV keypoint
-    % structures. The class_id field has been modified to contain the
-    % sequential number of each keypoint; this should allow the
-    % identification of keypoints that may be dropped during the descriptor
-    % computation phase.
+    % structures.
     %
     % (C) 2015, Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
     
@@ -161,10 +158,8 @@ function [ result, num_keypoints1, num_keypoints2, num_correspondences ] = affin
         assert( all(sqrt( sum((pts1(:,i1) - pts2p(:,i2)).^2) ) < distance_threshold), 'Sanity check failed!');
 
         %% Select the points
-        % Augment keypoints with class IDs; this will allow us to identify any
-        % keypoints that might be dropped during descriptor computation
-        result(r).keypoints1 = augment_keypoints_with_id( keypoints1(i1) );
-        result(r).keypoints2 = augment_keypoints_with_id( keypoints2(i2) );
+        result(r).keypoints1 = keypoints1(i1);
+        result(r).keypoints2 = keypoints2(i2);
 
         result(r).distances = distances(i2,i1);
 
