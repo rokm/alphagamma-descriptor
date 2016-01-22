@@ -67,4 +67,5 @@ function fig = visualize_results_image_pairs (results)
     end
     
     title(results.title, 'Interpreter', 'none');
+    drawnow();
 end

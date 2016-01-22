@@ -56,4 +56,5 @@ function fig = visualize_results_scale (results)
     legend(h, results.descriptor_names, 'Location', 'SouthWest');
     
     title(results.title, 'Interpreter', 'none');
+    drawnow();
 end
