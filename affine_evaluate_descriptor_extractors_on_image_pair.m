@@ -49,7 +49,10 @@ function [ recognition_rates, num_detected_keypoints1, num_detected_keypoints2, 
     [ correspondence_sets, num_detected_keypoints1, num_detected_keypoints2, num_established_correspondences ] = affine_detect_corresponding_keypoints(I1, I2, H12, keypoint_detector, 'project_keypoints', project_keypoints, 'distance_threshold', keypoint_distance_threshold, 'num_points', num_points, 'num_sets', num_repetitions, 'filter_border', filter_border, 'visualize', visualize_sets);
     %fprintf('Done (%f seconds)!\n', toc(t));
 
-    fprintf('Evaluating descriptors...\n');
+    original_num_repetitions = num_repetitions;
+    num_repetitions = numel(correspondence_sets); % Update number of repetitions
+    
+    fprintf('Evaluating descriptor extractors...\n');
     num_descriptors = size(descriptor_extractors, 1);
     recognition_rates = zeros(num_repetitions, num_descriptors);
     for r = 1:num_repetitions,
@@ -71,5 +74,10 @@ function [ recognition_rates, num_detected_keypoints1, num_detected_keypoints2, 
         for d = 1:num_descriptors,
             recognition_rates(r,d) = evaluate_descriptor_extractor(I1, I2, keypoints1, keypoints2, correspondences, descriptor_extractors{d, 2});
         end
+    end
+    
+    % Duplicate results if necessary
+    if original_num_repetitions ~= num_repetitions,
+        recognition_rates = repmat(recognition_rates, original_num_repetitions, 1);
     end
 end

@@ -49,6 +49,11 @@ function [ result, num_keypoints1, num_keypoints2, num_correspondences ] = affin
     % Note: keypoints1 and keypoints2 are arrays of OpenCV keypoint
     % structures.
     %
+    % Note: if the number of established correspondences is smaller than 
+    % the number requested via num_points parameter, then only a single set
+    % is returned, regardless of the num_sets parameter, because all sets
+    % would be the same.
+    %
     % (C) 2015, Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
     
     assert(isa(keypoint_detector, 'vicos.keypoint_detector.KeypointDetector'), 'keypoint_detector must inherit from vicos.keypoint_detector.KeypointDetector!'); 
@@ -149,6 +154,13 @@ function [ result, num_keypoints1, num_keypoints2, num_correspondences ] = affin
     
     %% Select subset(s) of correspondences
     num_points = min(num_points, num_correspondences);
+    
+    % If we found less correspondences than originally requested, do not
+    % bother with creation of multiple sets, as they will all be the
+    % same...
+    if num_points == num_correspondences,
+        num_sets = 1;
+    end
     
     for r = num_sets:-1:1,
         % Select random subset
