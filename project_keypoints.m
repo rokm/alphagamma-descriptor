@@ -27,23 +27,25 @@ function keypoint2 = project_keypoint (keypoint1, H)
     keypoint2.pt = project_points(keypoint1.pt', H)';
     
     %% Project the circle itself
-    % Based on code from OpenCV...
-    rad = keypoint1.size / 2;
-    
-    % Ellipse
-    A = 1 / (rad*rad);
-    B = 0;
-    C = 1 / (rad*rad);
-    
-    % GetSecondMomentsMatrix()
-    M = [ A, B; B, C ];
-    
-    Aff = linearize_homography_at(H, keypoint1.pt);
-    %dstM = inv( Aff*inv(M)*Aff' );
-    dstM = inv( Aff*M\Aff );
-    
-    % Resulting ellipse
-    keypoint2.size = 2 * max( 1/sqrt(dstM(1, 1)), 1/sqrt(dstM(2, 2)) );
+    if isfield(keypoint1, 'size'),
+        % Based on code from OpenCV...
+        rad = keypoint1.size / 2;
+
+        % Ellipse
+        A = 1 / (rad*rad);
+        B = 0;
+        C = 1 / (rad*rad);
+
+        % GetSecondMomentsMatrix()
+        M = [ A, B; B, C ];
+
+        Aff = linearize_homography_at(H, keypoint1.pt);
+        %dstM = inv( Aff*inv(M)*Aff' );
+        dstM = inv( Aff*M\Aff );
+
+        % Resulting ellipse
+        keypoint2.size = 2 * max( 1/sqrt(dstM(1, 1)), 1/sqrt(dstM(2, 2)) );
+    end
     
     %% Project the orientation
     if isfield(keypoint1, 'angle') && keypoint1.angle >= 0,
