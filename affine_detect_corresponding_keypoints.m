@@ -73,6 +73,7 @@ function [ result, num_keypoints1, num_keypoints2, num_correspondences ] = affin
 
     %% Detect keypoints in first image
     keypoints1 = keypoint_detector.detect(I1);
+    keypoints1 = filter_duplicated_keypoints(keypoints1);
     
     %% Obtain keypoints in second image
     if do_project_keypoints,
@@ -81,6 +82,7 @@ function [ result, num_keypoints1, num_keypoints2, num_correspondences ] = affin
     else
         % Detection
         keypoints2 = keypoint_detector.detect(I2);
+        keypoints2 = filter_duplicated_keypoints(keypoints2);
     end
 
     %% Image-border-based filtering
@@ -178,4 +180,52 @@ function invalid_idx = find_invalid_points (pts, I, filter_border)
    
     % Check all four borders
     invalid_idx = pts(1,:) < filter_border | pts(1,:) >= (size(I, 2) - filter_border) | pts(2,:) < filter_border | pts(2,:) >= (size(I, 1) - filter_border);
+end
+
+function keypoints = filter_duplicated_keypoints (keypoints)
+    % keypoints = FILTER_DUPLICATED_KEYPOINTS (keypoints)
+    %
+    % Removes duplicated keypoints
+    
+    % Copy the fields from origianl point sets to vectors for a significant 
+    % speed-up during comparisons....
+    xy = vertcat(keypoints.pt);
+    x = xy(:,1);
+    y = xy(:,2);
+    
+    size = vertcat(keypoints.size);
+    angle = vertcat(keypoints.angle);
+    response = vertcat(keypoints.response);
+    octave = vertcat(keypoints.octave);
+    class_id = vertcat(keypoints.class_id);
+    
+    p = 1;
+    while true,
+        kpt = keypoints(p);
+        
+        % Compare all fields; equivalent to 
+        %  matches = arrayfun(@(x) isequal(x, keypoints(p)), keypoints)
+        % but significantly faster...
+        matches = kpt.pt(1) == x & kpt.pt(2) == y & kpt.size == size & kpt.angle == angle & kpt.response == response & kpt.octave == octave & kpt.class_id == class_id;
+        idx = find(matches);
+        
+        if numel(matches) > 1,
+            idx = idx(2:end);
+        
+            keypoints(idx) = [];
+            
+            x(idx) = [];
+            y(idx) = [];
+            size(idx) = [];
+            angle(idx) = [];
+            response(idx) = [];
+            octave(idx) = [];
+            class_id(idx) = [];
+        end
+        
+        p = p + 1;
+        if p >= numel(keypoints),
+            break;
+        end
+    end
 end
