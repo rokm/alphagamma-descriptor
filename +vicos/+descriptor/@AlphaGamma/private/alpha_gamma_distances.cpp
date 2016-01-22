@@ -50,7 +50,7 @@ inline double alpha_gamma_distance (const unsigned char *desc1, const unsigned c
             B2 = *desc2B++;
             E2 = *desc2E++;
 
-            distAlpha += (B1 != B2) + (E1 != E2) + 2*B1*B2*(E1 != E2);
+            distAlpha += (B1 != B2) + (E1 != E2) + 2*E1*E2*(B1 != B2);
         }
 
         // Beta effects
@@ -60,7 +60,7 @@ inline double alpha_gamma_distance (const unsigned char *desc1, const unsigned c
             B2 = *desc2B++;
             E2 = *desc2E++;
 
-            distBeta += (B1 != B2) + (E1 != E2) + 2*B1*B2*(E1 != E2);
+            distBeta += (B1 != B2) + (E1 != E2) + 2*E1*E2*(B1 != B2);
         }
 
         // Gamma effects
@@ -70,7 +70,7 @@ inline double alpha_gamma_distance (const unsigned char *desc1, const unsigned c
             B2 = *desc2B++;
             E2 = *desc2E++;
 
-            distGamma += (B1 != B2) + (E1 != E2) + 2*B1*B2*(E1 != E2);
+            distGamma += (B1 != B2) + (E1 != E2) + 2*E1*E2*(B1 != B2);
         }
     } else {
         // The basic version of distance works with both extended and
