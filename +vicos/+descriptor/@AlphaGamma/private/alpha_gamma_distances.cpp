@@ -1,4 +1,4 @@
-// distances = ALPHA_GAMMA_DISTANCES (desc1, desc2, num_circles, num_rays, advanced_distance, weightA, weightB, weightG)
+// distances = ALPHA_GAMMA_DISTANCES (desc1, desc2, num_circles, num_rays, weightA, weightB, weightG)
 //
 // Computes matrix of pair-wise distances between two sets of AlphaGamma
 // descriptors.
@@ -8,7 +8,6 @@
 //  - desc2:
 //  - num_circles:
 //  - num_rays:
-//  - advanced_distance:
 //  - weightA:
 //  - weightB:
 //  - weightG:
@@ -16,7 +15,7 @@
 // Output:
 //  - distances: N2xN1 double-precision matrix of descriptor distances
 //
-// (C) 2015, Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
+// (C) 2015-2016, Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
 
 #include <opencv2/core.hpp>
 #include <mex.h>
@@ -24,18 +23,17 @@
 #include <iostream> // For debugging
 
 
-inline double alpha_gamma_distance (const unsigned char *desc1, const unsigned char *desc2, int numCircles, int numRays, bool extended, bool advanced, const double A, const double B, const double G)
+inline double alpha_gamma_distance (const unsigned char *desc1, const unsigned char *desc2, int numCircles, int numRays, bool extended, const double A, const double B, const double G)
 {
     const int lenA = numCircles;
     const int lenB = numRays;
     const int lenG = numRays*numCircles - numRays;
 
-    int distAlpha = 0.0;
-    int distBeta = 0.0;
-    int distGamma = 0.0;
+    int distAlpha = 0;
+    int distBeta = 0;
+    int distGamma = 0;
 
-    if (advanced && extended) {
-        // The advanced version is defined only with extended descriptor
+    if (extended) {
         const unsigned char *desc1B = desc1;
         const unsigned char *desc1E = desc1 + lenA+lenB+lenG;
         const unsigned char *desc2B = desc2;
@@ -73,25 +71,19 @@ inline double alpha_gamma_distance (const unsigned char *desc1, const unsigned c
             distGamma += (B1 != B2) + (E1 != E2) + 2*E1*E2*(B1 != B2);
         }
     } else {
-        // The basic version of distance works with both extended and
-        // basic descriptor
+        // Alpha effects
+        for (int i = 0; i < lenA; i++) {
+            distAlpha += *desc1++ != *desc2++;
+        }
 
-        // Repeat either once or twice
-        for (int r = 0; r <= extended; r++) {
-            // Alpha effects
-            for (int i = 0; i < lenA; i++) {
-                distAlpha += *desc1++ != *desc2++;
-            }
+        // Beta effects
+        for (int i = 0; i < lenB; i++) {
+            distBeta += *desc1++ != *desc2++;
+        }
 
-            // Beta effects
-            for (int i = 0; i < lenB; i++) {
-                distBeta += *desc1++ != *desc2++;
-            }
-
-            // Gamma effects
-            for (int i = 0; i < lenG; i++) {
-                distGamma += *desc1++ != *desc2++;
-            }
+        // Gamma effects
+        for (int i = 0; i < lenG; i++) {
+            distGamma += *desc1++ != *desc2++;
         }
     }
 
@@ -105,7 +97,7 @@ inline double alpha_gamma_distance (const unsigned char *desc1, const unsigned c
 // *********************************************************************
 void mexFunction (int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
 {
-    if (nrhs < 5 || nrhs > 8) {
+    if (nrhs < 4 || nrhs > 7) {
         mexErrMsgTxt("Invalid number of input parameters!");
     }
 
@@ -139,21 +131,20 @@ void mexFunction (int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
     }
 
     const bool extendedDescriptor = (mxGetM(prhs[0]) == 2*descriptorSize);
-    const bool advancedDistance = mxGetScalar(prhs[4]);
 
     // Distance weights
     double A = 5.0;
     double B = 1.0;
     double G = 1.0;
 
+    if (nrhs > 4) {
+        G = mxGetScalar(prhs[4]);
+    }
     if (nrhs > 5) {
-        G = mxGetScalar(prhs[5]);
+        B = mxGetScalar(prhs[5]);
     }
     if (nrhs > 6) {
-        B = mxGetScalar(prhs[6]);
-    }
-    if (nrhs > 7) {
-        G = mxGetScalar(prhs[7]);
+        G = mxGetScalar(prhs[6]);
     }
 
     // Cast the input matrices to CV_8U type
@@ -170,7 +161,7 @@ void mexFunction (int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
         for (int j = 0; j < desc2.rows; j++) {
             const unsigned char *desc2p = desc2.ptr<unsigned char>(j);
 
-            distPtr[j] = alpha_gamma_distance(desc1p, desc2p, numCircles, numRays, extendedDescriptor, advancedDistance, A, B, G);
+            distPtr[j] = alpha_gamma_distance(desc1p, desc2p, numCircles, numRays, extendedDescriptor, A, B, G);
         }
     }
 }

@@ -26,12 +26,8 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
         orientation
         orient_cos
         orient_sin
-
-        % Slow distance
-        slow_distance
         
-        % Distance function
-        advanced_distance
+        % Distance function weights
         A
         B
         G
@@ -88,8 +84,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             parser.addParameter('base_sigma', sqrt(1.7), @isnumeric);
             parser.addParameter('use_scale', false, @islogical);
             parser.addParameter('extended_threshold', 0.674, @isnumeric);
-            parser.addParameter('slow_distance', false, @islogical);
-            parser.addParameter('advanced_distance', false, @islogical);
             parser.addParameter('A', 5.0, @isnumeric);
             parser.addParameter('B', 1.0, @isnumeric);
             parser.addParameter('G', 1.0, @isnumeric);
@@ -105,8 +99,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             self.base_sigma = parser.Results.base_sigma;
             self.use_scale = parser.Results.use_scale;
             self.extended_threshold = parser.Results.extended_threshold;
-            self.slow_distance = parser.Results.slow_distance;
-            self.advanced_distance = parser.Results.advanced_distance;
             self.A = parser.Results.A;
             self.B = parser.Results.B;
             self.G = parser.Results.G;
@@ -301,13 +293,8 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                 desc2 = desc2';
             end
 
-            if self.slow_distance,
-                % Original Matlab function
-                distances = compute_pairwise_distances_slow(self, desc1, desc2);
-            else
-                % Fast MEX version
-                distances = alpha_gamma_distances(desc1, desc2, self.num_circles, self.num_rays, self.advanced_distance, self.A, self.B, self.G);
-            end
+            % Fast MEX version of the distance
+            distances = alpha_gamma_distances(desc1, desc2, self.num_circles, self.num_rays, self.A, self.B, self.G);
         end
 
         function descriptor_size = get_descriptor_size (self)
@@ -443,71 +430,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                 end
             end
         end
-
-        function distances = compute_pairwise_distances_slow (self, desc1, desc2, varargin)
-            parser = inputParser();
-            parser.addParameter('A', 5.0, @isnumeric);
-            parser.addParameter('B', 0.5, @isnumeric);
-            parser.addParameter('G', 1.0, @isnumeric);
-            parser.parse(varargin{:});
-
-            A = parser.Results.A;
-            B = parser.Results.B;
-            G = parser.Results.G;
-
-            descriptor_size = self.num_circles*self.num_rays + self.num_circles;
-            assert(size(desc1, 1) == descriptor_size || size(desc1, 1) == 2*descriptor_size, 'Invalid descriptor size!');
-            assert(size(desc2, 1) == descriptor_size || size(desc2, 1) == 2*descriptor_size, 'Invalid descriptor size!');
-            assert(size(desc1, 1) == size(desc2, 1), 'Descriptors must be of same dimension!');
-
-            extended_descriptor = size(desc1, 1) == 2*descriptor_size; % Do we have an extended descriptor?
-
-            num_points1 = size(desc1, 2);
-            num_points2 = size(desc2, 2);
-
-            % Distance matrix
-            distances = nan(num_points2, num_points1);
-
-            for i = 1:num_points1,
-                for j = 1:num_points2,
-                    diff = desc1(:,i) ~= desc2(:,j);
-
-                    % Alpha
-                    idx1 = 1;
-                    idx2 = self.num_circles;
-                    score_a = sum( diff(idx1:idx2) );
-
-                    % Beta
-                    idx1 = idx1 + self.num_circles;
-                    idx2 = idx2 + self.num_rays;
-                    score_b = sum( diff(idx1:idx2) );
-
-                    % Gamma
-                    idx1 = idx1 + self.num_rays;
-                    idx2 = idx2 + (self.num_circles*self.num_rays - self.num_rays);
-                    score_g = sum( diff(idx1:idx2) );
-
-                    if extended_descriptor,
-                        % Alpha
-                        idx1 = idx1 + (self.num_circles*self.num_rays - self.num_rays);
-                        idx2 = idx2 + self.num_circles;
-                        score_a = score_a + sum( diff(idx1:idx2) );
-
-                        % Beta
-                        idx1 = idx1 + self.num_circles;
-                        idx2 = idx2 + self.num_rays;
-                        score_b = score_b + sum( diff(idx1:idx2) );
-
-                        % Gamma
-                        idx1 = idx1 + self.num_rays;
-                        idx2 = idx2 + (self.num_circles*self.num_rays - self.num_rays);
-                        score_g = score_g + sum( diff(idx1:idx2) );
-                    end
-
-                    distances(j,i) = A*score_a + B*score_b + G*score_g;
-                end
-            end
-        end
+        
     end
 
     methods (Static)
