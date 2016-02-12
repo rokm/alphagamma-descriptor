@@ -144,5 +144,41 @@ classdef AffineDataset
                         0,  scale, 0;
                         0,      0, 1 ];
         end
+        
+        function [ I1, I2, H12 ] = get_sheared_image (self, sequence, img, shear_x, shear_y)
+            % [ I1, I2, H12 ] = GET_SHEARED_IMAGE (self, sequence, img, shear_x, shear_y)
+            %
+            % Loads an image from the affine dataset and applies shear in
+            % x and y direction
+            %
+            % Input:
+            %  - sequence: sequence name
+            %  - img: image to use
+            %  - shear_x, shear_y: shear to apply
+            %
+            % Output:
+            %  - I1: original image
+            %  - I2: scaled image
+            %  - H12: homography between both images
+            %
+            % NOTE: following the OpenCV keypoint convention, the returned 
+            % homography assumes a 0-based coordinate system (unlike the
+            % Matlab's 1-based image coordinate system)
+            
+            % Validate parameters
+            assert(ismember(sequence, self.valid_sequences), 'Invalid sequence name!');
+            assert(img >= 1 && img <= 6, 'Image must be #1..#6!');
+
+            % Load
+            data_path = fullfile(self.dataset_path, sequence);
+
+            I1 = imread( fullfile(data_path, sprintf('img%d.ppm', img)) );
+            
+            H12 = [ 1, shear_y, 0;
+                    shear_x, 1, 0;
+                    0, 0, 1 ];
+                
+            I2 = imwarp(I1, affine2d(H12), 'linear');
+        end
     end
 end
