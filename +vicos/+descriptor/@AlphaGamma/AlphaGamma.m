@@ -7,11 +7,13 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
         patch_size = 95
         num_circles = 11
         num_rays = 55
+        circle_step = sqrt(2)
 
         sampling
 
         extended
-        extended_threshold
+        threshold_alpha
+        threshold_gamma
 
         use_scale
         scale_factor = 23 % Default for SIFT keypoints
@@ -26,7 +28,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
         orientation
         orient_cos
         orient_sin
-        
+
         % Distance function weights
         A
         B
@@ -78,12 +80,14 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             parser.addParameter('patch_size', 95, @isscalar);
             parser.addParameter('num_circles', 11, @isscalar);
             parser.addParameter('num_rays', 55, @isscalar);
+            parser.addParameter('circle_step', sqrt(2), @isscalar);
             parser.addParameter('orientation', false, @islogical);
             parser.addParameter('extended', true, @islogical);
             parser.addParameter('sampling', 'gaussian', @ischar);
             parser.addParameter('base_sigma', sqrt(1.7), @isnumeric);
             parser.addParameter('use_scale', false, @islogical);
-            parser.addParameter('extended_threshold', 0.674, @isnumeric);
+            parser.addParameter('threshold_alpha', 0.686, @isnumeric);
+            parser.addParameter('threshold_gamma', 0.674, @isnumeric);
             parser.addParameter('A', 5.0, @isnumeric);
             parser.addParameter('B', 1.0, @isnumeric);
             parser.addParameter('G', 1.0, @isnumeric);
@@ -93,12 +97,14 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             self.patch_size = parser.Results.patch_size;
             self.num_circles = parser.Results.num_circles;
             self.num_rays = parser.Results.num_rays;
+            self.circle_step = parser.Results.circle_step;
             self.orientation = parser.Results.orientation;
             self.extended = parser.Results.extended;
             self.sampling = parser.Results.sampling;
             self.base_sigma = parser.Results.base_sigma;
             self.use_scale = parser.Results.use_scale;
-            self.extended_threshold = parser.Results.extended_threshold;
+            self.threshold_alpha = parser.Results.threshold_alpha;
+            self.threshold_gamma = parser.Results.threshold_gamma;
             self.A = parser.Results.A;
             self.B = parser.Results.B;
             self.G = parser.Results.G;
@@ -123,7 +129,8 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                 case 'gaussian',
                     % Pure bank of Gaussian filters that was used with original
                     % version of complex descriptor
-                    step = sqrt(2);
+                    %step = sqrt(2);
+                    step = self.circle_step;
                     for i = 1:self.num_circles,
                         if i == 1,
                             %sigmas(i) = 0.3;
@@ -208,7 +215,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
 
             % Filter out keypoints that are too close to the image border
             keypoints = self.filter_keypoints(I, keypoints);
-            
+
             num_points = numel(keypoints);
 
             desc = zeros(get_descriptor_size(self), num_points, 'uint8');
@@ -324,19 +331,19 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
     methods
         function keypoints = filter_keypoints (self, I, keypoints)
             centers = round( vertcat(keypoints.pt) ) + 1;
-            
+
             outer_sample = self.sample_points{end};
             max_x = max(outer_sample(1,:));
             min_x = min(outer_sample(1,:));
             max_y = max(outer_sample(2,:));
             min_y = min(outer_sample(2,:));
-            
+
             invalid_idx = centers(:,1) + max_x > size(I,2) | centers(:,1) + min_x < 1 | centers(:,2) + max_y > size(I, 1) | centers(:,2) + min_y < 1;
-            
+
             % Remove keypoints
             keypoints(invalid_idx) = [];
         end
-        
+
         function descriptor = extract_descriptor_from_keypoint (self, pyramid, center)
             % descriptor = EXTRACT_DESCRIPTOR_FROM_KEYPOINT (self, pyramid, center)
             %
@@ -374,8 +381,8 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             b = mean(field, 2) - field_avg; % Beta effects
 
             if self.extended,
-                sa = sqrt((sum(a.*a) - sum(a)^2/self.num_circles) / self.num_circles); % TODO: self.num_circles - 1
-                aa = abs(a) > sa*self.extended_threshold;
+                sa = sqrt(sum(a.*a) / self.num_circles); % TODO: self.num_circles - 1
+                aa = abs(a) > sa*self.threshold_alpha;
                 alpha_ext = aa - (1 - aa);
                 alpha_ext = reshape(alpha_ext, [], 1);
             end
@@ -390,8 +397,8 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             gamma = field - gamma - field_avg;
 
             if self.extended,
-                sg = sqrt((sum(sum(gamma.*gamma)) - sum(sum(gamma))^2/numel(gamma)) / numel(gamma)); % TODO: self.num_rays - 1, varianca po stolpcih.
-                gg = abs(gamma) > sg*self.extended_threshold;
+                sg = sqrt(sum(sum(gamma.*gamma)) / numel(gamma)); % TODO: self.num_rays - 1, varianca po stolpcih.
+                gg = abs(gamma) > sg*self.threshold_gamma;
                 gamma_ext = gg - (1 - gg);
                 gamma_ext = reshape(gamma_ext, [], 1);
             end
@@ -430,7 +437,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                 end
             end
         end
-        
+
     end
 
     methods (Static)
