@@ -121,6 +121,14 @@ function fig = liberty_find_optimal_parameters (experiment_id)
                 
                 descriptor_extractor = vicos.descriptor.AlphaGamma('orientation', false, 'extended', true, 'sampling', 'gaussian', 'num_rays', 23);
                 
+            case 'u-ag-e23-new',
+                parameter_field = 'effective_patch_size';
+                parameter_values = 89:4:(95*1.5);
+                parameter_description = 'Effective patch size';
+                experiment_title = 'U-AG-E23-new';
+                
+                descriptor_extractor = vicos.descriptor.AlphaGamma('orientation', false, 'extended', true, 'sampling', 'gaussian', 'num_rays', 23, 'num_circles', 10, 'circle_step', 1.042*sqrt(2));
+
             case 'o-ag-e55',
                 parameter_field = 'effective_patch_size';
                 parameter_values = 95:4:(95*1.5);
