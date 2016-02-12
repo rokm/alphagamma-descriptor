@@ -28,6 +28,7 @@ classdef SIFT < vicos.descriptor.OpenCvDescriptor
             
             % Input parser
             parser = inputParser();
+            parser.addParameter('UpRight', [], @islogical);
             parser.addParameter('NFeatures', [], @isnumeric);
             parser.addParameter('NOctaveLayers', [], @isnumeric);
             parser.addParameter('ConstrastThreshold', [], @isnumeric);
@@ -37,6 +38,7 @@ classdef SIFT < vicos.descriptor.OpenCvDescriptor
             
             %% Gather parameters   
             fields = fieldnames(parser.Results);
+            fields = setdiff(fields, 'UpRight'); % exclude
             params = {};
             for f = 1:numel(fields),
                 field = fields{f};
