@@ -1,144 +1,172 @@
-function experiment = affine_get_experiment_definition (experiment_name)
-    % experiment = AFFINE_GET_EXPERIMENT_DEFINITION (experiment_name)
+function experiments = affine_get_experiment_definition (varargin)
+    % experiments = AFFINE_GET_EXPERIMENT_DEFINITION (varargin)
     %
-    % Default experiment definition function.
+    % Default experiment definition function for Oxford Affine dataset.
     %
     % Input:
-    %  - experiment_name: experiment name string
+    %  - varargin: names of experiments to include. If none are provided,
+    %    all defined experiments are returned
     %
     % Output:
-    %  - experiment: experiment definition structure
+    %  - experiments: experiment definition structure to be used with
+    %    AFFINE_RUN_EXPERIMENT()
+    %
+    % (C) 2015-2016, Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
     
-    switch experiment_name,
-        case 'surf-o',
-            %% SURF keypoints, oriented descriptors
-            experiment_title = 'SURF keypoints (oriented)';
-            
-            detector = vicos.keypoint_detector.SURF('HessianThreshold', 400, 'NOctaves', 3, 'NOctaveLayers', 4);
-            
-            descriptors = {};
-            
-            descriptors(end+1,:) = { 'SURF',  vicos.descriptor.SURF() };
-            descriptors(end+1,:) = { 'O-BRIEF64', vicos.descriptor.BRIEF('Bytes', 64, 'UseOrientation', true) };
-            descriptors(end+1,:) = { 'O-LATCH64', vicos.descriptor.LATCH('Bytes', 64, 'RotationInvariance', true) };
+    % Initialize list
+    available_experiments = define_experiment();
+    
+    %% Some common descriptor definitions
+    % Sharing the definitions across experiments allows us to quickly
+    % modify their settings in one place...
+    def_o_brief64 = @() vicos.descriptor.BRIEF('Bytes', 64, 'UseOrientation', true);
+    def_u_brief64 = @() vicos.descriptor.BRIEF('Bytes', 64, 'UseOrientation', false);
+    
+    def_o_latch64 = @() vicos.descriptor.LATCH('Bytes', 64, 'RotationInvariance', true);
+    def_u_latch64 = @() vicos.descriptor.LATCH('Bytes', 64, 'RotationInvariance', false);
+    
+    def_o_ag_simple = @() vicos.descriptor.AlphaGamma('orientation', true, 'extended', false, 'sampling', 'simple', 'use_scale', false, 'base_sigma', sqrt(2));
+    def_o_ag_55x2 = @() vicos.descriptor.AlphaGamma('orientation', true, 'extended', true, 'sampling', 'gaussian', 'use_scale', false);
+    def_o_ag_23x2 = @() vicos.descriptor.AlphaGamma('orientation', true, 'extended', true, 'sampling', 'gaussian', 'use_scale', false, 'num_rays', 23);
+    
+    def_u_ag_simple = @() vicos.descriptor.AlphaGamma('orientation', false, 'extended', false, 'sampling', 'simple', 'use_scale', false, 'base_sigma', sqrt(2));
+    def_u_ag_55x2 = @() vicos.descriptor.AlphaGamma('orientation', false, 'extended', true, 'sampling', 'gaussian', 'use_scale', false);
+    def_u_ag_23x2 = @() vicos.descriptor.AlphaGamma('orientation', false, 'extended', true, 'sampling', 'gaussian', 'use_scale', false, 'num_rays', 23);
+    
+    %% Experiment definitions
+    % SURF keypoints, oriented descriptors
+    available_experiments(end+1) = define_experiment(...
+        'surf-o', ...
+        'SURF keypoints (oriented)', ...
+        @() vicos.keypoint_detector.SURF('HessianThreshold', 400, 'NOctaves', 3, 'NOctaveLayers', 4), ...
+        'SURF', @() vicos.descriptor.SURF(), ...
+        'O-BRIEF64', def_o_brief64, ...
+        'O-LATCH64', def_o_latch64, ...
+        'O-\alpha\gamma simple', def_o_ag_simple, ...
+        'O-\alpha\gamma C55x2', def_o_ag_55x2, ...
+        'O-\alpha\gamma C23x2', def_o_ag_23x2 ...
+    );
 
-            descriptors(end+1,:) = { 'O-\alpha\gamma simple', vicos.descriptor.AlphaGamma('orientation', true, 'extended', false, 'sampling', 'simple', 'use_scale', false, 'base_sigma', sqrt(2)) };
-            descriptors(end+1,:) = { 'O-\alpha\gamma C55x2', vicos.descriptor.AlphaGamma('orientation', true, 'extended', true, 'sampling', 'gaussian', 'use_scale', false) };
-            descriptors(end+1,:) = { 'O-\alpha\gamma C23x2', vicos.descriptor.AlphaGamma('orientation', true, 'extended', true, 'sampling', 'gaussian', 'use_scale', false, 'num_rays', 23) };
+    % SURF keypoints, unoriented descriptors
+    available_experiments(end+1) = define_experiment(...
+        'surf-u', ...
+        'SURF keypoints (unoriented)', ...
+        @() vicos.keypoint_detector.SURF('HessianThreshold', 400, 'NOctaves', 3, 'NOctaveLayers', 4, 'UpRight', true), ...
+        'U-SURF', @() vicos.descriptor.SURF('UpRight', true), ...
+        'U-BRIEF64', def_u_brief64, ...
+        'U-LATCH64', def_u_latch64, ...
+        'U-\alpha\gamma simple', def_u_ag_simple, ...
+        'U-\alpha\gamma C55x2', def_u_ag_55x2, ...
+        'U-\alpha\gamma C23x2', def_u_ag_23x2 ...
+    );
+    
+    % SIFT keypoints, oriented descriptors
+    available_experiments(end+1) = define_experiment(...
+        'sift-o', ...
+        'SIFT keypoints (oriented)', ...
+        @() vicos.keypoint_detector.SIFT(), ...
+        'SIFT', @() vicos.descriptor.SIFT(), ...
+        'O-BRIEF64', def_o_brief64, ...
+        'O-LATCH64', def_o_latch64, ...
+        'O-\alpha\gamma simple', def_o_ag_simple, ...
+        'O-\alpha\gamma C55x2', def_o_ag_55x2, ...
+        'O-\alpha\gamma C23x2', def_o_ag_23x2 ...
+    );
+
+    % SIFT keypoints, unoriented descriptors
+    available_experiments(end+1) = define_experiment(...
+        'sift-u', ...
+        'SIFT keypoints (unoriented)', ...
+        @() vicos.keypoint_detector.SIFT('UpRight', true), ...
+        'U-SIFT', @() vicos.descriptor.SIFT(), ...
+        'U-BRIEF64', def_u_brief64, ...
+        'U-LATCH64', def_u_latch64, ...
+        'U-\alpha\gamma simple', def_u_ag_simple, ...
+        'U-\alpha\gamma C55x2', def_u_ag_55x2, ...
+        'U-\alpha\gamma C23x2', def_u_ag_23x2 ...
+    );
+
+    % ORB keypoints
+    available_experiments(end+1) = define_experiment(...
+        'orb', ...
+        'ORB keypoints', ...
+        @() vicos.keypoint_detector.ORB('MaxFeatures', 2000), ...
+        'ORB-32', @() vicos.descriptor.ORB('MaxFeatures', 2000), ...
+        'O-BRIEF64', def_o_brief64, ...
+        'O-LATCH64', def_o_latch64, ...
+        'U-BRIEF64', def_u_brief64, ...
+        'U-LATCH64', def_u_latch64, ...
+        'O-\alpha\gamma simple', def_o_ag_simple, ...
+        'O-\alpha\gamma C55x2', def_o_ag_55x2, ...
+        'O-\alpha\gamma C23x2', def_o_ag_23x2, ...
+        'U-\alpha\gamma simple', def_u_ag_simple, ...
+        'U-\alpha\gamma C55x2', def_u_ag_55x2, ...
+        'U-\alpha\gamma C23x2', def_u_ag_23x2 ...
+    );
+
+    % BRISK keypoints
+    available_experiments(end+1) = define_experiment(...
+        'brisk', ...
+        'BRISK keypoints', ...
+        @() vicos.keypoint_detector.BRISK('Threshold', 60), ...
+        'BRISK', @() vicos.descriptor.BRISK('Threshold', 60), ...
+        'O-BRIEF64', def_o_brief64, ...
+        'O-LATCH64', def_o_latch64, ...
+        'U-BRIEF64', def_u_brief64, ...
+        'U-LATCH64', def_u_latch64, ...
+        'O-\alpha\gamma simple', def_o_ag_simple, ...
+        'O-\alpha\gamma C55x2', def_o_ag_55x2, ...
+        'O-\alpha\gamma C23x2', def_o_ag_23x2, ...
+        'U-\alpha\gamma simple', def_u_ag_simple, ...
+        'U-\alpha\gamma C55x2', def_u_ag_55x2, ...
+        'U-\alpha\gamma C23x2', def_u_ag_23x2 ...
+    );
+
+    % Harris keypoints
+    available_experiments(end+1) = define_experiment(...
+        'harris', ...
+        'Harris corners', ...
+        @() vicos.keypoint_detector.Harris('MaxFeatures', 4000), ...
+        'U-BRIEF64', def_u_brief64, ...
+        'U-LATCH64', def_u_latch64, ...
+        'O-\alpha\gamma simple', def_o_ag_simple, ...
+        'O-\alpha\gamma C55x2', def_o_ag_55x2, ...
+        'O-\alpha\gamma C23x2', def_o_ag_23x2, ...
+        'U-\alpha\gamma simple', def_u_ag_simple, ...
+        'U-\alpha\gamma C55x2', def_u_ag_55x2, ...
+        'U-\alpha\gamma C23x2', def_u_ag_23x2 ...
+    );
+
+    %% Return
+    if nargin == 0,
+        % Return all
+        experiments = available_experiments;
+    else
+        % Make sure no invalid experiments were specified
+        invalid = find(~ismember(varargin, { available_experiments.name }));
+        assert(isempty(invalid), 'Invalid experiment name(s): %s', strjoin(varargin(invalid), ', '));
         
-        case 'surf-u',
-            %% SURF keypoints, unoriented descriptors
-            experiment_title = 'SURF keypoints (unoriented)';
-            
-            detector = vicos.keypoint_detector.SURF('HessianThreshold', 400, 'NOctaves', 3, 'NOctaveLayers', 4, 'UpRight', true);
-            
-            descriptors = {};
-            
-            descriptors(end+1,:) = { 'U-SURF',  vicos.descriptor.SURF('UpRight', true) };
-            descriptors(end+1,:) = { 'U-BRIEF64', vicos.descriptor.BRIEF('Bytes', 64, 'UseOrientation', false) };
-            descriptors(end+1,:) = { 'U-LATCH64', vicos.descriptor.LATCH('Bytes', 64, 'RotationInvariance', false) };
-
-            descriptors(end+1,:) = { 'U-\alpha\gamma simple', vicos.descriptor.AlphaGamma('orientation', false, 'extended', false, 'sampling', 'simple', 'use_scale', false, 'base_sigma', sqrt(2)) };
-            descriptors(end+1,:) = { 'U-\alpha\gamma C55x2', vicos.descriptor.AlphaGamma('orientation', false, 'extended', true, 'sampling', 'gaussian', 'use_scale', false) };
-            descriptors(end+1,:) = { 'U-\alpha\gamma C23x2', vicos.descriptor.AlphaGamma('orientation', false, 'extended', true, 'sampling', 'gaussian', 'use_scale', false, 'num_rays', 23) };
-        
-        case 'sift-o',
-            %% SIFT keypoints, oriented descriptors
-            experiment_title = 'SIFT keypoints (oriented)';
-            
-            detector = vicos.keypoint_detector.SIFT();
-
-            descriptors = {};
-            
-            descriptors(end+1,:) = { 'SIFT',  vicos.descriptor.SIFT() };
-            descriptors(end+1,:) = { 'O-BRIEF64', vicos.descriptor.BRIEF('Bytes', 64, 'UseOrientation', true) };
-            descriptors(end+1,:) = { 'O-LATCH64', vicos.descriptor.LATCH('Bytes', 64, 'RotationInvariance', true) };
-
-            descriptors(end+1,:) = { 'O-\alpha\gamma simple', vicos.descriptor.AlphaGamma('orientation', true, 'extended', false, 'sampling', 'simple', 'use_scale', false, 'base_sigma', sqrt(2)) };
-            descriptors(end+1,:) = { 'O-\alpha\gamma C55x2', vicos.descriptor.AlphaGamma('orientation', true, 'extended', true, 'sampling', 'gaussian', 'use_scale', false) };
-            descriptors(end+1,:) = { 'O-\alpha\gamma C23x2', vicos.descriptor.AlphaGamma('orientation', true, 'extended', true, 'sampling', 'gaussian', 'use_scale', false, 'num_rays', 23) };
-            
-        case 'sift-u',
-            %% SIFT keypoints, unoriented descriptors
-            experiment_title = 'SIFT keypoints (unoriented)';
-
-            detector = vicos.keypoint_detector.SIFT('UpRight', true);
-            
-            descriptors = {};
-        
-            descriptors(end+1,:) = { 'U-SIFT',  vicos.descriptor.SIFT() };
-            descriptors(end+1,:) = { 'U-BRIEF64', vicos.descriptor.BRIEF('Bytes', 64, 'UseOrientation', false) };
-            descriptors(end+1,:) = { 'U-LATCH64', vicos.descriptor.LATCH('Bytes', 64, 'RotationInvariance', false) };
-
-            descriptors(end+1,:) = { 'U-\alpha\gamma simple', vicos.descriptor.AlphaGamma('orientation', false, 'extended', false, 'sampling', 'simple', 'use_scale', false, 'base_sigma', sqrt(2)) };
-            descriptors(end+1,:) = { 'U-\alpha\gamma C55x2', vicos.descriptor.AlphaGamma('orientation', false, 'extended', true, 'sampling', 'gaussian', 'use_scale', false) };
-            descriptors(end+1,:) = { 'U-\alpha\gamma C23x2', vicos.descriptor.AlphaGamma('orientation', false, 'extended', true, 'sampling', 'gaussian', 'use_scale', false, 'num_rays', 23) };
-
-        case 'orb',
-            %% ORB keypoints
-            experiment_title = 'ORB keypoints';
-
-            keypoint_detector = vicos.keypoint_detector.ORB('MaxFeatures', 2000);
-
-            descriptors = {};
-            
-            descriptors(end+1,:) = { 'ORB-32',  vicos.descriptor.ORB('MaxFeatures', 2000) };
-            descriptors(end+1,:) = { 'O-BRIEF64', vicos.descriptor.BRIEF('Bytes', 64, 'UseOrientation', true) };
-            descriptors(end+1,:) = { 'O-LATCH64', vicos.descriptor.LATCH('Bytes', 64, 'RotationInvariance', true) };
-            descriptors(end+1,:) = { 'U-BRIEF64', vicos.descriptor.BRIEF('Bytes', 64, 'UseOrientation', false) };
-            descriptors(end+1,:) = { 'U-LATCH64', vicos.descriptor.LATCH('Bytes', 64, 'RotationInvariance', false) };
-
-            descriptors(end+1,:) = { 'O-\alpha\gamma simple', vicos.descriptor.AlphaGamma('orientation', true, 'extended', false, 'sampling', 'simple', 'use_scale', false, 'base_sigma', sqrt(2)) };
-            descriptors(end+1,:) = { 'O-\alpha\gamma C55x2', vicos.descriptor.AlphaGamma('orientation', true, 'extended', true, 'sampling', 'gaussian', 'use_scale', false) };
-            descriptors(end+1,:) = { 'O-\alpha\gamma C23x2', vicos.descriptor.AlphaGamma('orientation', true, 'extended', true, 'sampling', 'gaussian', 'use_scale', false, 'num_rays', 23) };
-
-            descriptors(end+1,:) = { 'U-\alpha\gamma simple', vicos.descriptor.AlphaGamma('orientation', false, 'extended', false, 'sampling', 'simple', 'use_scale', false, 'base_sigma', sqrt(2)) };
-            descriptors(end+1,:) = { 'U-\alpha\gamma C55x2', vicos.descriptor.AlphaGamma('orientation', false, 'extended', true, 'sampling', 'gaussian', 'use_scale', false) };
-            descriptors(end+1,:) = { 'U-\alpha\gamma C23x2', vicos.descriptor.AlphaGamma('orientation', false, 'extended', true, 'sampling', 'gaussian', 'use_scale', false, 'num_rays', 23) };
-
-        case 'brisk',
-        %% BRISK keypoints
-            experiment_title = sprintf('%s - BRISK keypoints', sequence);
-            
-            detector = vicos.keypoint_detector.BRISK('Threshold', 60);
-
-            descriptors = {};
-            
-            descriptors(end+1,:) = { 'BRISK',  vicos.descriptor.BRISK('Threshold', 60) };
-            descriptors(end+1,:) = { 'O-BRIEF64', vicos.descriptor.BRIEF('Bytes', 64, 'UseOrientation', true) };
-            descriptors(end+1,:) = { 'O-LATCH64', vicos.descriptor.LATCH('Bytes', 64, 'RotationInvariance', true) };
-            descriptors(end+1,:) = { 'U-BRIEF64', vicos.descriptor.BRIEF('Bytes', 64, 'UseOrientation', false) };
-            descriptors(end+1,:) = { 'U-LATCH64', vicos.descriptor.LATCH('Bytes', 64, 'RotationInvariance', false) };
-
-            descriptors(end+1,:) = { 'O-\alpha\gamma simple', vicos.descriptor.AlphaGamma('orientation', true, 'extended', false, 'sampling', 'simple', 'use_scale', false, 'base_sigma', sqrt(2)) };
-            descriptors(end+1,:) = { 'O-\alpha\gamma C55x2', vicos.descriptor.AlphaGamma('orientation', true, 'extended', true, 'sampling', 'gaussian', 'use_scale', false) };
-            descriptors(end+1,:) = { 'O-\alpha\gamma C23x2', vicos.descriptor.AlphaGamma('orientation', true, 'extended', true, 'sampling', 'gaussian', 'use_scale', false, 'num_rays', 23) };
-
-            descriptors(end+1,:) = { 'U-\alpha\gamma simple', vicos.descriptor.AlphaGamma('orientation', false, 'extended', false, 'sampling', 'simple', 'use_scale', false, 'base_sigma', sqrt(2)) };
-            descriptors(end+1,:) = { 'U-\alpha\gamma C55x2', vicos.descriptor.AlphaGamma('orientation', false, 'extended', true, 'sampling', 'gaussian', 'use_scale', false) };
-            descriptors(end+1,:) = { 'U-\alpha\gamma C23x2', vicos.descriptor.AlphaGamma('orientation', false, 'extended', true, 'sampling', 'gaussian', 'use_scale', false, 'num_rays', 23) };
-        
-        case 'harris',
-            %% Harris keypoints
-            experiment_title = 'Harris corners';
-            
-            detector = vicos.keypoint_detector.Harris('MaxFeatures', 4000); % Max number of corners
-
-            descriptors = {};
-            descriptors(end+1,:) = { 'U-BRIEF64', vicos.descriptor.BRIEF('Bytes', 64, 'UseOrientation', false) };
-            descriptors(end+1,:) = { 'U-LATCH64', vicos.descriptor.LATCH('Bytes', 64, 'RotationInvariance', false) };
-
-            descriptors(end+1,:) = { 'O-\alpha\gamma simple', vicos.descriptor.AlphaGamma('orientation', true, 'extended', false, 'sampling', 'simple', 'use_scale', false, 'base_sigma', sqrt(2)) };
-            descriptors(end+1,:) = { 'O-\alpha\gamma C55x2', vicos.descriptor.AlphaGamma('orientation', true, 'extended', true, 'sampling', 'gaussian', 'use_scale', false) };
-            descriptors(end+1,:) = { 'O-\alpha\gamma C23x2', vicos.descriptor.AlphaGamma('orientation', true, 'extended', true, 'sampling', 'gaussian', 'use_scale', false, 'num_rays', 23) };
-
-            descriptors(end+1,:) = { 'U-\alpha\gamma simple', vicos.descriptor.AlphaGamma('orientation', false, 'extended', false, 'sampling', 'simple', 'use_scale', false, 'base_sigma', sqrt(2)) };
-            descriptors(end+1,:) = { 'U-\alpha\gamma C55x2', vicos.descriptor.AlphaGamma('orientation', false, 'extended', true, 'sampling', 'gaussian', 'use_scale', false) };
-            descriptors(end+1,:) = { 'U-\alpha\gamma C23x2', vicos.descriptor.AlphaGamma('orientation', false, 'extended', true, 'sampling', 'gaussian', 'use_scale', false, 'num_rays', 23) };
+        % Return requested experiments
+        selected_idx = ismember({ available_experiments.name }, varargin);
+        experiments = available_experiments(selected_idx);
     end
+end
+
+function def = define_experiment (name, title, keypoint_detector_fcn, varargin)
+    if nargin == 0,
+        % Empty structure for initialization
+        def = repmat(struct('name', [], 'title', [], 'keypoint_detector_fcn', [], 'descriptors', []), 1, 0);
+    else
+        % Fully-fledged definition
+        assert(mod(numel(varargin), 2) == 0, 'Descriptor definitions must be pairs of names and function handles!');
     
-    experiment.name = experiment_name;
-    experiment.title = experiment_title;
-    experiment.keypoint_detector = detector;
-    experiment.descriptor_extractors = descriptors;
+        def.name = name;
+        def.title = title;
+        def.keypoint_detector_fcn = keypoint_detector_fcn;
+    
+        for i = 1:2:numel(varargin),
+            def.descriptors(i).name = varargin{i};
+            def.descriptors(i).create_fcn = varargin{i+1};
+        end
+    end
 end
