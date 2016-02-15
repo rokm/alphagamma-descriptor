@@ -1,4 +1,84 @@
 function affine_run_experiment (experiment_type, experiment_definitions, varargin)
+    % results = AFFINE_BATCH_EXPERIMENT_IMAGE_PAIRS (keypoint_detector, descriptor_extractors, varargin)
+    %
+    % Batch experiments on Oxford Affine dataset.
+    %
+    % Input:
+    %  - experiment_type: experiment type:
+    %     - 'pairs': image pairs
+    %     - 'rotation': rotation  of the specified image
+    %     - 'scale': scaling of the specified image
+    %     - 'shear': shear on the specified image
+    %  - experiment_definitions: an array of structures, containing the
+    %    definitions of experiments, each comprising a keypoint detector
+    %    and one or more descriptor extractors. Each structure in array
+    %    must contain the following fields:
+    %     - title: descriptive experiment title (shown on plots)
+    %     - name: short experiment name (used for cache filenames)
+    %     - keypoint_detector_fcn: function handle that creates the 
+    %       keypoint detector instance (vicos.keypoint_detector.KeypointDetector)
+    %     - descriptors: a structure array with following fields:
+    %        - name: descriptor extractor name (shown on plots)
+    %        - create_fcn: function handle that creates the descriptor
+    %          extractor instance (vicos.descriptor.Descriptor)
+    %  - varargin: optional key/value pairs:
+    %     - sequences: name(s) of sequences (cell array or a string) on
+    %       which each experiment is to be run (default: all sequences from
+    %       Oxford Affine dataset)
+    %     - results_dir: results directory (default: affine-results, plus 
+    %       experiment_type string)
+    %     - display_results: whether to display results after each
+    %       experiment is complete (default: false)
+    %     - base_image: base image to use in experiments; for 'pairs'
+    %       experiment, this value must be 1, otherwise, it denotes the
+    %       image on which transformations are performed (default: 1)
+    %     - values: array of values used in experiment. The meaning depends
+    %       on experiment type:
+    %        - 'pairs': numbers of the other image in pairs (default: [ 2, 3, 4, 5, 6 ])
+    %        - 'rotation': rotation angles, in degrees (default: -180:5:180)
+    %        - 'scale': scale factors (default: 0.50:0.05:1.50)
+    %        - 'shear': shear factors, in both x and y direction (default: -0.65:0.05:0.65)
+    %     - num_points: number of point correspondences to randomly sample
+    %       if more correspondences are obtained. Set to inf if all points
+    %       are to be used (default: 1000)
+    %     - num_repetitions: number of repetitions (default: 5)
+    %     - keypoint_distance_threshold: distance threshold used when
+    %       establishing ground-truth geometry-based correspondences
+    %       (default: 2.5 pixels)
+    %     - filter_border: width of image border within which the points
+    %       are filtered out to prevent access accross the image borders
+    %       (default: 50 pixels)
+    %     - project_keypoints: if set to false (default), keypoints are
+    %       detected in both images and matched via homography and distance
+    %       constraints. If set to true, the keypoints are detected only in
+    %       the first image, and directly projected to the second image
+    %       using the homography. Useful for mitigating effects of poor
+    %       keypoint localization on descriptor's performance.
+    %     - visualize_sets: visualize the correspondence sets (each drawn
+    %       set in a separate figure) (default: false)
+    %
+    % As an output, a results structure is created and stored in the cache
+    % file for later visualization. The structure contains the following
+    % fields:
+    %  - type: experiment type string
+    %  - experiment: a copy of the input 'experiment_type' structure array
+    %  - recognition_rates: RxNxP matrix of resulting recongition rates,
+    %    where R is number of repetitions, N is number of descriptors,
+    %    and P is number of tested image pairs
+    %  - base_image: base image (copied from input parameters)
+    %  - values: values used in experiment (copied from input parameters)
+    %  - sequence: sequence name
+    %  - num_keypoints1: Px1 vector of numbers of keypoints detected in 
+    %    the first image(s)
+    %  - num_keypoints2: Px1 vector of numbers of keypoints detectd in
+    %    the second image(s)
+    %  - num_established_correspondences: Px1 vector of numbers of 
+    %    correspondences established between the two sets of keypoints
+    %  - num_requested_correspondences: number of requested 
+    %    correspondences (copy of the num_points parameter)
+    %
+    % (C) 2015-2016 Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
+
     %% Parameters
     parser = inputParser();
     parser.addParameter('sequences', { 'bark', 'bikes', 'boat', 'day_night', 'graffiti', 'leuven', 'trees', 'ubc', 'wall' }, @(x) iscell(x) || ischar(x));
