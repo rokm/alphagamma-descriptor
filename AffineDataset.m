@@ -174,11 +174,24 @@ classdef AffineDataset
 
             I1 = imread( fullfile(data_path, sprintf('img%d.ppm', img)) );
             
-            H12 = [ 1, shear_y, 0;
-                    shear_x, 1, 0;
-                    0, 0, 1 ];
+            A = [       1, shear_y, 0;
+                  shear_x,       1, 0;
+                        0,       0, 1 ];
                 
-            I2 = imwarp(I1, affine2d(H12), 'linear');
+            I2 = imwarp(I1, affine2d(A), 'linear');
+            
+            % Construct the homography
+            % Move to the center
+            T1 = [ 1, 0, -(size(I1,2) - 1)/2;
+                   0, 1, -(size(I1,1) - 1)/2;
+                   0, 0, 1 ];
+
+            % Move back from the center
+            T2 = [ 1, 0, (size(I2,2) - 1)/2;
+                   0, 1, (size(I2,1) - 1)/2;
+                   0, 0, 1 ];
+
+            H12 = T2*A*T1;
         end
     end
 end
