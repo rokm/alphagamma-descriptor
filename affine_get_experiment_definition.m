@@ -164,9 +164,10 @@ function def = define_experiment (name, title, keypoint_detector_fcn, varargin)
         def.title = title;
         def.keypoint_detector_fcn = keypoint_detector_fcn;
     
-        for i = 1:2:numel(varargin),
-            def.descriptors(i).name = varargin{i};
-            def.descriptors(i).create_fcn = varargin{i+1};
+        for i = 1:numel(varargin)/2,
+            idx = 2*(i-1) + 1;
+            def.descriptors(i).name = varargin{idx};
+            def.descriptors(i).create_fcn = varargin{idx+1};
         end
     end
 end
