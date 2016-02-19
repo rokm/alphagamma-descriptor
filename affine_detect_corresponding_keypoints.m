@@ -169,7 +169,7 @@ function [ result, num_keypoints1, num_keypoints2, num_correspondences ] = affin
         % Find the indices of selected correspondences
         [ i2, i1 ] = find(ismember(correspondences, selected_idx));
 
-        assert( all(sqrt( sum((pts1(:,i1) - pts2p(:,i2)).^2) ) < distance_threshold), 'Sanity check failed!');
+        assert( all(sqrt( sum((pts1(:,i1) - pts2p(:,i2)).^2) ) <= distance_threshold), 'Sanity check failed!');
 
         %% Select the points
         result(r).keypoints1 = keypoints1(i1);
