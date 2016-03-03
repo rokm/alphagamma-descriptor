@@ -1,5 +1,5 @@
-classdef Harris < vicos.keypoint_detector.OpenCvKeypointDetector
-    % Harris - OpenCV Harris keypoint detector
+classdef Star < vicos.keypoint_detector.OpenCvKeypointDetector
+    % Star - OpenCV Star/CenSurE keypoint detector
     %
     % (C) 2015-2016, Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
     
@@ -8,30 +8,29 @@ classdef Harris < vicos.keypoint_detector.OpenCvKeypointDetector
     end
     
     methods
-        function self = Harris (varargin)
-            % self = Harris (varargin)
+        function self = Star (varargin)
+            % self = Star (varargin)
             %
-            % Creates Harris keypoint detector.
+            % Creates Star keypoint detector.
             %
             % Input: optional key/value pairs that correspond directly to
             % the implementation's parameters:
-            %  - MaxFeatures
-            %  - QualityLevel
-            %  - MinDistance
-            %  - BlockSize
-            %  - K
+            %  - MaxSize
+            %  - ResponseThreshold
+            %  - LineThresholdProjected
+            %  - LineThresholdBinarized
             %
             % Output:
-            %  - @Harris instance
+            %  - @Star instance
             
             % Input parser
             parser = inputParser();
             
-            parser.addParameter('MaxFeatures', 0, @isnumeric);
-            parser.addParameter('QualityLevel', [], @isnumeric);
-            parser.addParameter('MinDistance', [], @isnumeric);
-            parser.addParameter('BlockSize', [], @isnumeric);
-            parser.addParameter('K', [], @isnumeric);
+            parser.addParameter('MaxSize', [], @isnumeric);
+            parser.addParameter('ResponseThreshold', [], @isnumeric);
+            parser.addParameter('LineThresholdProjected', [], @isnumeric);
+            parser.addParameter('LineThresholdBinarized', [], @isnumeric);
+            parser.addParameter('SuppressNonmaxSize', [], @isnumeric);
             
             parser.parse(varargin{:});
             
@@ -46,7 +45,7 @@ classdef Harris < vicos.keypoint_detector.OpenCvKeypointDetector
             end
             
             %% Create implementation
-            self.implementation = cv.FeatureDetector('GFTTDetector', 'HarrisDetector', true, params{:});
+            self.implementation = cv.FeatureDetector('StarDetector', params{:});
         end
     end
 end

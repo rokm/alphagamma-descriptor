@@ -1,5 +1,5 @@
-classdef Harris < vicos.keypoint_detector.OpenCvKeypointDetector
-    % Harris - OpenCV Harris keypoint detector
+classdef FAST < vicos.keypoint_detector.OpenCvKeypointDetector
+    % FAST - OpenCV FAST keypoint detector
     %
     % (C) 2015-2016, Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
     
@@ -8,30 +8,26 @@ classdef Harris < vicos.keypoint_detector.OpenCvKeypointDetector
     end
     
     methods
-        function self = Harris (varargin)
-            % self = Harris (varargin)
+        function self = FAST (varargin)
+            % self = FAST (varargin)
             %
-            % Creates Harris keypoint detector.
+            % Creates FAST keypoint detector.
             %
             % Input: optional key/value pairs that correspond directly to
             % the implementation's parameters:
-            %  - MaxFeatures
-            %  - QualityLevel
-            %  - MinDistance
-            %  - BlockSize
-            %  - K
+            %  - Threshold
+            %  - NonmaxSuppression
+            %  - Type: TYPE_5_8, TYPE_7_12, TYPE_9_16
             %
             % Output:
-            %  - @Harris instance
+            %  - @FAST instance
             
             % Input parser
             parser = inputParser();
             
-            parser.addParameter('MaxFeatures', 0, @isnumeric);
-            parser.addParameter('QualityLevel', [], @isnumeric);
-            parser.addParameter('MinDistance', [], @isnumeric);
-            parser.addParameter('BlockSize', [], @isnumeric);
-            parser.addParameter('K', [], @isnumeric);
+            parser.addParameter('Threshold', [], @isnumeric);
+            parser.addParameter('NonmaxSuppression', [], @islogical);
+            parser.addParameter('Type', '', @(x) ismember(x, { 'TYPE_5_8', 'TYPE_7_12', 'TYPE_9_16' }));
             
             parser.parse(varargin{:});
             
@@ -46,7 +42,7 @@ classdef Harris < vicos.keypoint_detector.OpenCvKeypointDetector
             end
             
             %% Create implementation
-            self.implementation = cv.FeatureDetector('GFTTDetector', 'HarrisDetector', true, params{:});
+            self.implementation = cv.FeatureDetector('FastFeatureDetector', params{:});
         end
     end
 end
