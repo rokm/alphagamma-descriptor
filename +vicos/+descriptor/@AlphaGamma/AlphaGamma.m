@@ -86,7 +86,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             parser.addParameter('sampling', 'gaussian', @ischar);
             parser.addParameter('base_sigma', sqrt(1.7), @isnumeric);
             parser.addParameter('use_scale', false, @islogical);
-            parser.addParameter('threshold_alpha', 0.686, @isnumeric);
+            parser.addParameter('threshold_alpha', 0.703, @isnumeric); % compute from LUT for num_circles-1!
             parser.addParameter('threshold_gamma', 0.674, @isnumeric);
             parser.addParameter('A', 5.0, @isnumeric);
             parser.addParameter('B', 1.0, @isnumeric);
@@ -230,8 +230,15 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                     y = round(keypoints(p).pt(2)) + 1;
 
                     % Apply patch scale conversion
-                    w = round(keypoints(p).size * self.scale_factor);
-                    h = round(keypoints(p).size * self.scale_factor);
+                    %w = round(keypoints(p).size * self.scale_factor);
+                    %h = round(keypoints(p).size * self.scale_factor);
+                    
+                    % Worked well with SURF...
+                    %w = round(keypoints(p).size*1.67) + 90;
+                    %h = round(keypoints(p).size*1.67) + 90;
+                    
+                    w = round(keypoints(p).size*2.2) + 90;
+                    h = round(keypoints(p).size*2.2) + 90;
 
                     % Keep scale odd
                     if ~mod(w, 2),
