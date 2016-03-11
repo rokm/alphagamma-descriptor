@@ -115,10 +115,10 @@ static uint64_t compute_hamming_distance (const unsigned char *desc1, const unsi
         size_t tmp_len = std::min(8 - bit_offset, bit_length);
         uint8_t mask = (~(0xFF << tmp_len) << bit_offset);
 
-        const uint8_t a = desc1[byte_pos] & mask;
-        const uint8_t b = desc2[byte_pos] & mask;
+        const uint8_t a = desc1[byte_pos];
+        const uint8_t b = desc2[byte_pos];
 
-        result += lookup8bit[a ^ b];
+        result += lookup8bit[(a ^ b) & mask];
 
         bit_length -= tmp_len;
         byte_pos++;
@@ -143,17 +143,17 @@ static uint64_t compute_hamming_distance (const unsigned char *desc1, const unsi
     // Process the remaining unaligned bits
     if (bit_length) {
         const uint8_t mask = ~(0xFF << bit_length);
-        const uint8_t a = desc1[byte_pos] & mask;
-        const uint8_t b = desc2[byte_pos] & mask;
+        const uint8_t a = desc1[byte_pos];
+        const uint8_t b = desc2[byte_pos];
 
-        result += lookup8bit[a ^ b];
+        result += lookup8bit[(a ^ b) & mask];
     }
 
     return result;
 }
 
-// General-purpose extended distance for AlphaGamma descriptors, with 
-// support for arbitrary starting offset and arbitrary number of bits 
+// General-purpose extended distance for AlphaGamma descriptors, with
+// support for arbitrary starting offset and arbitrary number of bits
 // to be compared
 static uint64_t compute_extended_distance (const unsigned char *desc1, const unsigned char *desc2, size_t bit_offset, size_t bit_length, size_t extended_offset)
 {
@@ -168,15 +168,15 @@ static uint64_t compute_extended_distance (const unsigned char *desc1, const uns
         size_t tmp_len = std::min(8 - bit_offset, bit_length);
         uint8_t mask = (~(0xFF << tmp_len) << bit_offset);
 
-        const uint8_t a = desc1[byte_pos] & mask;
-        const uint8_t b = desc2[byte_pos] & mask;
-        const uint8_t a_e = desc1[byte_pos + extended_offset] & mask;
-        const uint8_t b_e = desc2[byte_pos + extended_offset] & mask;
-        
-        const uint8_t ab = a ^ b;
-        
+        const uint8_t a = desc1[byte_pos];
+        const uint8_t b = desc2[byte_pos];
+        const uint8_t a_e = desc1[byte_pos + extended_offset];
+        const uint8_t b_e = desc2[byte_pos + extended_offset];
+
+        const uint8_t ab = (a ^ b) & mask;
+
         result += lookup8bit[ab];
-        result += lookup8bit[a_e ^ b_e];
+        result += lookup8bit[(a_e ^ b_e) & mask];
         result += 2*lookup8bit[a_e & b_e & ab];
 
         bit_length -= tmp_len;
@@ -191,7 +191,7 @@ static uint64_t compute_extended_distance (const unsigned char *desc1, const uns
         const uint64_t b_e = *reinterpret_cast<const uint64_t*>(desc2 + byte_pos + extended_offset);
 
         const uint64_t ab = a ^ b;
-        
+
         result += _popcnt64(ab);
         result += _popcnt64(a_e ^ b_e);
         result += 2*_popcnt64(a_e & b_e & ab);
@@ -205,7 +205,7 @@ static uint64_t compute_extended_distance (const unsigned char *desc1, const uns
         const uint8_t b_e = desc2[byte_pos + extended_offset];
 
         const uint8_t ab = a ^ b;
-        
+
         result += lookup8bit[ab];
         result += lookup8bit[a_e ^ b_e];
         result += 2*lookup8bit[a_e & b_e & ab];
@@ -214,15 +214,15 @@ static uint64_t compute_extended_distance (const unsigned char *desc1, const uns
     // Process the remaining unaligned bits
     if (bit_length) {
         const uint8_t mask = ~(0xFF << bit_length);
-        const uint8_t a = desc1[byte_pos] & mask;
-        const uint8_t b = desc2[byte_pos] & mask;
-        const uint8_t a_e = desc1[byte_pos + extended_offset] & mask;
-        const uint8_t b_e = desc2[byte_pos + extended_offset] & mask;
+        const uint8_t a = desc1[byte_pos];
+        const uint8_t b = desc2[byte_pos];
+        const uint8_t a_e = desc1[byte_pos + extended_offset];
+        const uint8_t b_e = desc2[byte_pos + extended_offset];
 
-        const uint8_t ab = a ^ b;
-        
+        const uint8_t ab = (a ^ b) & mask;
+
         result += lookup8bit[ab];
-        result += lookup8bit[a_e ^ b_e];
+        result += lookup8bit[(a_e ^ b_e) & mask];
         result += 2*lookup8bit[a_e & b_e & ab];
     }
 
@@ -233,51 +233,51 @@ static uint64_t compute_extended_distance (const unsigned char *desc1, const uns
 
 // Alpha-gamma descriptor distance for basic descriptors
 static inline double alpha_gamma_distance (const unsigned char *desc1, const unsigned char *desc2, size_t num_circles, size_t num_rays, const double A, const double B, const double G)
-{   
+{
     uint64_t dist_a, dist_b, dist_g;
     size_t bit_offset = 0;
     size_t bit_length;
-    
+
     // Alpha part: numCircles
     bit_length = num_circles;
     dist_a = compute_hamming_distance(desc1, desc2, bit_offset, bit_length);
     bit_offset += bit_length;
-    
+
     // Beta part: numRays
     bit_length = num_rays;
     dist_b = compute_hamming_distance(desc1, desc2, bit_offset, bit_length);
     bit_offset += bit_length;
-    
+
     // Gamma part: numRays*numCircles - numRays
     bit_length = num_rays*num_circles - num_rays;
     dist_g = compute_hamming_distance(desc1, desc2, bit_offset, bit_length);
     bit_offset += bit_length;
-    
+
     return A*dist_a + B*dist_b + G*dist_g;
 }
 
 // Alpha-gamma descriptor distance for extended descriptors
 static inline double alpha_gamma_distance_ext (const unsigned char *desc1, const unsigned char *desc2, size_t num_circles, size_t num_rays, const double A, const double B, const double G, const size_t extended_offset)
-{   
+{
     uint64_t dist_a, dist_b, dist_g;
     size_t bit_offset = 0;
     size_t bit_length;
-    
+
     // Alpha part: numCircles
     bit_length = num_circles;
     dist_a = compute_extended_distance(desc1, desc2, bit_offset, bit_length, extended_offset);
     bit_offset += bit_length;
-    
+
     // Beta part: numRays
     bit_length = num_rays;
     dist_b = compute_extended_distance(desc1, desc2, bit_offset, bit_length, extended_offset);
     bit_offset += bit_length;
-    
+
     // Gamma part: numRays*numCircles - numRays
     bit_length = num_rays*num_circles - num_rays;
     dist_g = compute_extended_distance(desc1, desc2, bit_offset, bit_length, extended_offset);
     bit_offset += bit_length;
-    
+
     return A*dist_a + B*dist_b + G*dist_g;
 }
 
@@ -310,21 +310,21 @@ void mexFunction (int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
     const size_t numCircles = mxGetScalar(prhs[2]);
     const size_t numRays = mxGetScalar(prhs[3]);
     const size_t descriptorSize = compute_byte_descriptor_size(numCircles, numRays);
-    
+
     if (mxGetClassID(prhs[0]) != mxUINT8_CLASS) {
         mexErrMsgTxt("desc1 matrix must be a DxN1 uint8 matrix!");
     }
     if (mxGetM(prhs[0]) != descriptorSize && mxGetM(prhs[0]) != 2*descriptorSize) {
         mexErrMsgTxt("Invalid descriptor size!");
     }
-          
+
     if (mxGetClassID(prhs[1]) != mxUINT8_CLASS) {
         mexErrMsgTxt("desc2 matrix must be a DxN2 uint8 matrix!");
     }
     if (mxGetM(prhs[1]) != descriptorSize && mxGetM(prhs[1]) != 2*descriptorSize) {
         mexErrMsgTxt("Invalid descriptor size!");
     }
-    
+
 
     if (mxGetM(prhs[0]) != mxGetM(prhs[1])) {
         mexErrMsgTxt("descriptors must be of same size!");
@@ -354,7 +354,7 @@ void mexFunction (int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
     // *** Compute distance matrix ***
     plhs[0] = mxCreateNumericMatrix(desc2.rows, desc1.rows, mxDOUBLE_CLASS, mxREAL);
     cv::Mat distances = cv::Mat(mxGetN(plhs[0]), mxGetM(plhs[0]), CV_64F, mxGetData(plhs[0])); // Note switched dimensions
-    
+
     if (extendedDescriptor) {
         // Extended descriptor
         for (int i = 0; i < desc1.rows; i++) {
