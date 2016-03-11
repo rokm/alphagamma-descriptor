@@ -110,32 +110,42 @@ static uint64_t compute_hamming_distance (const unsigned char *desc1, const unsi
     size_t byte_pos = bit_offset / 8;
     bit_offset = bit_offset % 8;
 
+    const uint8_t *desc1_ptr = desc1 + byte_pos;
+    const uint8_t *desc2_ptr = desc2 + byte_pos;
+
     // ... and process the unaligned bits
     if (bit_offset) {
         size_t tmp_len = std::min(8 - bit_offset, bit_length);
         uint8_t mask = (~(0xFF << tmp_len) << bit_offset);
 
-        const uint8_t a = desc1[byte_pos];
-        const uint8_t b = desc2[byte_pos];
+        const uint8_t a = *desc1_ptr++;
+        const uint8_t b = *desc2_ptr++;
 
         result += lookup8bit[(a ^ b) & mask];
 
         bit_length -= tmp_len;
-        byte_pos++;
     }
 
     // Process 64-bit blocks
-    for (; bit_length >= 64; byte_pos += 8, bit_length -= 64) {
-        const uint64_t a = *reinterpret_cast<const uint64_t*>(desc1 + byte_pos);
-        const uint64_t b = *reinterpret_cast<const uint64_t*>(desc2 + byte_pos);
+    for (; bit_length >= 64; desc1_ptr += 8, desc2_ptr += 8, bit_length -= 64) {
+        const uint64_t a = *reinterpret_cast<const uint64_t*>(desc1_ptr);
+        const uint64_t b = *reinterpret_cast<const uint64_t*>(desc2_ptr);
 
         result += _popcnt64(a ^ b);
     }
 
+    // Process 32-bit blocks
+    for (; bit_length >= 32; desc1_ptr += 4, desc2_ptr += 4, bit_length -= 32) {
+        const uint32_t a = *reinterpret_cast<const uint32_t*>(desc1_ptr);
+        const uint32_t b = *reinterpret_cast<const uint32_t*>(desc2_ptr);
+
+        result += _popcnt32(a ^ b);
+    }
+
     // Process the remaining 8-bit blocks
-    for (; bit_length >= 8; byte_pos++, bit_length -= 8) {
-        const uint8_t a = desc1[byte_pos];
-        const uint8_t b = desc2[byte_pos];
+    for (; bit_length >= 8; bit_length -= 8) {
+        const uint8_t a = *desc1_ptr++;
+        const uint8_t b = *desc2_ptr++;
 
         result += lookup8bit[a ^ b];
     }
@@ -143,8 +153,8 @@ static uint64_t compute_hamming_distance (const unsigned char *desc1, const unsi
     // Process the remaining unaligned bits
     if (bit_length) {
         const uint8_t mask = ~(0xFF << bit_length);
-        const uint8_t a = desc1[byte_pos];
-        const uint8_t b = desc2[byte_pos];
+        const uint8_t a = *desc1_ptr;
+        const uint8_t b = *desc2_ptr;
 
         result += lookup8bit[(a ^ b) & mask];
     }
@@ -163,67 +173,75 @@ static uint64_t compute_extended_distance (const unsigned char *desc1, const uns
     size_t byte_pos = bit_offset / 8;
     bit_offset = bit_offset % 8;
 
+    const uint8_t *desc1_ptr = desc1 + byte_pos;
+    const uint8_t *desc2_ptr = desc2 + byte_pos;
+    const uint8_t *desc1ext_ptr = desc1_ptr + extended_offset;
+    const uint8_t *desc2ext_ptr = desc2_ptr + extended_offset;
+
     // ... and process the unaligned bits
     if (bit_offset) {
         size_t tmp_len = std::min(8 - bit_offset, bit_length);
         uint8_t mask = (~(0xFF << tmp_len) << bit_offset);
 
-        const uint8_t a = desc1[byte_pos];
-        const uint8_t b = desc2[byte_pos];
-        const uint8_t a_e = desc1[byte_pos + extended_offset];
-        const uint8_t b_e = desc2[byte_pos + extended_offset];
+        const uint8_t a = *desc1_ptr++;
+        const uint8_t b = *desc2_ptr++;
+        const uint8_t a_e = *desc1ext_ptr++;
+        const uint8_t b_e = *desc2ext_ptr++;
 
         const uint8_t ab = (a ^ b) & mask;
 
-        result += lookup8bit[ab];
-        result += lookup8bit[(a_e ^ b_e) & mask];
-        result += 2*lookup8bit[a_e & b_e & ab];
+        result += lookup8bit[ab] + lookup8bit[(a_e ^ b_e) & mask] + 2*lookup8bit[a_e & b_e & ab];
 
         bit_length -= tmp_len;
-        byte_pos++;
     }
 
     // Process 64-bit blocks
-    for (; bit_length >= 64; byte_pos += 8, bit_length -= 64) {
-        const uint64_t a = *reinterpret_cast<const uint64_t*>(desc1 + byte_pos);
-        const uint64_t b = *reinterpret_cast<const uint64_t*>(desc2 + byte_pos);
-        const uint64_t a_e = *reinterpret_cast<const uint64_t*>(desc1 + byte_pos + extended_offset);
-        const uint64_t b_e = *reinterpret_cast<const uint64_t*>(desc2 + byte_pos + extended_offset);
+    for (; bit_length >= 64; desc1_ptr += 8, desc2_ptr += 8, desc1ext_ptr += 8, desc2ext_ptr += 8, bit_length -= 64) {
+        const uint64_t a = *reinterpret_cast<const uint64_t*>(desc1_ptr);
+        const uint64_t b = *reinterpret_cast<const uint64_t*>(desc2_ptr);
+        const uint64_t a_e = *reinterpret_cast<const uint64_t*>(desc1ext_ptr);
+        const uint64_t b_e = *reinterpret_cast<const uint64_t*>(desc2ext_ptr);
 
         const uint64_t ab = a ^ b;
 
-        result += _popcnt64(ab);
-        result += _popcnt64(a_e ^ b_e);
-        result += 2*_popcnt64(a_e & b_e & ab);
+        result += _popcnt64(ab) + _popcnt64(a_e ^ b_e) + 2*_popcnt64(a_e & b_e & ab);
+    }
+
+    // Process 32-bit blocks
+    for (; bit_length >= 32; desc1_ptr += 4, desc2_ptr += 4, desc1ext_ptr += 4, desc2ext_ptr += 4, bit_length -= 32) {
+        const uint32_t a = *reinterpret_cast<const uint32_t*>(desc1_ptr);
+        const uint32_t b = *reinterpret_cast<const uint32_t*>(desc2_ptr);
+        const uint32_t a_e = *reinterpret_cast<const uint32_t*>(desc1ext_ptr);
+        const uint32_t b_e = *reinterpret_cast<const uint32_t*>(desc2ext_ptr);
+
+        const uint32_t ab = a ^ b;
+
+        result += _popcnt32(ab) + _popcnt32(a_e ^ b_e) + 2*_popcnt32(a_e & b_e & ab);
     }
 
     // Process the remaining 8-bit blocks
-    for (; bit_length >= 8; byte_pos++, bit_length -= 8) {
-        const uint8_t a = desc1[byte_pos];
-        const uint8_t b = desc2[byte_pos];
-        const uint8_t a_e = desc1[byte_pos + extended_offset];
-        const uint8_t b_e = desc2[byte_pos + extended_offset];
+    for (; bit_length >= 8; bit_length -= 8) {
+        const uint8_t a = *desc1_ptr++;
+        const uint8_t b = *desc2_ptr++;
+        const uint8_t a_e = *desc1ext_ptr++;
+        const uint8_t b_e = *desc2ext_ptr++;
 
         const uint8_t ab = a ^ b;
 
-        result += lookup8bit[ab];
-        result += lookup8bit[a_e ^ b_e];
-        result += 2*lookup8bit[a_e & b_e & ab];
+        result += lookup8bit[ab] + lookup8bit[a_e ^ b_e] + 2*lookup8bit[a_e & b_e & ab];
     }
 
     // Process the remaining unaligned bits
     if (bit_length) {
         const uint8_t mask = ~(0xFF << bit_length);
-        const uint8_t a = desc1[byte_pos];
-        const uint8_t b = desc2[byte_pos];
-        const uint8_t a_e = desc1[byte_pos + extended_offset];
-        const uint8_t b_e = desc2[byte_pos + extended_offset];
+        const uint8_t a = *desc1_ptr;
+        const uint8_t b = *desc2_ptr;
+        const uint8_t a_e = *desc1ext_ptr;
+        const uint8_t b_e = *desc2ext_ptr;
 
         const uint8_t ab = (a ^ b) & mask;
 
-        result += lookup8bit[ab];
-        result += lookup8bit[(a_e ^ b_e) & mask];
-        result += 2*lookup8bit[a_e & b_e & ab];
+        result += lookup8bit[ab] + lookup8bit[(a_e ^ b_e) & mask] + 2*lookup8bit[a_e & b_e & ab];
     }
 
     return result;
