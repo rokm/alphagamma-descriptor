@@ -36,6 +36,9 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
 
         %
         effective_patch_size = 95
+        
+        %
+        use_bitstrings
     end
 
     % vicos.descriptor.Descriptor implementation
@@ -91,6 +94,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             parser.addParameter('A', 5.0, @isnumeric);
             parser.addParameter('B', 1.0, @isnumeric);
             parser.addParameter('G', 1.0, @isnumeric);
+            parser.addParameter('use_bitstrings', false, @islogical);
 
             parser.parse(varargin{:});
 
@@ -108,6 +112,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             self.A = parser.Results.A;
             self.B = parser.Results.B;
             self.G = parser.Results.G;
+            self.use_bitstrings = parser.Results.use_bitstrings;
 
             assert(ismember(self.sampling, { 'simple', 'gaussian', 'mixed' }), 'Invalid sampling type!');
 
@@ -307,12 +312,20 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                 desc2 = desc2';
             end
 
-            % Fast MEX version of the distance
-            distances = alpha_gamma_distances(desc1, desc2, self.num_circles, self.num_rays, self.A, self.B, self.G);
+            if self.use_bitstrings,
+                distances = alpha_gamma_distances_fast(desc1, desc2, self.num_circles, self.num_rays, self.A, self.B, self.G);
+            else
+                distances = alpha_gamma_distances(desc1, desc2, self.num_circles, self.num_rays, self.A, self.B, self.G);
+            end
         end
 
         function descriptor_size = get_descriptor_size (self)
             descriptor_size = self.num_circles + self.num_circles*self.num_rays;
+            
+            if self.use_bitstrings,
+                descriptor_size = ceil( descriptor_size/8 );
+            end
+            
             if self.extended,
                 descriptor_size = 2*descriptor_size;
             end
@@ -418,10 +431,23 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             gamma = reshape(gamma > 0, [], 1);
             alpha = reshape(a > 0, [], 1);
 
-            if self.extended,
-                descriptor = uint8( vertcat(alpha, gamma, alpha_ext, gamma_ext) );
+            if self.use_bitstrings,
+                % Convert descriptors to bitstrings
+                if self.extended,
+                    descriptor = [ ...
+                        convert_bytestring_to_bitstring( uint8(vertcat(alpha, gamma)) ); ...
+                        convert_bytestring_to_bitstring( uint8(vertcat(alpha_ext, gamma_ext)) ) ...
+                    ];
+                else
+                    descriptor = convert_bytestring_to_bitstring( uint8(vertcat(alpha, gamma)) );
+                end
             else
-                descriptor = uint8( vertcat(alpha, gamma) );
+                % Original byte-string version
+                if self.extended,
+                    descriptor = uint8( vertcat(alpha, gamma, alpha_ext, gamma_ext) );
+                else
+                    descriptor = uint8( vertcat(alpha, gamma) );
+                end
             end
         end
 

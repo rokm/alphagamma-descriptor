@@ -138,7 +138,7 @@ void mexFunction (int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
     double G = 1.0;
 
     if (nrhs > 4) {
-        G = mxGetScalar(prhs[4]);
+        A = mxGetScalar(prhs[4]);
     }
     if (nrhs > 5) {
         B = mxGetScalar(prhs[5]);
