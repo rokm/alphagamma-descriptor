@@ -230,57 +230,6 @@ static uint64_t compute_extended_distance (const unsigned char *desc1, const uns
 }
 
 
-
-// Alpha-gamma descriptor distance for basic descriptors
-static inline double alpha_gamma_distance (const unsigned char *desc1, const unsigned char *desc2, size_t num_circles, size_t num_rays, const double A, const double B, const double G)
-{
-    uint64_t dist_a, dist_b, dist_g;
-    size_t bit_offset = 0;
-    size_t bit_length;
-
-    // Alpha part: numCircles
-    bit_length = num_circles;
-    dist_a = compute_hamming_distance(desc1, desc2, bit_offset, bit_length);
-    bit_offset += bit_length;
-
-    // Beta part: numRays
-    bit_length = num_rays;
-    dist_b = compute_hamming_distance(desc1, desc2, bit_offset, bit_length);
-    bit_offset += bit_length;
-
-    // Gamma part: numRays*numCircles - numRays
-    bit_length = num_rays*num_circles - num_rays;
-    dist_g = compute_hamming_distance(desc1, desc2, bit_offset, bit_length);
-    bit_offset += bit_length;
-
-    return A*dist_a + B*dist_b + G*dist_g;
-}
-
-// Alpha-gamma descriptor distance for extended descriptors
-static inline double alpha_gamma_distance_ext (const unsigned char *desc1, const unsigned char *desc2, size_t num_circles, size_t num_rays, const double A, const double B, const double G, const size_t extended_offset)
-{
-    uint64_t dist_a, dist_b, dist_g;
-    size_t bit_offset = 0;
-    size_t bit_length;
-
-    // Alpha part: numCircles
-    bit_length = num_circles;
-    dist_a = compute_extended_distance(desc1, desc2, bit_offset, bit_length, extended_offset);
-    bit_offset += bit_length;
-
-    // Beta part: numRays
-    bit_length = num_rays;
-    dist_b = compute_extended_distance(desc1, desc2, bit_offset, bit_length, extended_offset);
-    bit_offset += bit_length;
-
-    // Gamma part: numRays*numCircles - numRays
-    bit_length = num_rays*num_circles - num_rays;
-    dist_g = compute_extended_distance(desc1, desc2, bit_offset, bit_length, extended_offset);
-    bit_offset += bit_length;
-
-    return A*dist_a + B*dist_b + G*dist_g;
-}
-
 static inline size_t compute_byte_descriptor_size (size_t num_circles, size_t num_rays)
 {
     size_t descriptor_size = (num_circles + num_circles*num_rays);
@@ -355,6 +304,12 @@ void mexFunction (int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
     plhs[0] = mxCreateNumericMatrix(desc2.rows, desc1.rows, mxDOUBLE_CLASS, mxREAL);
     cv::Mat distances = cv::Mat(mxGetN(plhs[0]), mxGetM(plhs[0]), CV_64F, mxGetData(plhs[0])); // Note switched dimensions
 
+    const size_t bitOffsetA = 0;
+    const size_t bitLengthA = numCircles;
+
+    const size_t bitOffsetG = bitOffsetA + bitLengthA;
+    const size_t bitLengthG = numRays*numCircles;
+
     if (extendedDescriptor) {
         // Extended descriptor
         for (int i = 0; i < desc1.rows; i++) {
@@ -362,7 +317,9 @@ void mexFunction (int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
             const unsigned char *desc1p = desc1.ptr<unsigned char>(i);
             for (int j = 0; j < desc2.rows; j++) {
                 const unsigned char *desc2p = desc2.ptr<unsigned char>(j);
-                distPtr[j] = alpha_gamma_distance_ext(desc1p, desc2p, numCircles, numRays, A, B, G, descriptorSize);
+
+                distPtr[j] = A*compute_extended_distance(desc1p, desc2p, bitOffsetA, bitLengthA, descriptorSize) +
+                             G*compute_extended_distance(desc1p, desc2p, bitOffsetG, bitLengthG, descriptorSize);
             }
         }
     } else {
@@ -372,7 +329,9 @@ void mexFunction (int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
             const unsigned char *desc1p = desc1.ptr<unsigned char>(i);
             for (int j = 0; j < desc2.rows; j++) {
                 const unsigned char *desc2p = desc2.ptr<unsigned char>(j);
-                distPtr[j] = alpha_gamma_distance(desc1p, desc2p, numCircles, numRays, A, B, G);
+
+                distPtr[j] = A*compute_hamming_distance(desc1p, desc2p, bitOffsetA, bitLengthA) +
+                             G*compute_hamming_distance(desc1p, desc2p, bitOffsetG, bitLengthG);
             }
         }
     }
