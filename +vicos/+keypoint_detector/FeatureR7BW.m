@@ -18,13 +18,11 @@ classdef FeatureR7BW < vicos.keypoint_detector.KeypointDetector
             
             self.threshold = parser.Results.Threshold;
             self.num_circles = parser.Results.NumCircles;
-            
-            self.num_circles = 7;
-            
+                        
             %% Generate filters
             M = self.num_circles; % num circles
             circle_step = 1;
-            N = ceil(M*3*circle_step + 3); % FIXME: what kind of magic is this?
+            N = ceil(M*3*circle_step + 3);
 
             self.filters = cell(1, M);
             for j = 1:M,
@@ -66,14 +64,14 @@ classdef FeatureR7BW < vicos.keypoint_detector.KeypointDetector
                 I_avg2 = I_avg2 + If.^2;
             end
             
-            S_r = M*I_avg2 - I_avg.^2; % FIXME: why multiplication with num_circles?
+            S_r = M*I_avg2 - I_avg.^2;
             
             %% Averaging filter
             average_filter = ones(3,3);
             average_filter = average_filter / sum(average_filter(:));
             
             S_r = conv2(S_r, average_filter, 'same');
-            S_r = conv2(S_r, average_filter, 'same');
+            %S_r = conv2(S_r, average_filter, 'same');
                         
             %% Find local maxima
             tmp = S_r(2:end-1,2:end-1); % Skip out 1 pixel 
