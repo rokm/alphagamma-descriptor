@@ -102,12 +102,12 @@ static const uint8_t lookup8bit[256] = {
 
 // General-purpose Hamming distance with support for arbitrary starting
 // offset and arbitrary number of bits to be compared
-static uint64_t compute_hamming_distance (const unsigned char *desc1, const unsigned char *desc2, size_t bit_offset, size_t bit_length)
+static uint16_t compute_hamming_distance (const unsigned char *desc1, const unsigned char *desc2, uint16_t bit_offset, uint16_t bit_length)
 {
-    uint64_t result = 0;
+    uint16_t result = 0;
 
     // Skip the whole bytes at the beginning...
-    size_t byte_pos = bit_offset / 8;
+    uint16_t byte_pos = bit_offset / 8;
     bit_offset = bit_offset % 8;
 
     const uint8_t *desc1_ptr = desc1 + byte_pos;
@@ -115,7 +115,7 @@ static uint64_t compute_hamming_distance (const unsigned char *desc1, const unsi
 
     // ... and process the unaligned bits
     if (bit_offset) {
-        size_t tmp_len = std::min(8 - bit_offset, bit_length);
+        uint8_t tmp_len = std::min<uint16_t>(8 - bit_offset, bit_length);
         uint8_t mask = (~(0xFF << tmp_len) << bit_offset);
 
         const uint8_t a = *desc1_ptr++;
@@ -165,12 +165,12 @@ static uint64_t compute_hamming_distance (const unsigned char *desc1, const unsi
 // General-purpose extended distance for AlphaGamma descriptors, with
 // support for arbitrary starting offset and arbitrary number of bits
 // to be compared
-static uint64_t compute_extended_distance (const unsigned char *desc1, const unsigned char *desc2, size_t bit_offset, size_t bit_length, size_t extended_offset)
+static uint16_t compute_extended_distance (const unsigned char *desc1, const unsigned char *desc2, uint16_t bit_offset, uint16_t bit_length, uint16_t extended_offset)
 {
-    uint64_t result = 0;
+    uint16_t result = 0;
 
     // Skip the whole bytes at the beginning...
-    size_t byte_pos = bit_offset / 8;
+    uint16_t byte_pos = bit_offset / 8;
     bit_offset = bit_offset % 8;
 
     const uint8_t *desc1_ptr = desc1 + byte_pos;
@@ -180,7 +180,7 @@ static uint64_t compute_extended_distance (const unsigned char *desc1, const uns
 
     // ... and process the unaligned bits
     if (bit_offset) {
-        size_t tmp_len = std::min(8 - bit_offset, bit_length);
+        uint8_t tmp_len = std::min<uint16_t>(8 - bit_offset, bit_length);
         uint8_t mask = (~(0xFF << tmp_len) << bit_offset);
 
         const uint8_t a = *desc1_ptr++;
@@ -322,11 +322,11 @@ void mexFunction (int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
     plhs[0] = mxCreateNumericMatrix(desc2.rows, desc1.rows, mxDOUBLE_CLASS, mxREAL);
     cv::Mat distances = cv::Mat(mxGetN(plhs[0]), mxGetM(plhs[0]), CV_64F, mxGetData(plhs[0])); // Note switched dimensions
 
-    const size_t bitOffsetA = 0;
-    const size_t bitLengthA = numCircles;
+    const uint16_t bitOffsetA = 0;
+    const uint16_t bitLengthA = numCircles;
 
-    const size_t bitOffsetG = bitOffsetA + bitLengthA;
-    const size_t bitLengthG = numRays*numCircles;
+    const uint16_t bitOffsetG = bitOffsetA + bitLengthA;
+    const uint16_t bitLengthG = numRays*numCircles;
 
     if (extendedDescriptor) {
         // Extended descriptor
