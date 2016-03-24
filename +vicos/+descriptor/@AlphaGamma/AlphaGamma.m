@@ -4,12 +4,13 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
     % (C) 2015, Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
 
     properties
-        patch_size = 95
-        num_circles = 11
-        num_rays = 55
-        circle_step = sqrt(2)
-
+        num_circles
+        num_rays
+        
         sampling
+
+        base_sigma
+        circle_step
 
         compute_base
         compute_extended
@@ -17,10 +18,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
         threshold_gamma
 
         use_scale
-        scale_factor = 23 % Default for SIFT keypoints
-
-        base_sigma
-
+        
         % Pre-computed stuff
         filters
         sample_points
@@ -35,7 +33,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
         G
 
         %
-        effective_patch_size = 95
+        effective_patch_size
         
         %
         use_bitstrings
@@ -49,7 +47,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             % Construct AlphaGamma descriptor extractor.
             %
             % Input: key/value pairs:
-            %  - patch_size: size of a patch (95)
             %  - num_circles: number of circles (11)
             %  - num_rays: number of rays (55)
             %  - orientation: whether to estimate and correct orientation
@@ -84,7 +81,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
 
             % Input parameters
             parser = inputParser();
-            parser.addParameter('patch_size', 95, @isscalar);
             parser.addParameter('num_circles', 11, @isscalar);
             parser.addParameter('num_rays', 55, @isscalar);
             parser.addParameter('circle_step', sqrt(2), @isscalar);
@@ -103,7 +99,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
 
             parser.parse(varargin{:});
 
-            self.patch_size = parser.Results.patch_size;
             self.num_circles = parser.Results.num_circles;
             self.num_rays = parser.Results.num_rays;
             self.circle_step = parser.Results.circle_step;
@@ -141,7 +136,8 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
 
             switch self.sampling,
                 case 'simple',
-                    scale_factor = (self.patch_size-1) / (2*self.num_circles);
+                    patch_size = 95;
+                    scale_factor = (patch_size-1) / (2*self.num_circles);
 
                     % Filters are intentionally left empty
 
@@ -202,6 +198,9 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                 self.sample_points{j} = points;
             end
 
+            %% Compute effective patch size
+            self.effective_patch_size = 2*round(radii(end) + 3*sigmas(end)) + 1;
+            
             %% Orientation correction
             i = 0:self.num_rays-1;
             self.orient_cos = cos(2*pi/self.num_rays*i);
@@ -227,59 +226,12 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
 
             desc = zeros(get_descriptor_size(self), num_points, 'uint8');
 
-            if self.use_scale,
-                % Use scale; crop each patch and rescale it to the
-                % reference size, then build a pyramid on top of that
-                for p = 1:num_points,
-                    % Round the keypoint coordinates to integer; convert
-                    % from 0-based to 1-based coordinate system
-                    x = round(keypoints(p).pt(1)) + 1;
-                    y = round(keypoints(p).pt(2)) + 1;
-
-                    % Apply patch scale conversion
-                    w = round(keypoints(p).size * self.scale_factor);
-                    h = round(keypoints(p).size * self.scale_factor);
-                    
-                    % Keep scale odd
-                    if ~mod(w, 2),
-                        w = w + 1;
-                    end
-                    if ~mod(h, 2),
-                        h = h + 1;
-                    end
-
-                    % Crop the patch
-                    patch = cut_patch_from_image(I, x, y, w, h);
-
-                    % Resize patch to the reference size (patch size plus
-                    % 2 x size of the largest filter)
-                    filter_size = (size(self.filters{end},1) - 1) / 2;
-                    reference_size = self.patch_size + 2*filter_size;
-                    patch = imresize(patch, [ reference_size, reference_size ]);
-
-                    % Compute image pyramid on top of the patch
-                    pyramid = zeros(size(patch, 1), size(patch, 2), self.num_circles);
-                    base_image = filter2(create_dog_filter(self.base_sigma), patch);
-
-                    for i = 1:self.num_circles,
-                        if isempty(self.filters{i}),
-                            pyramid(:,:,i) = base_image;
-                        else
-                            pyramid(:,:,i) = filter2(self.filters{i}, base_image);
-                        end
-                    end
-
-                    % Extract
-                    new_center = (size(patch) - 1)/2;
-                    desc(:,p) = extract_descriptor_from_keypoint(self, pyramid, new_center);
-                end
-            else
+            if ~self.use_scale,
                 % Use fixed-size windows; build a single image pyramid for
                 % the whole image
                 pyramid = zeros(size(I, 1), size(I, 2), self.num_circles);
-                base_image = filter2(create_dog_filter(self.base_sigma), I);
-
-                pyramid(:,:,1) = base_image;
+                
+                pyramid(:,:,1) = filter2(create_dog_filter(self.base_sigma), I);
                 for i = 2:self.num_circles,
                     if isempty(self.filters{i}),
                         pyramid(:,:,i) = pyramid(:,:,i-1);
@@ -293,6 +245,8 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                 for p = 1:num_points,
                     desc(:,p) = extract_descriptor_from_keypoint(self, pyramid, keypoints(p).pt + 1);
                 end
+            else
+                error('Scale not implemented yet!');
             end
         end
 
@@ -459,27 +413,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                 end
             end
         end
-
-        function fig = visualize_descriptor (self)
-            fig = figure('Name', 'Descriptor visualization');
-
-            patch = zeros(self.patch_size, self.patch_size, 1, 'uint8');
-
-            imshow(patch);
-            hold on;
-
-            center_x = (self.patch_size - 1)/2 + 1;
-            center_y = (self.patch_size - 1)/2 + 1;
-
-            for c = 1:self.num_circles,
-                for r =1:self.num_rays,
-                    x = center_x + self.sample_points{c}(1,r);
-                    y = center_y + self.sample_points{c}(2,r);
-                    plot(x, y, 'r+');
-                end
-            end
-        end
-
     end
 end
 
