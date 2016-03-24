@@ -160,16 +160,26 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                             %radii(i) = 0.71;
                             sigmas(i) = 0.3; % Variable
                             radii(i) = 0.71/0.3 * sigmas(i);
+                            continue; % Do not do anything
                         else
                             sigmas(i) = sigmas(i-1)*step;
                             radii(i) = radii(i-1) + step*sigmas(i);
                         end
 
                         % Apply filter only if sigma is greater than 0.7
-                        if sigmas(i) > 0.7,
+                        if sigmas(i) <= 0.7,
+                            continue;
+                        end
+                        
+                        if isempty(self.filters{i-1}),
+                            % We do not have previous filter; create a 
+                            % full filter
                             self.filters{i} = create_dog_filter(sigmas(i));
                         else
-                            self.filters{i} = [];
+                            % We have previous filter; compute incremental
+                            % filter
+                            tmp_sigma = sqrt( sigmas(i)^2 - sigmas(i-1)^2 );
+                            self.filters{i} = create_dog_filter(tmp_sigma);
                         end
                     end
             end
@@ -269,11 +279,12 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                 pyramid = zeros(size(I, 1), size(I, 2), self.num_circles);
                 base_image = filter2(create_dog_filter(self.base_sigma), I);
 
-                for i = 1:self.num_circles,
+                pyramid(:,:,1) = base_image;
+                for i = 2:self.num_circles,
                     if isempty(self.filters{i}),
-                        pyramid(:,:,i) = base_image;
+                        pyramid(:,:,i) = pyramid(:,:,i-1);
                     else
-                        pyramid(:,:,i) = filter2(self.filters{i}, base_image);
+                        pyramid(:,:,i) = filter2(self.filters{i}, pyramid(:,:,i-1));
                     end
                 end
 
