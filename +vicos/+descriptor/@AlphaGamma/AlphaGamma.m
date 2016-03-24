@@ -86,8 +86,8 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             parser.addParameter('sampling', 'gaussian', @ischar);
             parser.addParameter('base_sigma', sqrt(1.7), @isnumeric);
             parser.addParameter('use_scale', false, @islogical);
-            parser.addParameter('threshold_alpha', 0.703, @isnumeric); % compute from LUT for num_circles-1!
-            parser.addParameter('threshold_gamma', 0.674, @isnumeric);
+            parser.addParameter('threshold_alpha', [], @isnumeric); % compute from LUT for num_circles-1!
+            parser.addParameter('threshold_gamma', [], @isnumeric);
             parser.addParameter('A', 5.0, @isnumeric);
             parser.addParameter('B', 1.0, @isnumeric);
             parser.addParameter('G', 1.0, @isnumeric);
@@ -113,6 +113,18 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
 
             assert(ismember(self.sampling, { 'simple', 'gaussian' }), 'Invalid sampling type!');
 
+            % Determine thresholds as the inverse of Student's T CDF with
+            % number of elements in alpha or gamma (minus 1) as degrees of
+            % freedom, and 50% confidence interval
+            if isempty(self.threshold_alpha),
+                dof = self.num_circles - 1;
+                self.threshold_alpha = tinv(1 - 0.5/2, dof);
+            end
+            if isempty(self.threshold_gamma),
+                dof = self.num_circles*self.num_rays - 1;
+                self.threshold_gamma = tinv(1 - 0.5/2, dof);
+            end
+            
             %% Pre-compute filters
             sigmas = zeros(self.num_circles, 1);
             radii = zeros(self.num_circles, 1);
@@ -146,7 +158,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
 
                         % Apply filter only if sigma is greater than 0.7
                         if sigmas(i) > 0.7,
-                            self.filters{i} = self.create_dog_filter(sigmas(i));
+                            self.filters{i} = create_dog_filter(sigmas(i));
                         else
                             self.filters{i} = [];
                         end
@@ -218,7 +230,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                     end
 
                     % Crop the patch
-                    patch = self.cut_patch_from_image(I, x, y, w, h);
+                    patch = cut_patch_from_image(I, x, y, w, h);
 
                     % Resize patch to the reference size (patch size plus
                     % 2 x size of the largest filter)
@@ -228,7 +240,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
 
                     % Compute image pyramid on top of the patch
                     pyramid = zeros(size(patch, 1), size(patch, 2), self.num_circles);
-                    base_image = filter2(self.create_dog_filter(self.base_sigma), patch);
+                    base_image = filter2(create_dog_filter(self.base_sigma), patch);
 
                     for i = 1:self.num_circles,
                         if isempty(self.filters{i}),
@@ -246,7 +258,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                 % Use fixed-size windows; build a single image pyramid for
                 % the whole image
                 pyramid = zeros(size(I, 1), size(I, 2), self.num_circles);
-                base_image = filter2(self.create_dog_filter(self.base_sigma), I);
+                base_image = filter2(create_dog_filter(self.base_sigma), I);
 
                 for i = 1:self.num_circles,
                     if isempty(self.filters{i}),
@@ -436,49 +448,47 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
         end
 
     end
+end
 
-    methods (Static)
-        function filt = create_dog_filter (sigma)
-            % filt = CREATE_DOG_FILTER (sigma)
-            %
-            % Creates a DoG filter with specified sigma.
+function filt = create_dog_filter (sigma)
+    % filt = CREATE_DOG_FILTER (sigma)
+    %
+    % Creates a DoG filter with specified sigma.
 
-            sz = round(3*sigma);
-            [ x, y ] = meshgrid(-sz:sz);
+    sz = round(3*sigma);
+    [ x, y ] = meshgrid(-sz:sz);
 
-            % DoG
-            filt = exp(-(x.^2/sigma^2 + y.^2/sigma^2)/2);
-            filt = filt / sum(filt(:));
-        end
+    % DoG
+    filt = exp(-(x.^2/sigma^2 + y.^2/sigma^2)/2);
+    filt = filt / sum(filt(:));
+end
 
-        function filt = create_unif_filter (window)
-            % filt = CREATE_UNIF_FILTER (window)
-            %
-            % Creates a uniform filter with specified window size.
+function filt = create_unif_filter (window)
+    % filt = CREATE_UNIF_FILTER (window)
+    %
+    % Creates a uniform filter with specified window size.
 
-            filt = ones(window, window);
-            filt = filt / sum(filt(:));
-        end
+    filt = ones(window, window);
+    filt = filt / sum(filt(:));
+end
 
-        function patch = cut_patch_from_image (I, x, y, w, h)
-            % patch = CUT_PATCH_FROM_IMAGE (I, x, y, w, h)
-            %
-            % Cuts patch from image with border replication, if necessary.
+function patch = cut_patch_from_image (I, x, y, w, h)
+    % patch = CUT_PATCH_FROM_IMAGE (I, x, y, w, h)
+    %
+    % Cuts patch from image with border replication, if necessary.
+    
+    assert(mod(w,2) == 1, 'Patch must be of odd size!');
+    assert(mod(h,2) == 1, 'Patch must be of odd size!');
 
-            assert(mod(w,2) == 1, 'Patch must be of odd size!');
-            assert(mod(h,2) == 1, 'Patch must be of odd size!');
+    w2 = (w-1)/2;
+    h2 = (h-1)/2;
 
-            w2 = (w-1)/2;
-            h2 = (h-1)/2;
+    % Border replication
+    xidx = (x-w2):(x+w2);
+    xidx = min(max(xidx, 1), size(I, 2));
 
-            % Border replication
-            xidx = (x-w2):(x+w2);
-            xidx = min(max(xidx, 1), size(I, 2));
+    yidx = (y-h2):(y+h2);
+    yidx = min(max(yidx, 1), size(I, 1));
 
-            yidx = (y-h2):(y+h2);
-            yidx = min(max(yidx, 1), size(I, 1));
-
-            patch = I(yidx, xidx, :);
-        end
-    end
+    patch = I(yidx, xidx, :);
 end
