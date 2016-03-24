@@ -206,16 +206,9 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                     y = round(keypoints(p).pt(2)) + 1;
 
                     % Apply patch scale conversion
-                    %w = round(keypoints(p).size * self.scale_factor);
-                    %h = round(keypoints(p).size * self.scale_factor);
+                    w = round(keypoints(p).size * self.scale_factor);
+                    h = round(keypoints(p).size * self.scale_factor);
                     
-                    % Worked well with SURF...
-                    %w = round(keypoints(p).size*1.67) + 90;
-                    %h = round(keypoints(p).size*1.67) + 90;
-                    
-                    w = round(keypoints(p).size*2.2) + 90;
-                    h = round(keypoints(p).size*2.2) + 90;
-
                     % Keep scale odd
                     if ~mod(w, 2),
                         w = w + 1;
