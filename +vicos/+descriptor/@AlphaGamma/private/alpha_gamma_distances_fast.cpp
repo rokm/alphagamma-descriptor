@@ -1,4 +1,4 @@
-// distance = ALPHAGAMMA_DISTANCE_FAST (desc1, desc2, num_circles, num_rays, weightA, weightB, weightG)
+// distance = ALPHAGAMMA_DISTANCE_FAST (desc1, desc2, num_circles, num_rays, weightA, weightG)
 //
 // Computes matrix of pair-wise distances between two sets of AlphaGamma
 // descriptors. This is a fast, POPCNT-based implementation of the distance.
@@ -9,7 +9,6 @@
 //  - num_circles:
 //  - num_rays:
 //  - weightA:
-//  - weightB:
 //  - weightG:
 //
 // Output:
@@ -261,7 +260,7 @@ static inline size_t compute_byte_descriptor_size (size_t num_circles, size_t nu
 // *********************************************************************
 void mexFunction (int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
 {
-    if (nrhs < 4 || nrhs > 7) {
+    if (nrhs < 4 || nrhs > 6) {
         mexErrMsgTxt("Invalid number of input parameters!");
     }
 
@@ -301,17 +300,13 @@ void mexFunction (int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
 
     // Distance weights
     double A = 5.0;
-    double B = 1.0;
     double G = 1.0;
 
     if (nrhs > 4) {
         A = mxGetScalar(prhs[4]);
     }
     if (nrhs > 5) {
-        B = mxGetScalar(prhs[5]);
-    }
-    if (nrhs > 6) {
-        G = mxGetScalar(prhs[6]);
+        G = mxGetScalar(prhs[5]);
     }
 
     // Cast the input matrices to CV_8U type

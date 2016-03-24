@@ -11,7 +11,8 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
 
         sampling
 
-        extended
+        compute_base
+        compute_extended
         threshold_alpha
         threshold_gamma
 
@@ -60,7 +61,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             %     - gaussian: image pyramid is built using a bank of
             %       Gaussian filter, corresponding to the original complex
             %       descriptor formulation
-            %  - extended: whether to compute extended descriptor (false)
             %  - extended_threshold: threshold to use in extended
             %    descriptor (0.674)
             %  - base_sigma: sigma for DoG filter of the base image.
@@ -72,6 +72,15 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             %    windows are extracted around the keypoints' locations.
             %    Default: false.
             %
+            % - compute_base: compute base descriptor
+            % - compute_extended: compute extended descriptor
+            % - threshold_alpha:
+            % - threshold_gamma:
+            % - A:
+            % - B:
+            % - G:
+            % - use_bitstrings:
+            %
             % Output:
             %  - self: @AlphaGamma instance
 
@@ -82,10 +91,12 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             parser.addParameter('num_rays', 55, @isscalar);
             parser.addParameter('circle_step', sqrt(2), @isscalar);
             parser.addParameter('orientation', false, @islogical);
-            parser.addParameter('extended', true, @islogical);
             parser.addParameter('sampling', 'gaussian', @ischar);
             parser.addParameter('base_sigma', sqrt(1.7), @isnumeric);
             parser.addParameter('use_scale', false, @islogical);
+
+            parser.addParameter('compute_base', true, @islogical);
+            parser.addParameter('compute_extended', true, @islogical);
             parser.addParameter('threshold_alpha', [], @isnumeric); % compute from LUT for num_circles-1!
             parser.addParameter('threshold_gamma', [], @isnumeric);
             parser.addParameter('A', 5.0, @isnumeric);
@@ -100,10 +111,12 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             self.num_rays = parser.Results.num_rays;
             self.circle_step = parser.Results.circle_step;
             self.orientation = parser.Results.orientation;
-            self.extended = parser.Results.extended;
             self.sampling = parser.Results.sampling;
             self.base_sigma = parser.Results.base_sigma;
             self.use_scale = parser.Results.use_scale;
+            
+            self.compute_base = parser.Results.compute_base;
+            self.compute_extended = parser.Results.compute_extended;
             self.threshold_alpha = parser.Results.threshold_alpha;
             self.threshold_gamma = parser.Results.threshold_gamma;
             self.A = parser.Results.A;
@@ -277,6 +290,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
         end
 
         function distances = compute_pairwise_distances (self, desc1, desc2)
+            % distances = COMPUTE_PAIRWISE_DISTANCES (self, desc1, desc2)
 
             % Compatibility layer; if descriptors are given in N1xD and
             % N2xD, transpose them
@@ -302,9 +316,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                 descriptor_size = ceil( descriptor_size/8 );
             end
             
-            if self.extended,
-                descriptor_size = 2*descriptor_size;
-            end
+            descriptor_size = self.compute_base*descriptor_size + self.compute_extended*descriptor_size;
         end
 
         function decriptor = compute_from_patch (self, I)
@@ -373,17 +385,14 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
 
             %% Compute descriptor
             field_avg = mean(field(:)); % Average value in the field
-            a = mean(field, 1) - field_avg; % Alpha effects
-            b = mean(field, 2) - field_avg; % Beta effects
+            
+            % Compute alpha effects
+            a = mean(field, 1) - field_avg;
+            
+            % Compute beta effects
+            b = mean(field, 2) - field_avg;
 
-            if self.extended,
-                sa = sqrt(sum(a.*a) / self.num_circles); % TODO: self.num_circles - 1
-                aa = abs(a) > sa*self.threshold_alpha;
-                alpha_ext = aa - (1 - aa);
-                alpha_ext = reshape(alpha_ext, [], 1);
-            end
-
-            % Gamma effects
+            % Compute gamma effects
             for j = 1:self.num_circles,
                 gamma(:,j) = b;
             end
@@ -391,38 +400,55 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                 gamma(j,:) = gamma(j,:) + a;
             end
             gamma = field - gamma - field_avg;
-
-            if self.extended,
+            
+            % "Basic" part of descriptor
+            if self.compute_base,
+                desc_alpha = reshape(a > 0, [], 1);
+                desc_gamma = reshape(gamma > 0, [], 1);
+            end
+            
+            % "Extended" part of descriptor
+            if self.compute_extended,
+                % Alpha part
+                sa = sqrt( sum(a.*a) / self.num_circles); % TODO: self.num_circles - 1
+                aa = abs(a) > sa*self.threshold_alpha;
+                desc_alpha_ext = aa - (1 - aa);
+                desc_alpha_ext = reshape(desc_alpha_ext, [], 1);
+            
+                % Gamma part
                 sg = sqrt(sum(sum(gamma.*gamma)) / numel(gamma)); % TODO: self.num_rays - 1, varianca po stolpcih.
                 gg = abs(gamma) > sg*self.threshold_gamma;
-                gamma_ext = gg - (1 - gg);
-                gamma_ext = reshape(gamma_ext, [], 1);
+                desc_gamma_ext = gg - (1 - gg);
+                desc_gamma_ext = reshape(desc_gamma_ext, [], 1);
             end
 
-            % Note: the original function used a sign function here, which
-            % mean that descriptor could take three values; -1, 0, 1; this
-            % implied three possible distances: 0, 1, and 2... now, we are
-            % using binary values, so only two distances are possible...
-            % and this seems to drop our performance by cca. 2.5 %
-            gamma = reshape(gamma > 0, [], 1);
-            alpha = reshape(a > 0, [], 1);
-
+            %% Write descriptor
             if self.use_bitstrings,
-                % Convert descriptors to bitstrings
-                if self.extended,
+                % Bitstring version
+                if self.compute_base && self.compute_extended,
+                    % Combined
                     descriptor = [ ...
-                        convert_bytestring_to_bitstring( uint8(vertcat(alpha, gamma)) ); ...
-                        convert_bytestring_to_bitstring( uint8(vertcat(alpha_ext, gamma_ext)) ) ...
+                        convert_bytestring_to_bitstring( uint8([ desc_alpha; desc_gamma ]) ); ...
+                        convert_bytestring_to_bitstring( uint8([ desc_alpha_ext; desc_gamma_ext ]) ) ...
                     ];
-                else
-                    descriptor = convert_bytestring_to_bitstring( uint8(vertcat(alpha, gamma)) );
+                elseif self.compute_base,
+                    % Base-only
+                    descriptor = convert_bytestring_to_bitstring( uint8( [ desc_alpha; desc_gamma ]) );
+                elseif self.compute_extended,
+                    % Extended-only
+                    descriptor = convert_bytestring_to_bitstring( uint8( [ desc_alpha_ext; desc_gamma_ext ]) );
                 end
             else
                 % Original byte-string version
-                if self.extended,
-                    descriptor = uint8( vertcat(alpha, gamma, alpha_ext, gamma_ext) );
-                else
-                    descriptor = uint8( vertcat(alpha, gamma) );
+                if self.compute_base && self.compute_extended,
+                    % Combined
+                    descriptor = [ desc_alpha; desc_gamma; desc_alpha_ext; desc_gamma_ext ];
+                elseif self.compute_base,
+                    % Base-only
+                    descriptor = [ desc_alpha; desc_gamma ];
+                elseif self.compute_extended,
+                    % Extended-only
+                    descriptor = [ desc_alpha_ext; desc_gamma_ext ];
                 end
             end
         end

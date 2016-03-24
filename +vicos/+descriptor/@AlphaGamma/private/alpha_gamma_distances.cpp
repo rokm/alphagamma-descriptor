@@ -1,4 +1,4 @@
-// distances = ALPHA_GAMMA_DISTANCES (desc1, desc2, num_circles, num_rays, weightA, weightB, weightG)
+// distances = ALPHA_GAMMA_DISTANCES (desc1, desc2, num_circles, num_rays, weightA, weightG)
 //
 // Computes matrix of pair-wise distances between two sets of AlphaGamma
 // descriptors.
@@ -9,7 +9,6 @@
 //  - num_circles:
 //  - num_rays:
 //  - weightA:
-//  - weightB:
 //  - weightG:
 //
 // Output:
@@ -97,7 +96,7 @@ inline double alpha_gamma_distance (const unsigned char *desc1, const unsigned c
 // *********************************************************************
 void mexFunction (int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
 {
-    if (nrhs < 4 || nrhs > 7) {
+    if (nrhs < 4 || nrhs > 6) {
         mexErrMsgTxt("Invalid number of input parameters!");
     }
 
@@ -114,9 +113,9 @@ void mexFunction (int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
         mexErrMsgTxt("num_rays must be a numeric scalar!");
     }
 
-    const int numCircles = mxGetScalar(prhs[2]);
-    const int numRays = mxGetScalar(prhs[3]);
-    const int descriptorSize = numCircles + numCircles*numRays;
+    const size_t numCircles = mxGetScalar(prhs[2]);
+    const size_t numRays = mxGetScalar(prhs[3]);
+    const size_t descriptorSize = numCircles + numCircles*numRays;
 
     if (mxGetClassID(prhs[0]) != mxUINT8_CLASS || (mxGetM(prhs[0]) != descriptorSize && mxGetM(prhs[0]) != 2*descriptorSize)) {
         mexErrMsgTxt("desc1 matrix must be a DxN1 uint8 matrix!");
@@ -134,19 +133,15 @@ void mexFunction (int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
 
     // Distance weights
     double A = 5.0;
-    double B = 1.0;
     double G = 1.0;
 
     if (nrhs > 4) {
         A = mxGetScalar(prhs[4]);
     }
     if (nrhs > 5) {
-        B = mxGetScalar(prhs[5]);
+        G = mxGetScalar(prhs[5]);
     }
-    if (nrhs > 6) {
-        G = mxGetScalar(prhs[6]);
-    }
-
+    
     // Cast the input matrices to CV_8U type
     const cv::Mat desc1 = cv::Mat(mxGetN(prhs[0]), mxGetM(prhs[0]), CV_8U, mxGetData(prhs[0]));
     const cv::Mat desc2 = cv::Mat(mxGetN(prhs[1]), mxGetM(prhs[1]), CV_8U, mxGetData(prhs[1]));
@@ -161,7 +156,7 @@ void mexFunction (int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
         for (int j = 0; j < desc2.rows; j++) {
             const unsigned char *desc2p = desc2.ptr<unsigned char>(j);
 
-            distPtr[j] = alpha_gamma_distance(desc1p, desc2p, numCircles, numRays, extendedDescriptor, A, B, G);
+            distPtr[j] = alpha_gamma_distance(desc1p, desc2p, numCircles, numRays, extendedDescriptor, A, G, G);
         }
     }
 }
