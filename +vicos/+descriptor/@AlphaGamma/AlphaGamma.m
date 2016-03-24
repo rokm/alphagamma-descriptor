@@ -60,9 +60,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             %     - gaussian: image pyramid is built using a bank of
             %       Gaussian filter, corresponding to the original complex
             %       descriptor formulation
-            %     - mixed: image pyramid is built using a mixture of
-            %       Gaussian and uniform filters, corresponding to the
-            %       second revision of the descriptor formulation
             %  - extended: whether to compute extended descriptor (false)
             %  - extended_threshold: threshold to use in extended
             %    descriptor (0.674)
@@ -114,7 +111,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             self.G = parser.Results.G;
             self.use_bitstrings = parser.Results.use_bitstrings;
 
-            assert(ismember(self.sampling, { 'simple', 'gaussian', 'mixed' }), 'Invalid sampling type!');
+            assert(ismember(self.sampling, { 'simple', 'gaussian' }), 'Invalid sampling type!');
 
             %% Pre-compute filters
             sigmas = zeros(self.num_circles, 1);
@@ -153,32 +150,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                         else
                             self.filters{i} = [];
                         end
-                    end
-                case 'mixed',
-                    % Mixed filters that was originally used for the extended
-                    % descriptor
-                    assert(self.num_circles == 11, 'Mixed filters support only 11 circles!');
-
-                    step = sqrt(2);
-                    for i = 1:self.num_circles,
-                        if i == 1,
-                            sigmas(i) = 0.3;
-                            radii(i) = 0.71;
-                        else
-                            sigmas(i) = sigmas(i-1)*step;
-                            radii(i) = radii(i-1) + step*sigmas(i);
-                        end
-                    end
-
-                    filter_sizes = [ 1, 1, 1, 1, 3, 3, 5, 5, 7, 9, 11 ];
-                    for i = 1:4,
-                        self.filters{i} = []; % No filter
-                    end
-                    for i = 5:7,
-                        self.filters{i} = self.create_unif_filter(filter_sizes(i)); % No filter
-                    end
-                    for i = 8:11,
-                        self.filters{i} = self.create_dog_filter(sigmas(i));
                     end
             end
 
