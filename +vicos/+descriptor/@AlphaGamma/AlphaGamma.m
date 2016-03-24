@@ -130,7 +130,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                 self.threshold_alpha = tinv(1 - 0.5/2, dof);
             end
             if isempty(self.threshold_gamma),
-                dof = self.num_circles*self.num_rays - 1;
+                dof = self.num_rays - 1;
                 self.threshold_gamma = tinv(1 - 0.5/2, dof);
             end
             
@@ -406,14 +406,14 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             % "Extended" part of descriptor
             if self.compute_extended,
                 % Alpha part
-                sa = sqrt( sum(a.*a) / self.num_circles); % TODO: self.num_circles - 1
+                sa = sqrt( sum(a.*a) / (self.num_circles-1) );
                 aa = abs(a) > sa*self.threshold_alpha;
                 desc_alpha_ext = aa - (1 - aa);
                 desc_alpha_ext = reshape(desc_alpha_ext, [], 1);
             
                 % Gamma part
-                sg = sqrt(sum(sum(gamma.*gamma)) / numel(gamma)); % TODO: self.num_rays - 1, varianca po stolpcih.
-                gg = abs(gamma) > sg*self.threshold_gamma;
+                sg = sqrt( sum(gamma.*gamma) / (self.num_rays-1) );
+                gg = bsxfun(@gt, abs(gamma), sg*self.threshold_gamma);
                 desc_gamma_ext = gg - (1 - gg);
                 desc_gamma_ext = reshape(desc_gamma_ext, [], 1);
             end
