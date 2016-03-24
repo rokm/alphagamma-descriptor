@@ -32,7 +32,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
 
         % Distance function weights
         A
-        B
         G
 
         %
@@ -77,7 +76,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             % - threshold_alpha:
             % - threshold_gamma:
             % - A:
-            % - B:
             % - G:
             % - use_bitstrings:
             %
@@ -100,7 +98,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             parser.addParameter('threshold_alpha', [], @isnumeric); % compute from LUT for num_circles-1!
             parser.addParameter('threshold_gamma', [], @isnumeric);
             parser.addParameter('A', 5.0, @isnumeric);
-            parser.addParameter('B', 1.0, @isnumeric);
             parser.addParameter('G', 1.0, @isnumeric);
             parser.addParameter('use_bitstrings', false, @islogical);
 
@@ -120,7 +117,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             self.threshold_alpha = parser.Results.threshold_alpha;
             self.threshold_gamma = parser.Results.threshold_gamma;
             self.A = parser.Results.A;
-            self.B = parser.Results.B;
             self.G = parser.Results.G;
             self.use_bitstrings = parser.Results.use_bitstrings;
 
@@ -303,9 +299,9 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             end
 
             if self.use_bitstrings,
-                distances = alpha_gamma_distances_fast(desc1, desc2, self.num_circles, self.num_rays, self.A, self.B, self.G);
+                distances = alpha_gamma_distances_fast(desc1, desc2, self.num_circles, self.num_rays, self.A, self.G);
             else
-                distances = alpha_gamma_distances(desc1, desc2, self.num_circles, self.num_rays, self.A, self.B, self.G);
+                distances = alpha_gamma_distances(desc1, desc2, self.num_circles, self.num_rays, self.A, self.G);
             end
         end
 
