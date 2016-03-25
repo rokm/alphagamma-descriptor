@@ -226,27 +226,45 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
 
             desc = zeros(get_descriptor_size(self), num_points, 'uint8');
 
+            % Create image pyramid(s)
+            if self.use_scale,
+                num_octaves = 5;
+            else
+                num_octaves = 1;
+            end
+            
+            pyramids = cell(1, num_octaves);
+            for i = 1:num_octaves,
+                It = imresize(I, 0.5^(i-1));
+                pyramids{i} = create_image_pyramid(It);
+            end
+            
             if ~self.use_scale,
-                % Use fixed-size windows; build a single image pyramid for
-                % the whole image
-                pyramid = zeros(size(I, 1), size(I, 2), self.num_circles);
-                
-                pyramid(:,:,1) = filter2(create_dog_filter(self.base_sigma), I);
-                for i = 2:self.num_circles,
-                    if isempty(self.filters{i}),
-                        pyramid(:,:,i) = pyramid(:,:,i-1);
-                    else
-                        pyramid(:,:,i) = filter2(self.filters{i}, pyramid(:,:,i-1));
-                    end
-                end
-
-                % Now extract for each point (note the 0-based to 1-based
-                % coordinate system conversion)
                 for p = 1:num_points,
-                    desc(:,p) = extract_descriptor_from_keypoint(self, pyramid, keypoints(p).pt + 1);
+                    % Extract each point from the first-level pyramid
+                    % (which is also the only one we have. Note the 0-based 
+                    % to 1-based coordinate system conversion
+                    desc(:,p) = extract_descriptor_from_keypoint(self, pyramids{1}, keypoints(p).pt + 1, 1.0);
                 end
             else
                 error('Scale not implemented yet!');
+            end
+        end
+        
+        function pyramid = create_image_pyramid (self, I)
+            % pyramid = CREATE_IMAGE_PYRAMID (self, I)
+            %
+            % Creates and image pyramid from the given input image.
+            
+            pyramid = zeros(size(I, 1), size(I, 2), self.num_circles);
+                
+            pyramid(:,:,1) = filter2(create_dog_filter(self.base_sigma), I);
+            for i = 2:self.num_circles,
+                if isempty(self.filters{i}),
+                    pyramid(:,:,i) = pyramid(:,:,i-1);
+                else
+                    pyramid(:,:,i) = filter2(self.filters{i}, pyramid(:,:,i-1));
+                end
             end
         end
 
@@ -313,8 +331,8 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             keypoints(invalid_idx) = [];
         end
 
-        function descriptor = extract_descriptor_from_keypoint (self, pyramid, center)
-            % descriptor = EXTRACT_DESCRIPTOR_FROM_KEYPOINT (self, pyramid, center)
+        function descriptor = extract_descriptor_from_keypoint (self, pyramid, center, radius_factor)
+            % descriptor = EXTRACT_DESCRIPTOR_FROM_KEYPOINT (self, pyramid, center, radius_factor)
             %
             % Extracts alpha-gamma descriptor from a given keypoint.
 
@@ -326,8 +344,8 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
 
             for j = 1:self.num_circles,
                 for i = 1:self.num_rays,
-                    x = self.sample_points{j}(1, i) + center(1);
-                    y = self.sample_points{j}(2, i) + center(2);
+                    x = radius_factor*self.sample_points{j}(1, i) + center(1);
+                    y = radius_factor*self.sample_points{j}(2, i) + center(2);
                     field(i, j) = pyramid(y, x, j);
                 end
             end
