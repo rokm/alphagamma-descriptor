@@ -225,29 +225,72 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             num_points = numel(keypoints);
 
             desc = zeros(get_descriptor_size(self), num_points, 'uint8');
-
-            % Create image pyramid(s)
-            if self.use_scale,
-                num_octaves = 5;
-            else
-                num_octaves = 1;
-            end
             
-            pyramids = cell(1, num_octaves);
-            for i = 1:num_octaves,
-                It = imresize(I, 0.5^(i-1));
-                pyramids{i} = create_image_pyramid(It);
-            end
-            
+            %% Single-scale version
             if ~self.use_scale,
+                pyramid = self.create_image_pyramid(I);
+                
                 for p = 1:num_points,
                     % Extract each point from the first-level pyramid
-                    % (which is also the only one we have. Note the 0-based 
-                    % to 1-based coordinate system conversion
-                    desc(:,p) = extract_descriptor_from_keypoint(self, pyramids{1}, keypoints(p).pt + 1, 1.0);
+                    % (which is also the only one we have). Note the 
+                    % 0-based to 1-based coordinate system conversion
+                    desc(:,p) = extract_descriptor_from_keypoint(self, pyramid, keypoints(p).pt + 1, 1.0);
                 end
+                
             else
-                error('Scale not implemented yet!');
+                %% Multi-scale version
+                num_octaves = 5;
+                
+                % Construct pyramids
+                pyramids = cell(1, num_octaves);
+                
+                %  Option 1: Resizing of filtered images
+                pyramids{1} = self.create_image_pyramid(I);
+                for i = 2:num_octaves,
+                    factor = 0.5^(i-1);
+                    pyramids{i} = imresize(pyramids{1}, factor);
+                end
+                
+                %  Option 2: Filtering of resized images
+                %for i = 1:num_octaves,
+                %    It = imresize(I, 0.5^(i-1));
+                %    pyramids{i} = self.create_image_pyramid(It);
+                %end
+                              
+                % Compute maximum radius
+                max_radius = max(abs(self.sample_points{end}(:)));
+                
+                % Process all keypoints
+                for p = 1:num_points,
+                    keypoint = keypoints(p);
+                    
+                    % Determine octave and scale factors
+                    if keypoint.size <= 28,
+                        octave = 1; % No downsampling
+                    elseif keypoint.size <= 56,
+                        octave = 2; % 1x downsampled
+                    elseif keypoint.size <= 112,
+                        octave = 3; % 2x downsampled
+                    elseif keypoint.size <= 224,
+                        octave = 4; % 3x downsampled
+                    elseif keypoint.size <= 448,
+                        octave = 5; % 4x downsampled
+                    else
+                        error('Keypoint too large: %f!', keypoint.size);
+                    end
+                    
+                    % Scale the keypoint's center
+                    new_center = keypoint.pt + 1; % 0-based -> 1-based
+                    new_center = new_center * 0.5^(octave - 1);
+                    
+                    % Scale factor for the radii
+                    % TODO: Jasna wants us to multiply by 4 here... but
+                    % that's clearly out of range... :(
+                    scale_factor = 4*(keypoint.size/2) / (max_radius * 2^(octave-1));
+                    
+                    % Extract
+                    desc(:,p) = extract_descriptor_from_keypoint(self, pyramids{octave}, new_center, scale_factor);
+                end
             end
         end
         
@@ -336,7 +379,8 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             %
             % Extracts alpha-gamma descriptor from a given keypoint.
 
-            center = round(center);
+            % TODO: implement bilinear interpolation while filtering
+            %center = round(center);
 
             %% Sample points into the field
             field = nan(self.num_rays, self.num_circles);
@@ -346,6 +390,26 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                 for i = 1:self.num_rays,
                     x = radius_factor*self.sample_points{j}(1, i) + center(1);
                     y = radius_factor*self.sample_points{j}(2, i) + center(2);
+                    
+                    x = round(x);
+                    y = round(y);
+                    
+%                     % Clamp; TODO: find a better strategy?
+%                     if x < 1, 
+%                         warning('Sampling point falls out of image, clamping!');
+%                     end
+%                     if x > size(pyramid, 2),
+%                         warning('Sampling point falls out of image, clamping!');
+%                     end
+%                     if y < 1, 
+%                         warning('Sampling point falls out of image, clamping!');
+%                     end
+%                     if y > size(pyramid, 1),
+%                         warning('Sampling point falls out of image, clamping!');
+%                     end
+                    x = max(min(x, size(pyramid, 2)), 1);
+                    y = max(min(y, size(pyramid, 1)), 1);
+                    
                     field(i, j) = pyramid(y, x, j);
                 end
             end
