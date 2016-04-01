@@ -18,6 +18,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
         threshold_gamma
 
         use_scale
+        base_keypoint_size % Base keypoint size normalization factor
         
         % Pre-computed stuff
         filters
@@ -88,6 +89,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             parser.addParameter('sampling', 'gaussian', @ischar);
             parser.addParameter('base_sigma', sqrt(1.7), @isnumeric);
             parser.addParameter('use_scale', false, @islogical);
+            parser.addParameter('base_keypoint_size', 18.5, @isnumeric);
 
             parser.addParameter('compute_base', true, @islogical);
             parser.addParameter('compute_extended', true, @islogical);
@@ -106,6 +108,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             self.sampling = parser.Results.sampling;
             self.base_sigma = parser.Results.base_sigma;
             self.use_scale = parser.Results.use_scale;
+            self.base_keypoint_size = parser.Results.base_keypoint_size;
             
             self.compute_base = parser.Results.compute_base;
             self.compute_extended = parser.Results.compute_extended;
@@ -284,9 +287,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                     new_center = new_center * 0.5^(octave - 1);
                     
                     % Scale factor for the radii
-                    % TODO: Jasna wants us to multiply by 4 here... but
-                    % that's clearly out of range... :(
-                    scale_factor = 4*(keypoint.size/2) / (max_radius * 2^(octave-1));
+                    scale_factor = keypoint.size/(self.base_keypoint_size * 2^(octave-1));
                     
                     % Extract
                     desc(:,p) = extract_descriptor_from_keypoint(self, pyramids{octave}, new_center, scale_factor);
