@@ -29,7 +29,6 @@ classdef ORB < vicos.keypoint_detector.OpenCvKeypointDetector
             
             % Input parser
             parser = inputParser();
-            
             parser.addParameter('MaxFeatures', [], @isnumeric);
             parser.addParameter('ScaleFactor', [], @isnumeric);
             parser.addParameter('NLevels', [], @isnumeric);
@@ -38,7 +37,6 @@ classdef ORB < vicos.keypoint_detector.OpenCvKeypointDetector
             parser.addParameter('ScoreType', [], @(x) ismember(x, { 'Harris', 'FAST' }));
             parser.addParameter('PatchSize', [], @isnumeric);
             parser.addParameter('FastThreshold', [], @isnumeric);
-            
             parser.parse(varargin{:});
             
             %% Gather parameters   

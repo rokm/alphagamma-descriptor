@@ -5,6 +5,8 @@ classdef BRISK < vicos.keypoint_detector.OpenCvKeypointDetector
     
     properties
         implementation
+        
+        upright
     end
     
     methods
@@ -18,21 +20,24 @@ classdef BRISK < vicos.keypoint_detector.OpenCvKeypointDetector
             %  - Threshold
             %  - Octaves
             %  - PatternScale
+            %  - UpRight: manually zero the angles returned by the detector
             %
             % Output:
             %  - @BRISK instance
             
             % Input parser
             parser = inputParser();
-            
             parser.addParameter('Threshold', [], @isnumeric);
             parser.addParameter('Octaves', [], @isnumeric);
             parser.addParameter('PatternScale', [], @isnumeric);
-            
+            parser.addParameter('UpRight', false, @islogical);
             parser.parse(varargin{:});
-            
+
+            self.upright = parser.Results.UpRight;
+
             %% Gather parameters   
             fields = fieldnames(parser.Results);
+            fields = setdiff(fields, 'UpRight'); % exclude
             params = {};
             for f = 1:numel(fields),
                 field = fields{f};
@@ -43,6 +48,15 @@ classdef BRISK < vicos.keypoint_detector.OpenCvKeypointDetector
             
             %% Create implementation
             self.implementation = cv.FeatureDetector('BRISK', params{:});
+        end
+        
+        function keypoints = detect (self, I)
+            % Detect keypoints using the child-provided implementation
+            keypoints = self.implementation.detect(I);
+            
+            if self.upright,
+                [ keypoints.angle ] = deal(0);
+            end
         end
     end
 end
