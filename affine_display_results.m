@@ -1,16 +1,26 @@
-function fig = affine_display_results (results)
-    % fig = AFFINE_DISPLAY_RESULTS(results)
+function fig = affine_display_results (results, varargin)
+    % fig = AFFINE_DISPLAY_RESULTS (results, varargin)
     %
     % Visualizes results of affine-dataset batch experiments.
     %
     % Input:
     %  - results: results structure or .mat filename
+    %  - varargin: optional key/value pairs
+    %     - display_variance: display variance, if available (default:
+    %       true)
     %
     % Output:
     %  - fig: figure with visualization
     %
     % (C) 2015-2016, Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
     
+    parser = inputParser;
+    parser.addParameter('display_variance', true, @islogical);
+    parser.parse(varargin{:});
+    
+    display_variance = parser.Results.display_variance;
+    
+    % Load results
     if ischar(results),
         results = load(results);
     end
@@ -73,23 +83,33 @@ function fig = affine_display_results (results)
         set(gca, 'XTickLabel', xlabels);
         xlabel('Image pair (num. correspondences)');
 
-        % Error bars
-        num_groups = size(recognition_rates_mean, 2);
-        num_bars = size(recognition_rates_mean, 1); 
-        group_width = min(0.8, num_bars/(num_bars+1.5));
+        % Error bars (only if variance is available and turned on)
+        if num_repetitions > 1 && display_variance,
+            num_groups = size(recognition_rates_mean, 2);
+            num_bars = size(recognition_rates_mean, 1); 
+            group_width = min(0.8, num_bars/(num_bars+1.5));
 
-        for i = 1:num_bars,
-            x = (1:num_groups) - group_width/2 + (2*i-1) * group_width / (2*num_bars);  % Aligning error bar with individual bar
-            errorbar(x, recognition_rates_mean(i,:), recognition_rates_std(i,:), 'k', 'LineWidth', 1.5, 'LineStyle', 'none');
+            for i = 1:num_bars,
+                x = (1:num_groups) - group_width/2 + (2*i-1) * group_width / (2*num_bars);  % Aligning error bar with individual bar
+                errorbar(x, recognition_rates_mean(i,:), recognition_rates_std(i,:), 'k', 'LineWidth', 1.5, 'LineStyle', 'none');
+            end
         end
     else
         %% Rotation, scale, shear: line plot with error bars
         h = nan(1, num_descriptors);
-
-        % Draw plots
-        for d = 1:num_descriptors,
-            h(d) = errorbar(results.values, recognition_rates_mean(d,:), recognition_rates_std(d,:));
-            hold on;
+            
+        if num_repetitions > 1 && display_variance,
+            % Draw error-bar plots
+            for d = 1:num_descriptors,
+                h(d) = errorbar(results.values, recognition_rates_mean(d,:), recognition_rates_std(d,:));
+                hold on;
+            end
+        else
+            % Draw regular plots
+            for d = 1:num_descriptors,
+                h(d) = plot(results.values, recognition_rates_mean(d,:));
+                hold on;
+            end
         end
 
         % Annotations
