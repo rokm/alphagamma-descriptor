@@ -4,7 +4,9 @@ function fig = affine_display_results (results, varargin)
     % Visualizes results of affine-dataset batch experiments.
     %
     % Input:
-    %  - results: results structure or .mat filename
+    %  - results: results structure or .mat filename. If empty array is
+    %    given instead, the file selection dialog will be shown to pick the
+    %    results .mat file.
     %  - varargin: optional key/value pairs
     %     - display_variance: display variance, if available (default:
     %       true)
@@ -21,6 +23,14 @@ function fig = affine_display_results (results, varargin)
     display_variance = parser.Results.display_variance;
     
     % Load results
+    if isempty(results),
+        [ filename, pathname ] = uigetfile('*.mat', 'Pick a results file');
+        if isequal(filename, 0),
+            return;
+        end
+        results = fullfile(pathname, filename);
+    end
+    
     if ischar(results),
         results = load(results);
     end
@@ -99,17 +109,11 @@ function fig = affine_display_results (results, varargin)
         h = nan(1, num_descriptors);
             
         if num_repetitions > 1 && display_variance,
-            % Draw error-bar plots
-            for d = 1:num_descriptors,
-                h(d) = errorbar(results.values, recognition_rates_mean(d,:), recognition_rates_std(d,:));
-                hold on;
-            end
+            % Draw erorr-bar plots
+            h = errorbar(repmat(results.values, num_descriptors, 1)' , recognition_rates_mean', recognition_rates_std');
         else
             % Draw regular plots
-            for d = 1:num_descriptors,
-                h(d) = plot(results.values, recognition_rates_mean(d,:));
-                hold on;
-            end
+            h = plot(results.values, recognition_rates_mean);
         end
 
         % Annotations
