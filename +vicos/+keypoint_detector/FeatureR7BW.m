@@ -104,7 +104,7 @@ classdef FeatureR7BW < vicos.keypoint_detector.KeypointDetector
                 keypoints(p).angle = 0;
                 keypoints(p).response = 0; %S_r(y(p), x(p));
                 keypoints(p).octave = 0;
-                keypoints(p).class_id = 0;
+                keypoints(p).class_id = -1;
             end
         end
     end

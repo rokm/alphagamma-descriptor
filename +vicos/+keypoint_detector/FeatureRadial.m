@@ -102,7 +102,7 @@ classdef FeatureRadial < vicos.keypoint_detector.KeypointDetector
                 keypoints(p).angle = 0;
                 keypoints(p).response = 0;%feature_r(p, 4);
                 keypoints(p).octave = 0;
-                keypoints(p).class_id = 0;
+                keypoints(p).class_id = -1;
             end
         end
     end
