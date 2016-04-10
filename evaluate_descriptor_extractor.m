@@ -51,6 +51,25 @@ function recognition_rate = evaluate_descriptor_extractor (I1, I2, keypoints1, k
     num_keypoint_pairs = numel(keypoints1);
 
     %% Extract descriptors
+    % A descriptor extractor may choose to discard some of the given
+    % keypoints; some OpenCV-based extractors do that (e.g., if a keypoint
+    % is too close to the image edge). We need to be able to detect this,
+    % by comparing the input and output array of keypoints. However, a
+    % descriptor extract may also choose to modify the angles of the
+    % keypoints (for example, if it computes its own angles instead of
+    % using the keypoint-detector-provided ones). Therefore, the only
+    % really reliable way to do so is by assigning the keypoint indices to
+    % their .class_id fields, and compare that. In order to do so, however,
+    % we need to ensure that the descriptor extractor does not already use
+    % the class_id for its own purpose - while it should not, at least
+    % KAZE/AKAZE keypoint detector/descriptor extractor from OpenCV does
+    % that. Therefore, the call to augment_keypoints_with_ids() checks if
+    % the field is used, and raises an error - which means that the
+    % descriptor implementation needs to be modified not to (ab)use the
+    % class_id field.
+    keypoints1 = augment_keypoints_with_id(keypoints1);
+    keypoints2 = augment_keypoints_with_id(keypoints2);
+    
     %t = tic();
     [ desc1, keypoints1b ] = descriptor_extractor.compute(I1, keypoints1);
     [ desc2, keypoints2b ] = descriptor_extractor.compute(I2, keypoints2);
@@ -62,14 +81,7 @@ function recognition_rate = evaluate_descriptor_extractor (I1, I2, keypoints1, k
     %fprintf('  >>> distance matrix computation: %f seconds\n', toc(t));
 
     %% Evaluate
-    % Validate the matches; here, we need to be able to handle the cases when
-    % the descriptor extractor dropped some points (may happen with OpenCV
-    % implementations)... therefore, we compare the new point set with the
-    % original one, and obtain list of point IDs with respect to original
-    % point sets.
-    ids1 = determine_point_ids(keypoints1, keypoints1b);
-    ids2 = determine_point_ids(keypoints2, keypoints2b);
-    
+    % Validate the matches
     num_correct_matches = 0;
 
     for i1 = 1:numel(keypoints1b),    
@@ -78,8 +90,8 @@ function recognition_rate = evaluate_descriptor_extractor (I1, I2, keypoints1, k
 
         % Get the keypoints' "true" indices (the ones they had before going to
         % the descriptor extractor)
-        idx1 = ids1(i1);
-        idx2 = ids2(i2);
+        idx1 = keypoints1b(i1).class_id;
+        idx2 = keypoints2b(i2).class_id;
 
         % Validate the match
         %fprintf('%d <-> %d; true: %d\n', idx1, idx2, correspondences(idx2, idx1));
@@ -91,53 +103,31 @@ function recognition_rate = evaluate_descriptor_extractor (I1, I2, keypoints1, k
     recognition_rate = num_correct_matches / num_keypoint_pairs;
 end
 
-function point_ids = determine_point_ids (original_keypoints, new_keypoints)
-    % point_ids = DETERMINE_POINT_IDS (original_keypoints, new_keypoints)
+function keypoints = augment_keypoints_with_id (keypoints)
+    % keypoints = AUGMENT_KEYPOINTS_WITH_ID (keypoints)
     %
-    % Compares two sets of keypoints - original ones, and ones that were
-    % left after descriptor detection - and determines the IDs of the new
-    % points, i.e., the corresponding linear indices in the original point
-    % set.
+    % Augments keypoints with identifiers. Given the array of keypoint
+    % structures, the class_id field of each keypoint is assigned its
+    % consecutive number in the array. This is required to identify any
+    % keypoints that a descriptor extractor discarded.
+    %
+    % NOTE: in order for this to work, the class_id must not be used by
+    % descriptor extractor. Therefore, this function requires that class_id
+    % of all keypoints is set to -1, and raises an error if it is not.
     %
     % Input:
-    %  - original_keypoints: 1xN array of original keypoints
-    %  - new_keypoints: 1xM array of new keypoints. Some keypoints may be
-    %    missing, while some may have been added.
+    %  - keypoints: array of keypoints structures
     %
     % Output:
-    %  - point_ids: 1xM array of point IDs, denoting the new points'
-    %    linear indices in the original point set. If new points have been
-    %    added, their ID will be set to 0
+    %  - keypoints: array of keypoint structures with modified class_id
+    %    field
+    %
+    % (C) 2015-2016, Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
     
-    point_ids = zeros(1, numel(new_keypoints));
+    % Catch incompatible keypoint detectors/descriptor extractors
+    assert(all([ keypoints.class_id ] == -1), 'Keypoints do not have their class_id field set to -1! This may mean that the keypoint detector/descriptor extractor is using this field for its own purposes, which is not supported by this evaluation framework!');
     
-    % Copy the fields from origianl point sets to vectors for a significant 
-    % speed-up during comparisons....
-    xy = vertcat(original_keypoints.pt);
-    x = xy(:,1);
-    y = xy(:,2);
-    
-    size = vertcat(original_keypoints.size);
-    angle = vertcat(original_keypoints.angle);
-    response = vertcat(original_keypoints.response);
-    octave = vertcat(original_keypoints.octave);
-    class_id = vertcat(original_keypoints.class_id);
-    
-    % Compare each new keypoint against the original ones
-    for p = 1:numel(new_keypoints),
-        kpt = new_keypoints(p);
-        
-        % Compare all fields; equivalent to 
-        %  matches = arrayfun(@(x) isequal(x, new_keypoints(p)), original_keypoints)
-        % but significantly faster...
-        matches = kpt.pt(1) == x & kpt.pt(2) == y & kpt.size == size & kpt.angle == angle & kpt.response == response & kpt.octave == octave & kpt.class_id == class_id;
-        
-        % Determine the index of the match
-        id = find(matches);
-        if ~isempty(id),
-            % Allow only one match
-            assert(isscalar(id), 'Multiple point matches?!');
-            point_ids(p) = id;
-        end
-    end
+    % Augment
+    ids = num2cell(1:numel(keypoints));
+    [ keypoints.class_id ] = deal(ids{:});
 end
