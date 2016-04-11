@@ -441,7 +441,7 @@ experiments(end+1) = define_experiment(...
 affine_run_experiment('shear', experiments, 'sequences', sequences, 'results_dir', results_dir, 'num_repetitions', num_repetitions, 'num_points', num_points, 'display_results', display_results, 'values', -0.6:0.01:0.6);
 
 %% Experiment 7: components
-sequences = { 'graffiti', 'day_night' };
+sequences = { 'bark', 'bikes', 'boat', 'graffiti', 'leuven', 'trees', 'ubc', 'wall', 'day_night' };
 results_dir = fullfile(results_prefix, 'components');
 
 % Define experiments
