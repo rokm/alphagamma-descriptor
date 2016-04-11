@@ -23,7 +23,7 @@ function fig = affine_display_results (results, varargin)
     display_variance = parser.Results.display_variance;
     
     % Load results
-    if isempty(results),
+    if ~exist('results', 'var') || isempty(results),
         [ filename, pathname ] = uigetfile('*.mat', 'Pick a results file');
         if isequal(filename, 0),
             return;
