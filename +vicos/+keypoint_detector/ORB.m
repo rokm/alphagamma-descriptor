@@ -5,6 +5,8 @@ classdef ORB < vicos.keypoint_detector.OpenCvKeypointDetector
     
     properties
         implementation
+
+        upright
     end
     
     methods
@@ -23,6 +25,7 @@ classdef ORB < vicos.keypoint_detector.OpenCvKeypointDetector
             %  - ScoreType
             %  - PatchSize
             %  - FastThreshold
+            %  - UpRight: manually zero the angles returned by the detector
             %
             % Output:
             %  - @ORB instance
@@ -37,10 +40,14 @@ classdef ORB < vicos.keypoint_detector.OpenCvKeypointDetector
             parser.addParameter('ScoreType', [], @(x) ismember(x, { 'Harris', 'FAST' }));
             parser.addParameter('PatchSize', [], @isnumeric);
             parser.addParameter('FastThreshold', [], @isnumeric);
+            parser.addParameter('UpRight', false, @islogical);
             parser.parse(varargin{:});
-            
+
+            self.upright = parser.Results.UpRight;
+
             %% Gather parameters   
             fields = fieldnames(parser.Results);
+            fields = setdiff(fields, 'UpRight'); % exclude
             params = {};
             for f = 1:numel(fields),
                 field = fields{f};
@@ -51,6 +58,15 @@ classdef ORB < vicos.keypoint_detector.OpenCvKeypointDetector
             
             %% Create implementation
             self.implementation = cv.FeatureDetector('ORB', params{:});
+        end
+        
+        function keypoints = detect (self, I)
+            % Detect keypoints using the child-provided implementation
+            keypoints = self.implementation.detect(I);
+            
+            if self.upright,
+                [ keypoints.angle ] = deal(0);
+            end
         end
     end
 end
