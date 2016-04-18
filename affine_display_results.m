@@ -45,7 +45,7 @@ function fig = affine_display_results (results, varargin)
 
     descriptor_names = { results.experiment.descriptors.name };
 
-     %% Compute mean and std
+    %% Compute mean and std
     recognition_rates_mean = mean(results.recognition_rates, 1);
     recognition_rates_std = std(results.recognition_rates, [], 1);
     
