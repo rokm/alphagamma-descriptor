@@ -1,6 +1,6 @@
 #!/bin/sh
 
-MATLABDIR=/usr/local/MATLAB/R2015a
+MATLABDIR=/usr/local/MATLAB/R2015b
 
 EXTERNAL_ROOT=$(pwd)
 
