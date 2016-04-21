@@ -24,11 +24,18 @@ function fig = affine_display_results (results, varargin)
     
     % Load results
     if ~exist('results', 'var') || isempty(results),
-        [ filename, pathname ] = uigetfile('*.mat', 'Pick a results file');
+        [ filename, pathname ] = uigetfile('*.mat', 'Pick a results file', 'MultiSelect', 'on');
         if isequal(filename, 0),
             return;
         end
-        results = fullfile(pathname, filename);
+        
+        fig = cell(1, numel(filename));
+        for p = 1:numel(filename),
+            results = fullfile(pathname, filename{p});
+            fig{p} = affine_display_results(results, varargin{:});
+        end
+        
+        return;
     end
     
     if ischar(results),
