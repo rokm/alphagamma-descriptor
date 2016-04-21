@@ -32,30 +32,41 @@ function fig = liberty_find_optimal_parameters (experiment_id)
         
         % Experiment IDs
         switch experiment_id,
-            %% Baselines
-            case 'o-surf',
+            case 'surf',
                 parameter_field = 'patch_scale_factor';
                 parameter_values = 1:20;
-                parameter_description = 'Scale parameter';
-                experiment_title = 'O-SURF';
-                
-                descriptor_extractor = vicos.descriptor.SURF('HessianThreshold', 400, 'NOctaves', 3, 'NOctaveLayers', 4); % use OpenCV 2.3 options
-            
-            case 'u-surf',
-                parameter_field = 'patch_scale_factor';
-                parameter_values = 1:20;
-                parameter_description = 'Scale parameter';
-                experiment_title = 'U-SURF';
+                parameter_description = 'Scale factor';
+                experiment_title = 'SURF descriptor';
                 
                 descriptor_extractor = vicos.descriptor.SURF('HessianThreshold', 400, 'NOctaves', 3, 'NOctaveLayers', 4, 'Upright', true); % use OpenCV 2.3 options
             
-            case 'u-sift',
+            case 'sift',
                 parameter_field = 'patch_scale_factor';
                 parameter_values = 1:20;
-                parameter_description = 'Scale parameter';
-                experiment_title = 'U-SIFT';
+                parameter_description = 'Scale factor';
+                experiment_title = 'SIFT descriptor';
                 
                 descriptor_extractor = vicos.descriptor.SIFT();
+                
+            case 'brisk',
+                parameter_field = 'patch_scale_factor';
+                parameter_values = 0.1:0.025:0.3; % 0.3 is max before we keypoint gets dropped!
+                parameter_description = 'Scale factor';
+                experiment_title = 'BRISK descriptor';
+                
+                descriptor_extractor = vicos.descriptor.BRISK();
+            
+            case 'brief',
+                parameter_field = 'patch_size';
+                parameter_values = 58:8:116;
+                parameter_description = 'Effective patch size';
+                experiment_title = 'BRIEF descriptor';
+                
+                descriptor_extractor = vicos.descriptor.BRIEF('Bytes', 64);
+                
+            %% Baselines
+            
+            
             
             case 'u-latch',
                 parameter_field = 'patch_size';
@@ -64,14 +75,6 @@ function fig = liberty_find_optimal_parameters (experiment_id)
                 experiment_title = 'U-LATCH64';
                 
                 descriptor_extractor = vicos.descriptor.LATCH('Bytes', 64);
-            
-            case 'u-brief',
-                parameter_field = 'patch_size';
-                parameter_values = 58:2:76;
-                parameter_description = 'Effective patch size';
-                experiment_title = 'U-BRIEF64';
-                
-                descriptor_extractor = vicos.descriptor.BRIEF('Bytes', 64);
             
             case 'o-kaze',
                 parameter_field = 'patch_size';

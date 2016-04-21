@@ -59,6 +59,9 @@ classdef BRIEF < vicos.descriptor.OpenCvDescriptor
             % Keypoint size: make something up (does not matter)
             keypoint.size = size(I, 1) / 2;
             
+            keypoint.angle = 0;
+            keypoint.class_id = -1;
+            
             % Compute descriptor for the keypoint
             desc = self.compute(I, keypoint);
         end

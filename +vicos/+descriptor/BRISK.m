@@ -7,7 +7,7 @@ classdef BRISK < vicos.descriptor.OpenCvDescriptor
         implementation
         
         % The following should make use of the whole patch
-        %patch_size = 24
+        patch_scale_factor = 0.3
     end
     
     methods
@@ -54,9 +54,11 @@ classdef BRISK < vicos.descriptor.OpenCvDescriptor
             keypoint.pt = ([ w, h ] - 1) / 2;
             
             % Keypoint size: determined by patch_scale_factor parameter
-            keypoint.size = 10; %size(I, 1);% / self.patch_size;
+            keypoint.size = size(I, 1) * self.patch_scale_factor;
             
-            keypoint.class_id = 1;
+            % Clear angle and class ID
+            keypoint.angle = 0;
+            keypoint.class_id = -1;
             
             % Compute descriptor for the keypoint
             desc = self.compute(I, keypoint);

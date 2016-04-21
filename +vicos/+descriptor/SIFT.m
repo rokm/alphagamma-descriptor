@@ -59,6 +59,9 @@ classdef SIFT < vicos.descriptor.OpenCvDescriptor
             % Keypoint size: determined by patch_scale_factor parameter
             keypoint.size = size(I, 1) / self.patch_scale_factor;
             
+            keypoint.angle = 0;
+            keypoint.class_id = -1;
+            
             % Compute descriptor for the keypoint
             desc = self.compute(I, keypoint);
         end
