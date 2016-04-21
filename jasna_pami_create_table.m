@@ -1,15 +1,9 @@
 function jasna_pami_create_table ()
-    %[ filenames, pathname ] = uigetfile({ '*.mat','MAT-files (*.mat)' }, 'Select results files', 'MultiSelect', 'on');
-    %if isequal(filenames, 0),
-    %    return;
-    %end
-    %filenames = cellfun(@(x) fullfile(pathname, x), filenames, 'UniformOutput', false);
-    
-    filenames = { '/home/rok/Projects/jasna/code/results-final-inf/pairs-oriented/boat-brisk.mat', ...
-    ...%'/home/rok/Projects/jasna/code/results-final-inf/pairs-oriented/boat-kaze.mat', ...
-    '/home/rok/Projects/jasna/code/results-final-inf/pairs-oriented/boat-orb.mat', ...
-    '/home/rok/Projects/jasna/code/results-final-inf/pairs-oriented/boat-sift.mat', ...
-    '/home/rok/Projects/jasna/code/results-final-inf/pairs-oriented/boat-surf.mat' };
+    [ filenames, pathname ] = uigetfile({ '*.mat','MAT-files (*.mat)' }, 'Select results files', 'MultiSelect', 'on');
+    if isequal(filenames, 0),
+        return;
+    end
+    filenames = cellfun(@(x) fullfile(pathname, x), filenames, 'UniformOutput', false);
     
     %% Load
     for i = 1:numel(filenames),
@@ -134,7 +128,4 @@ function jasna_pami_create_table ()
     fprintf('\\end{tabular}\n');
 
     fprintf('\n\n');
-    
-    
-    table
 end
