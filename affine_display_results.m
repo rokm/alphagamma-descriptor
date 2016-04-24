@@ -29,13 +29,18 @@ function fig = affine_display_results (results, varargin)
             return;
         end
         
-        fig = cell(1, numel(filename));
-        for p = 1:numel(filename),
-            results = fullfile(pathname, filename{p});
-            fig{p} = affine_display_results(results, varargin{:});
-        end
+        % Allow multiple files to be selected
+        if iscell(filename),
+            fig = cell(1, numel(filename));
+            for p = 1:numel(filename),
+                results = fullfile(pathname, filename{p});
+                fig{p} = affine_display_results(results, varargin{:});
+            end
         
-        return;
+            return;
+        else
+            results = fullfile(pathname, filename);
+        end
     end
     
     if ischar(results),
