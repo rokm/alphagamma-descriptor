@@ -224,8 +224,10 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             end
 
             % Filter out keypoints that are too close to the image border
-            keypoints = self.filter_keypoints(I, keypoints);
-
+            % (disabled, because we now clamp the sampling points inside
+            % the valid region)
+            %keypoints = self.filter_keypoints(I, keypoints);
+            
             num_points = numel(keypoints);
 
             desc = zeros(get_descriptor_size(self), num_points, 'uint8');
