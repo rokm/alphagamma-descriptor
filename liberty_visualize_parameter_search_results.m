@@ -1,5 +1,5 @@
-function fig = liberty_visualize_parameter_search_results (results)
-    % fig = LIBERTY_VISUALIZE_PARAMETER_SEARCH_RESULTS (results)
+function fig = liberty_visualize_parameter_search_results (results, varargin)
+    % fig = LIBERTY_VISUALIZE_PARAMETER_SEARCH_RESULTS (results, varargin)
     %
     % Visualizes the results of scale-related parameter search on Liberty
     % dataset.
@@ -12,6 +12,27 @@ function fig = liberty_visualize_parameter_search_results (results)
     %  - fig: handle of resulting figure
     %
     % (C) 2015 Rok Mandeljc <rok.mandeljc@fri.uni-lj.si>
+    
+    % Load results
+    if ~exist('results', 'var') || isempty(results),
+        [ filename, pathname ] = uigetfile('*.mat', 'Pick a results file', 'MultiSelect', 'on');
+        if isequal(filename, 0),
+            return;
+        end
+        
+        % Allow multiple files to be selected
+        if iscell(filename),
+            fig = cell(1, numel(filename));
+            for p = 1:numel(filename),
+                results = fullfile(pathname, filename{p});
+                fig{p} = liberty_visualize_parameter_search_results(results, varargin{:});
+            end
+        
+            return;
+        else
+            results = fullfile(pathname, filename);
+        end
+    end
     
     if ischar(results),
         results = load(results);
