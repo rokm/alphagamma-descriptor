@@ -95,7 +95,7 @@ function fig = liberty_find_optimal_parameters (experiment_id)
                 parameter_description = 'Effective patch size';
                 experiment_title = 'AG-Basic';
                 
-                descriptor_extractor = vicos.descriptor.AlphaGamma('orientation', false, 'num_rays', 41, 'num_circles', 12, 'compute_extended', false, 'sampling', 'simple', 'use_scale', false, 'base_sigma', sqrt(2));
+                descriptor_extractor = vicos.descriptor.AlphaGamma('orientation', false, 'num_rays', 41, 'num_circles', 12, 'compute_type2', false, 'sampling', 'simple', 'use_scale', false, 'base_sigma', sqrt(2));
 
             case 'ag60',
                 parameter_field = 'effective_patch_size';

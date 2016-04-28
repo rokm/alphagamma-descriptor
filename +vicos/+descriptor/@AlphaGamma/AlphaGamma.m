@@ -12,8 +12,9 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
         base_sigma
         circle_step
 
-        compute_base
-        compute_extended
+        compute_type1
+        compute_type2
+        
         threshold_alpha
         threshold_gamma
 
@@ -69,8 +70,8 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             %    windows are extracted around the keypoints' locations.
             %    Default: false.
             %
-            % - compute_base: compute base descriptor
-            % - compute_extended: compute extended descriptor
+            % - compute_type1: compute type 1 part of descriptor
+            % - compute_type2: compute type 2 part of descriptor
             % - threshold_alpha:
             % - threshold_gamma:
             % - A:
@@ -91,8 +92,8 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             parser.addParameter('use_scale', false, @islogical);
             parser.addParameter('base_keypoint_size', 18.5, @isnumeric);
 
-            parser.addParameter('compute_base', true, @islogical);
-            parser.addParameter('compute_extended', true, @islogical);
+            parser.addParameter('compute_type1', true, @islogical);
+            parser.addParameter('compute_type2', true, @islogical);
             parser.addParameter('threshold_alpha', [], @isnumeric); % compute from LUT for num_circles-1!
             parser.addParameter('threshold_gamma', [], @isnumeric);
             parser.addParameter('A', 5.0, @isnumeric);
@@ -110,8 +111,8 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             self.use_scale = parser.Results.use_scale;
             self.base_keypoint_size = parser.Results.base_keypoint_size;
             
-            self.compute_base = parser.Results.compute_base;
-            self.compute_extended = parser.Results.compute_extended;
+            self.compute_type1 = parser.Results.compute_type1;
+            self.compute_type2 = parser.Results.compute_type2;
             self.threshold_alpha = parser.Results.threshold_alpha;
             self.threshold_gamma = parser.Results.threshold_gamma;
             self.A = parser.Results.A;
@@ -339,7 +340,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                 descriptor_size = ceil( descriptor_size/8 );
             end
             
-            descriptor_size = self.compute_base*descriptor_size + self.compute_extended*descriptor_size;
+            descriptor_size = self.compute_type1*descriptor_size + self.compute_type2*descriptor_size;
         end
 
         function decriptor = compute_from_patch (self, I)
@@ -395,19 +396,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                     x = round(x);
                     y = round(y);
                     
-%                     % Clamp; TODO: find a better strategy?
-%                     if x < 1, 
-%                         warning('Sampling point falls out of image, clamping!');
-%                     end
-%                     if x > size(pyramid, 2),
-%                         warning('Sampling point falls out of image, clamping!');
-%                     end
-%                     if y < 1, 
-%                         warning('Sampling point falls out of image, clamping!');
-%                     end
-%                     if y > size(pyramid, 1),
-%                         warning('Sampling point falls out of image, clamping!');
-%                     end
+                    % Clamp inside valid region
                     x = max(min(x, size(pyramid, 2)), 1);
                     y = max(min(y, size(pyramid, 1)), 1);
                     
@@ -445,14 +434,14 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             end
             gamma = field - gamma - field_avg;
             
-            % "Basic" part of descriptor
-            if self.compute_base,
+            % "Type 1" part of descriptor
+            if self.compute_type1,
                 desc_alpha = reshape(a > 0, [], 1);
                 desc_gamma = reshape(gamma > 0, [], 1);
             end
             
-            % "Extended" part of descriptor
-            if self.compute_extended,
+            % "Type 2" part of descriptor
+            if self.compute_type2,
                 % Alpha part
                 sa = sqrt( sum(a.*a) / (self.num_circles-1) );
                 aa = abs(a) > sa*self.threshold_alpha;
@@ -469,29 +458,29 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             %% Write descriptor
             if self.use_bitstrings,
                 % Bitstring version
-                if self.compute_base && self.compute_extended,
-                    % Combined
+                if self.compute_type1 && self.compute_type2,
+                    % Both types
                     descriptor = [ ...
                         convert_bytestring_to_bitstring( uint8([ desc_alpha; desc_gamma ]) ); ...
                         convert_bytestring_to_bitstring( uint8([ desc_alpha_ext; desc_gamma_ext ]) ) ...
                     ];
-                elseif self.compute_base,
-                    % Base-only
+                elseif self.compute_type1,
+                    % Type 1 only
                     descriptor = convert_bytestring_to_bitstring( uint8( [ desc_alpha; desc_gamma ]) );
-                elseif self.compute_extended,
-                    % Extended-only
+                elseif self.compute_type2,
+                    % Type 2 only
                     descriptor = convert_bytestring_to_bitstring( uint8( [ desc_alpha_ext; desc_gamma_ext ]) );
                 end
             else
                 % Original byte-string version
-                if self.compute_base && self.compute_extended,
-                    % Combined
+                if self.compute_type1 && self.compute_type2,
+                    % Both types
                     descriptor = [ desc_alpha; desc_gamma; desc_alpha_ext; desc_gamma_ext ];
-                elseif self.compute_base,
-                    % Base-only
+                elseif self.compute_type1,
+                    % Type 1 only
                     descriptor = [ desc_alpha; desc_gamma ];
-                elseif self.compute_extended,
-                    % Extended-only
+                elseif self.compute_type2,
+                    % Type 2 only
                     descriptor = [ desc_alpha_ext; desc_gamma_ext ];
                 end
             end
