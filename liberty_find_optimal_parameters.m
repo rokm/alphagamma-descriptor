@@ -36,7 +36,7 @@ function fig = liberty_find_optimal_parameters (experiment_id)
                 parameter_field = 'patch_scale_factor';
                 parameter_values = 1:20;
                 parameter_description = 'Scale factor';
-                experiment_title = 'SURF descriptor';
+                experiment_title = 'SURF';
                 
                 descriptor_extractor = vicos.descriptor.SURF('HessianThreshold', 400, 'NOctaves', 3, 'NOctaveLayers', 4, 'Upright', true); % use OpenCV 2.3 options
             
@@ -44,7 +44,7 @@ function fig = liberty_find_optimal_parameters (experiment_id)
                 parameter_field = 'patch_scale_factor';
                 parameter_values = 1:20;
                 parameter_description = 'Scale factor';
-                experiment_title = 'SIFT descriptor';
+                experiment_title = 'SIFT';
                 
                 descriptor_extractor = vicos.descriptor.SIFT();
                 
@@ -52,7 +52,7 @@ function fig = liberty_find_optimal_parameters (experiment_id)
                 parameter_field = 'patch_scale_factor';
                 parameter_values = 0.1:0.025:0.3; % 0.3 is max before we keypoint gets dropped!
                 parameter_description = 'Scale factor';
-                experiment_title = 'BRISK descriptor';
+                experiment_title = 'BRISK';
                 
                 descriptor_extractor = vicos.descriptor.BRISK();
             
@@ -60,93 +60,58 @@ function fig = liberty_find_optimal_parameters (experiment_id)
                 parameter_field = 'patch_size';
                 parameter_values = 58:8:116;
                 parameter_description = 'Effective patch size';
-                experiment_title = 'BRIEF descriptor';
+                experiment_title = 'BRIEF';
                 
                 descriptor_extractor = vicos.descriptor.BRIEF('Bytes', 64);
-                
-            %% Baselines
             
-            
-            
-            case 'u-latch',
+            case 'latch',
                 parameter_field = 'patch_size';
-                parameter_values = 56:2:74;
+                parameter_values = 56:8:112;
                 parameter_description = 'Effective patch size';
-                experiment_title = 'U-LATCH64';
+                experiment_title = 'LATCH';
                 
                 descriptor_extractor = vicos.descriptor.LATCH('Bytes', 64);
             
-            case 'o-kaze',
-                parameter_field = 'patch_size';
-                parameter_values = 22:2:30;
-                parameter_description = 'target Patch size';
-                experiment_title = 'O-KAZE';
+            case 'kaze',
+                parameter_field = 'keypoint_size';
+                parameter_values = 1:1:10;
+                parameter_description = 'Keypoint size';
+                experiment_title = 'KAZE';
                 
                 descriptor_extractor = vicos.descriptor.KAZE('Upright', false);
                 
-            case 'u-kaze',
-                parameter_field = 'patch_size';
-                parameter_values = 22:2:30;
-                parameter_description = 'target Patch size';
-                experiment_title = 'U-KAZE';
+            case 'freak',
+                parameter_field = 'keypoint_size';
+                parameter_values = [ 5:1:9, 9.68 ]; % Max allowable value for stock FREAK is 9.68!
+                parameter_description = 'Keypoint size';
+                experiment_title = 'FREAK';
                 
-                descriptor_extractor = vicos.descriptor.KAZE('Upright', true);
-                
+                descriptor_extractor = vicos.descriptor.FREAK('OrientationNormalized', false);
+            
             %% AlphaGamma variants
-            case 'o-ag-basic',
+            case 'ag-basic',
                 parameter_field = 'effective_patch_size';
-                parameter_values = 95:4:(95*1.5);
+                parameter_values = (0.8:0.05:1.2)*95; % Base effective size: 95
                 parameter_description = 'Effective patch size';
-                experiment_title = 'O-AG-Basic';
+                experiment_title = 'AG-Basic';
                 
-                descriptor_extractor = vicos.descriptor.AlphaGamma('orientation', true, 'extended', false, 'sampling', 'simple', 'base_sigma', sqrt(2));
-            case 'u-ag-basic',
-                parameter_field = 'effective_patch_size';
-                parameter_values = 95:4:(95*1.5);
-                parameter_description = 'Effective patch size';
-                experiment_title = 'U-AG-Basic';
-                
-                descriptor_extractor = vicos.descriptor.AlphaGamma('orientation', false, 'extended', false, 'sampling', 'simple', 'base_sigma', sqrt(2));
-                
-            case 'o-ag-e23',
-                parameter_field = 'effective_patch_size';
-                parameter_values = 95:4:(95*1.5);
-                parameter_description = 'Effective patch size';
-                experiment_title = 'O-AG-E23';
-                
-                descriptor_extractor = vicos.descriptor.AlphaGamma('orientation', true, 'extended', true, 'sampling', 'gaussian', 'num_rays', 23);
-                
-            case 'u-ag-e23',
-                parameter_field = 'effective_patch_size';
-                parameter_values = 95:4:(95*1.5);
-                parameter_description = 'Effective patch size';
-                experiment_title = 'U-AG-E23';
-                
-                descriptor_extractor = vicos.descriptor.AlphaGamma('orientation', false, 'extended', true, 'sampling', 'gaussian', 'num_rays', 23);
-                
-            case 'u-ag-e23-new',
-                parameter_field = 'effective_patch_size';
-                parameter_values = 89:4:(95*1.5);
-                parameter_description = 'Effective patch size';
-                experiment_title = 'U-AG-E23-new';
-                
-                descriptor_extractor = vicos.descriptor.AlphaGamma('orientation', false, 'extended', true, 'sampling', 'gaussian', 'num_rays', 23, 'num_circles', 10, 'circle_step', 1.042*sqrt(2));
+                descriptor_extractor = vicos.descriptor.AlphaGamma('orientation', false, 'num_rays', 41, 'num_circles', 12, 'compute_extended', false, 'sampling', 'simple', 'use_scale', false, 'base_sigma', sqrt(2));
 
-            case 'o-ag-e55',
+            case 'ag60',
                 parameter_field = 'effective_patch_size';
-                parameter_values = 95:4:(95*1.5);
+                parameter_values = (0.8:0.05:1.2)*149; % Base effective size: 149
                 parameter_description = 'Effective patch size';
-                experiment_title = 'O-AG-E55';
-
-                descriptor_extractor = vicos.descriptor.AlphaGamma('orientation', true, 'extended', true, 'sampling', 'gaussian');
-
-            case 'u-ag-e55',
-                parameter_field = 'effective_patch_size';
-                parameter_values = 95:4:(95*1.5);
-                parameter_description = 'Effective patch size';
-                experiment_title = 'U-AG-E55';
+                experiment_title = 'AG60';
                 
-                descriptor_extractor = vicos.descriptor.AlphaGamma('orientation', false, 'extended', true, 'sampling', 'gaussian');
+                descriptor_extractor = vicos.descriptor.AlphaGamma('orientation', false, 'num_rays', 23, 'num_circles', 10, 'circle_step', 1.042*sqrt(2));
+                
+            case 'ag32',
+                parameter_field = 'effective_patch_size';
+                parameter_values = (0.8:0.05:1.2)*155; % Base effective size: 155
+                parameter_description = 'Effective patch size';
+                experiment_title = 'AG32';
+                
+                descriptor_extractor = vicos.descriptor.AlphaGamma('orientation', false, 'num_rays', 13, 'num_circles', 9, 'circle_step', 1.104*sqrt(2));
 
             otherwise,
                 error('Invalid experiment ID: %s!', experiment_id);
