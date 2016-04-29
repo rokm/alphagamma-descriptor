@@ -39,6 +39,12 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
         
         %
         use_bitstrings
+        
+        % Hacks
+        hack_overall_gamma_variance
+        hack_reduced_variance
+        hack_freak_like
+        hack_fixed_radii
     end
 
     % vicos.descriptor.Descriptor implementation
@@ -78,6 +84,9 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             % - G:
             % - use_bitstrings:
             %
+            % - hack_overall_gamma_variance
+            % - hack_reduced_variance
+            %
             % Output:
             %  - self: @AlphaGamma instance
 
@@ -100,6 +109,11 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             parser.addParameter('G', 1.0, @isnumeric);
             parser.addParameter('use_bitstrings', false, @islogical);
 
+            parser.addParameter('hack_overall_gamma_variance', false, @islogical);
+            parser.addParameter('hack_reduced_variance', false, @islogical);
+            parser.addParameter('hack_freak_like', false, @islogical);
+            parser.addParameter('hack_fixed_radii', false, @islogical);
+            
             parser.parse(varargin{:});
 
             self.num_circles = parser.Results.num_circles;
@@ -119,21 +133,39 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             self.G = parser.Results.G;
             self.use_bitstrings = parser.Results.use_bitstrings;
 
+            self.hack_overall_gamma_variance = parser.Results.hack_overall_gamma_variance;
+            self.hack_reduced_variance = parser.Results.hack_reduced_variance;
+            self.hack_freak_like = parser.Results.hack_freak_like;
+            self.hack_fixed_radii = parser.Results.hack_fixed_radii;
+            
             assert(ismember(self.sampling, { 'simple', 'gaussian' }), 'Invalid sampling type!');
 
             % Determine thresholds as the inverse of Student's T CDF with
             % number of elements in alpha or gamma (minus 1) as degrees of
             % freedom, and 50% confidence interval
             if isempty(self.threshold_alpha),
-                dof = self.num_circles - 1;
+                if self.hack_reduced_variance,
+                    dof = self.num_circles - 2;
+                else
+                    dof = self.num_circles - 1;
+                end
                 self.threshold_alpha = tinv(1 - 0.5/2, dof);
             end
             if isempty(self.threshold_gamma),
-                dof = self.num_rays - 1;
+                if self.hack_overall_gamma_variance,
+                    % Overall gamma variances
+                    dof = self.num_circles*self.num_rays - 1;
+                elseif self.hack_reduced_variance,
+                    dof = self.num_circles*self.num_rays - self.num_rays - 1;
+                else
+                    % Per-column gamma variances
+                    dof = self.num_rays - 1;
+                end
                 self.threshold_gamma = tinv(1 - 0.5/2, dof);
             end
             
             %% Pre-compute filters
+if ~self.hack_freak_like,
             sigmas = zeros(self.num_circles, 1);
             radii = zeros(self.num_circles, 1);
             self.filters = cell(self.num_circles, 1);
@@ -183,6 +215,29 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                         end
                     end
             end
+else
+            self.num_circles = 8;
+            
+            sigmas = zeros(self.num_circles, 1);
+            radii = zeros(self.num_circles, 1);
+            self.filters = cell(self.num_circles, 1);
+            
+            % Values determined for FREAK
+            radii = [ 43.3202, 32.4902, 23.4651, 16.2451, 10.8301, 7.2200, 5.4150, 0 ];
+            radii = radii(end:-1:1);
+            sigmas = radii/2;
+            
+            self.filters{1} = create_dog_filter(sigmas(1));
+            for i = 2:self.num_circles,
+                tmp_sigma = sqrt( sigmas(i)^2 - sigmas(i-1)^2 );
+                self.filters{i} = create_dog_filter(tmp_sigma);
+            end
+end
+            
+if self.hack_fixed_radii,
+            assert(self.num_circles == 10, 'Invalid parameter (%d circles)!', self.num_circles);
+            radii = [ 0, 1, 3, 5, 7, 11, 18, 26, 40, 56 ];
+end
 
             %% Compute sampling points
             self.sample_points = cell(self.num_circles, 1);
@@ -445,14 +500,26 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             % "Type 2" part of descriptor
             if self.compute_type2,
                 % Alpha part
-                sa = sqrt( sum(a.*a) / (self.num_circles-1) );
+                if self.hack_reduced_variance,
+                    sa = sqrt( sum(a(2:end).*a(2:end)) / (self.num_circles-2) );
+                else
+                    sa = sqrt( sum(a.*a) / (self.num_circles-1) );
+                end
                 aa = abs(a) > sa*self.threshold_alpha;
                 desc_alpha_ext = aa - (1 - aa);
                 desc_alpha_ext = reshape(desc_alpha_ext, [], 1);
             
                 % Gamma part
-                sg = sqrt( sum(gamma.*gamma) / (self.num_rays-1) );
-                gg = bsxfun(@gt, abs(gamma), sg*self.threshold_gamma);
+                if self.hack_overall_gamma_variance,
+                    sg = sqrt( sum(sum(gamma.*gamma)) / (numel(gamma) - 1) );
+                    gg = abs(gamma) > sg*self.threshold_gamma;
+                elseif self.hack_reduced_variance,
+                    sg = sqrt( sum(sum(gamma(2:end,:).*gamma(2:end,:))) / (self.num_circles*self.num_rays - self.num_rays - 1) );
+                    gg = abs(gamma) > sg*self.threshold_gamma;
+                else
+                    sg = sqrt( sum(gamma.*gamma) / (self.num_rays-1) );
+                    gg = bsxfun(@gt, abs(gamma), sg*self.threshold_gamma);
+                end
                 desc_gamma_ext = gg - (1 - gg);
                 desc_gamma_ext = reshape(desc_gamma_ext, [], 1);
             end
