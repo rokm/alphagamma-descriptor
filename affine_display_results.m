@@ -90,17 +90,32 @@ function fig = affine_display_results (results, varargin)
     if isequal(results.type, 'pairs'),
         %% Image pairs: bar plot with error bars
         
+        % Work-around for bar's behavior when we have only a single group
+        if numel(results.values) == 1,
+            add_imaginary_group = true;
+        else
+            add_imaginary_group = false;
+        end
+        
+        if add_imaginary_group,
+            % Create a fake group
+            recognition_rates_mean(:,end+1) = nan; 
+        end
+        
         % Bar plot
         h = bar(recognition_rates_mean');
         hold on;
 
         % Annotations
-        set(gca,'YGrid','on');
+        set(gca, 'YGrid', 'on');
         xlabels = cell(numel(results.values), 1);
         for i = 1:numel(xlabels),
             num_text = sprintf('%d|%d', 1, results.values(i));
             corr_text = sprintf('(%d)', results.num_established_correspondences(i));
             xlabels{i} = sprintf('%*s\\newline%s', numel(corr_text), num_text, corr_text);
+        end
+        if add_imaginary_group,
+            xlabels{end+1} = '';
         end
         set(gca, 'XTickLabel', xlabels);
         xlabel('Image pair (num. correspondences)');
