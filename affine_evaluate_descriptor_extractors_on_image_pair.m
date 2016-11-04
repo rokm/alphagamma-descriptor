@@ -1,5 +1,5 @@
-function [ recognition_rates, num_detected_keypoints1, num_detected_keypoints2, num_established_correspondences ] = affine_evaluate_descriptor_extractors_on_image_pair (I1, I2, H12, keypoint_detector, descriptor_extractors, project_keypoints, keypoint_distance_threshold, num_points, num_repetitions, filter_border, visualize_sets)
-    % recognition_rates = EVALUATE_DESCRIPTOR_EXTRACTORS_ON_IMAGE_PAIR (I1, I2, H12, keypoint_detector, descriptor_extractors, project_keypoints, keypoint_distance_threshold, num_points, num_repetitions, filter_border, visualize_sets)
+function [ recognition_rates, num_detected_keypoints1, num_detected_keypoints2, num_established_correspondences ] = affine_evaluate_descriptor_extractors_on_image_pair (I1, I2, H12, keypoint_detector, descriptor_extractors, keypoint_distance_threshold, num_points, num_repetitions, filter_border, visualize_sets)
+    % recognition_rates = EVALUATE_DESCRIPTOR_EXTRACTORS_ON_IMAGE_PAIR (I1, I2, H12, keypoint_detector, descriptor_extractors, keypoint_distance_threshold, num_points, num_repetitions, filter_border, visualize_sets)
     %
     % Evaluates given set of descriptor extractors on a pair of input
     % images and keypoints, detected using the given keypoint detector.
@@ -13,13 +13,6 @@ function [ recognition_rates, num_detected_keypoints1, num_detected_keypoints2, 
     %  - descriptor_extractors: Nx2 cell array, where first column contains
     %    description strings, and second one contains objects subclassing 
     %    vicos.descriptor.Descriptor
-    %  - project_keypoints: if set to false (default), keypoints are 
-    %    detected in both first and second image, and then matched via 
-    %    homography and distance constraints. If set to true, the keypoints 
-    %    are detected only in the first image, and then directly projected 
-    %    to the second image via homography. Useful for mitigating effects 
-    %    of poor keypoint localization on descriptor's performance with
-    %    certain types of transformations (pure rotation, pure scaling).
     %  - keypoint_distance_threshold: distance threshold used when
     %    establishing ground-truth geometry-based correspondences
     %  - num_points: number of point correspondences to randomly sample
@@ -46,7 +39,7 @@ function [ recognition_rates, num_detected_keypoints1, num_detected_keypoints2, 
     %% Gather a set of corresponding keypoints
     fprintf('Obtaining set(s) of correspondences from the image pair...\n');
     %t = tic();
-    [ correspondence_sets, num_detected_keypoints1, num_detected_keypoints2, num_established_correspondences ] = affine_detect_corresponding_keypoints(I1, I2, H12, keypoint_detector, 'project_keypoints', project_keypoints, 'distance_threshold', keypoint_distance_threshold, 'num_points', num_points, 'num_sets', num_repetitions, 'filter_border', filter_border, 'visualize', visualize_sets);
+    [ correspondence_sets, num_detected_keypoints1, num_detected_keypoints2, num_established_correspondences ] = affine_detect_corresponding_keypoints(I1, I2, H12, keypoint_detector, 'distance_threshold', keypoint_distance_threshold, 'num_points', num_points, 'num_sets', num_repetitions, 'filter_border', filter_border, 'visualize', visualize_sets);
     %fprintf('Done (%f seconds)!\n', toc(t));
 
     original_num_repetitions = num_repetitions;

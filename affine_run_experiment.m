@@ -48,12 +48,6 @@ function affine_run_experiment (experiment_type, experiment_definitions, varargi
     %     - filter_border: width of image border within which the points
     %       are filtered out to prevent access accross the image borders
     %       (default: 50 pixels)
-    %     - project_keypoints: if set to false (default), keypoints are
-    %       detected in both images and matched via homography and distance
-    %       constraints. If set to true, the keypoints are detected only in
-    %       the first image, and directly projected to the second image
-    %       using the homography. Useful for mitigating effects of poor
-    %       keypoint localization on descriptor's performance.
     %     - visualize_sets: visualize the correspondence sets (each drawn
     %       set in a separate figure) (default: false)
     %
@@ -90,7 +84,6 @@ function affine_run_experiment (experiment_type, experiment_definitions, varargi
     parser.addParameter('num_repetitions', 5, @isscalar);
     parser.addParameter('keypoint_distance_threshold', 2.5, @isnumeric);
     parser.addParameter('filter_border', 50, @isnumeric);
-    parser.addParameter('project_keypoints', false, @islogical);
     parser.addParameter('visualize_sets', false, @islogical);
     parser.parse(varargin{:});
     
@@ -106,7 +99,6 @@ function affine_run_experiment (experiment_type, experiment_definitions, varargi
 
     keypoint_distance_threshold = parser.Results.keypoint_distance_threshold;
     filter_border = parser.Results.filter_border;
-    project_keypoints = parser.Results.project_keypoints;
     
     visualize_sets = parser.Results.visualize_sets;
     
@@ -196,7 +188,7 @@ function affine_run_experiment (experiment_type, experiment_definitions, varargi
                     end
 
                     % Evaluate performance on the given image pair
-                    [ recognition_rates(:,:,i), num_keypoints1(i), num_keypoints2(i), num_established_correspondences(i) ] = affine_evaluate_descriptor_extractors_on_image_pair(I1, I2, H12, keypoint_detector, descriptor_extractors, project_keypoints, keypoint_distance_threshold, num_points, num_repetitions, filter_border, visualize_sets);
+                    [ recognition_rates(:,:,i), num_keypoints1(i), num_keypoints2(i), num_established_correspondences(i) ] = affine_evaluate_descriptor_extractors_on_image_pair(I1, I2, H12, keypoint_detector, descriptor_extractors, keypoint_distance_threshold, num_points, num_repetitions, filter_border, visualize_sets);
                 end
         
                 %% Store results

@@ -16,11 +16,6 @@ function [ result, num_keypoints1, num_keypoints2, num_correspondences ] = affin
     %  - keypoint_detector: keypoint detector (instance of
     %    vicos.keypoint_detector.KeypointDetector)
     %  - varargin: key/value pairs with optional parameters:
-    %     - project_keypoints: if set to false (default), keypoints are 
-    %       detected in both first and second image, and then matched via 
-    %       homography and distance constraints. If set to true, the 
-    %       keypoints are detected only in the first image, and then 
-    %       directly projected to the second image via homography. 
     %     - distance_threshold: keypoint distance threshold for
     %       establishing geometric correspondences (default: 2.5)
     %     - filter_border: image border size used when filtering the
@@ -60,15 +55,12 @@ function [ result, num_keypoints1, num_keypoints2, num_correspondences ] = affin
     
     %% Gather optional arguments
     parser = inputParser();
-    parser.addParameter('project_keypoints', false, @islogical);
     parser.addParameter('distance_threshold', 2.5, @isnumeric);
     parser.addParameter('filter_border', 25, @isnumeric);
     parser.addParameter('num_points', 1000, @isnumeric);
     parser.addParameter('num_sets', 1, @isnumeric);
     parser.addParameter('visualize', false, @islogical);
     parser.parse(varargin{:});
-    
-    do_project_keypoints = parser.Results.project_keypoints;
     
     distance_threshold = parser.Results.distance_threshold;
     filter_border = parser.Results.filter_border;
@@ -81,15 +73,9 @@ function [ result, num_keypoints1, num_keypoints2, num_correspondences ] = affin
     keypoints1 = filter_duplicated_keypoints(keypoints1);
     
     %% Obtain keypoints in second image
-    if do_project_keypoints,
-        % Projection
-        keypoints2 = project_keypoints(keypoints1, H12);
-    else
-        % Detection
-        keypoints2 = keypoint_detector.detect(I2);
-        keypoints2 = filter_duplicated_keypoints(keypoints2);
-    end
-
+    keypoints2 = keypoint_detector.detect(I2);
+    keypoints2 = filter_duplicated_keypoints(keypoints2);
+    
     %% Image-border-based filtering
     % Project points in both direction, and filter out the ones that fall
     % outside the specified image borders
@@ -101,10 +87,6 @@ function [ result, num_keypoints1, num_keypoints2, num_correspondences ] = affin
 
     invalid_idx1 = find_invalid_points(pts1, I1, filter_border) | find_invalid_points(pts1p, I2, filter_border);
     invalid_idx2 = find_invalid_points(pts2, I2, filter_border) | find_invalid_points(pts2p, I1, filter_border);
-    
-    % Sanity check: if we are projecting keypoints, invalid_idx1 and
-    % invalid_idx2 should be equal
-    assert(~do_project_keypoints || isequal(invalid_idx1, invalid_idx2), 'Sanity check failed!');
     
     % Remove
     keypoints1(invalid_idx1) = [];
@@ -130,21 +112,9 @@ function [ result, num_keypoints1, num_keypoints2, num_correspondences ] = affin
     num_keypoints2 = size(pts2, 2);
     fprintf(' > computing distances: %d x %d\n', num_keypoints1, num_keypoints2);
 
-    if do_project_keypoints,
-        % In case of projected keypoints, we only need to compute distances
-        % as we already know which points are correspondences
-        assert(num_keypoints1 == num_keypoints2, 'Sanity check failed!');
-        
-        correspondences = diag(1:num_keypoints1);
-        distances = compute_keypoint_distances(pts1, pts2p, distance_threshold);
-        
-        % Diagonal of distances matrix must be zero!
-        assert(all( diag(distances) < 1e-6 ), 'Sanity check failed!');
-    else
-        % Compute both distances and correspondences
-        [ distances, correspondences ] = compute_keypoint_distances(pts1, pts2p, distance_threshold);
-    end
-
+    % Compute both distances and correspondences
+    [ distances, correspondences ] = compute_keypoint_distances(pts1, pts2p, distance_threshold);
+    
     % The correspondences matrix contains non-zero entries that effectively 
     % denote the ranking of the match; so max value is the total number of 
     % correspondences
