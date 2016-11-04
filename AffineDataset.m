@@ -7,7 +7,7 @@ classdef AffineDataset
         dataset_path
         
         % Valid sequence names
-        valid_sequences = { 'bark', 'bikes', 'boat', 'graffiti', 'leuven', 'trees', 'ubc', 'wall', 'day_night' };
+        valid_sequences = { 'bark', 'bikes', 'boat', 'ceiling', 'day_night', 'graffiti', 'leuven', 'rome', 'semper', 'trees', 'ubc', 'venice', 'wall', 'whiteboard' };
     end
     
     methods
@@ -131,7 +131,7 @@ classdef AffineDataset
 
             % Validate parameters
             assert(ismember(sequence, self.valid_sequences), 'Invalid sequence name!');
-            assert(img >= 1 && img <= 6, 'Image must be #1..#6!');
+            assert(img >= 1 && img <= 6, 'Image must be #1..#6!'); % TODO - FIXME!
 
             % Load
             data_path = fullfile(self.dataset_path, sequence);
