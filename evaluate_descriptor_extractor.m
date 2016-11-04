@@ -75,7 +75,7 @@ function recognition_rate = evaluate_descriptor_extractor (I1, I2, keypoints1, k
     [ desc2, keypoints2b ] = descriptor_extractor.compute(I2, keypoints2);
     %fprintf('  >>> descriptor computation: %f seconds\n', toc(t));
 
-    % Compute N2xN1 distance matrix (hence first desc2, then desc1)
+    % Compute N2xN1 distance matrix
     %t = tic();
     descriptor_distances = descriptor_extractor.compute_pairwise_distances(desc1, desc2);
     %fprintf('  >>> distance matrix computation: %f seconds\n', toc(t));
