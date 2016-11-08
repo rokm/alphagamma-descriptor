@@ -1,16 +1,19 @@
-#!/bin/sh
+#!/bin/bash
 
-MATLABDIR=/usr/local/MATLAB/R2015b
+MATLABDIR=${MATLABDIR:-/usr/local/MATLAB/R2015b}
 
 EXTERNAL_ROOT=$(pwd)
 
+
+# Quit on error
+set -e
 
 ########################################################################
 #                             Build OpenCV                             #
 ########################################################################
 pushd opencv
 
-mkdir build
+mkdir -j build
 pushd build
 
 cmake \
