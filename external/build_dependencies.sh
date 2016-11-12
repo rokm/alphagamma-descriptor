@@ -13,7 +13,7 @@ set -e
 ########################################################################
 pushd opencv
 
-mkdir -j build
+mkdir -p build
 pushd build
 
 cmake \
