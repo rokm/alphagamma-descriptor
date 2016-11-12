@@ -112,13 +112,13 @@ function [ result, num_keypoints1, num_keypoints2, num_correspondences ] = affin
     num_keypoints2 = size(pts2, 2);
     fprintf(' > computing distances: %d x %d\n', num_keypoints1, num_keypoints2);
 
-    % Compute both distances and correspondences
-    [ distances, correspondences ] = compute_keypoint_distances(pts1, pts2p, distance_threshold);
+    % Compute the distance matrix (colums correspond to poits in pts1,
+    % while rows correspond to points in pts2p). Correspondences is a Cx2
+    % vector, where first column represents indices in pts1, and second
+    % column represents corresponding indices in pts2p).
+    [ distances, correspondences ] = compute_keypoint_distances(pts1', pts2p', distance_threshold);
     
-    % The correspondences matrix contains non-zero entries that effectively 
-    % denote the ranking of the match; so max value is the total number of 
-    % correspondences
-    num_correspondences = max(correspondences(:));
+    num_correspondences = size(correspondences, 1);
 
     fprintf(' > found %d correspondences!\n', num_correspondences);
     
@@ -137,8 +137,9 @@ function [ result, num_keypoints1, num_keypoints2, num_correspondences ] = affin
         selected_idx = randperm(num_correspondences, num_points);
 
         % Find the indices of selected correspondences
-        [ i2, i1 ] = find(ismember(correspondences, selected_idx));
-
+        i1 = correspondences(selected_idx, 1);
+        i2 = correspondences(selected_idx, 2);
+        
         assert( all(sqrt( sum((pts1(:,i1) - pts2p(:,i2)).^2) ) <= distance_threshold), 'Sanity check failed!');
 
         %% Select the points
@@ -152,6 +153,83 @@ function [ result, num_keypoints1, num_keypoints2, num_correspondences ] = affin
             affine_visualize_correspondences(I1, I2, pts1, pts2, pts1p, pts2p, i1, i2);
         end
     end
+end
+
+function [ distances, correspondences ] = compute_keypoint_distances (pts1, pts2, distance_threshold)
+    % [ distances, correspondences ] = COMPUTE_KEYPOINT_DISTANCES (pts1, pts2p, distance_threshold)
+    %
+    % Computes pairwise distance matrix between two sets of keypoints'
+    % centers, and finds an optimal assignment between the two, given the
+    % maximum allowable distance.
+    %
+    % Input:
+    %  - pts1: Mx2 vector of points' centers
+    %  - pts2: Nx2 vector of points' centers
+    %  - distance_threshold: Euclidean distance threshold for the
+    %    assignment
+    %
+    % Output:
+    %  - distances: NxM distance matrix
+    %  - correspondences: Cx2 vector of correspondence indices (first and
+    %    second column correspond to indices in the first and second point
+    %    set, respectively). 
+    %
+    % Note: according to distance matrices, there may actually be more
+    % allowable correspondences than the ones given in the output
+    % correspondences matrix; the latter is useful primarily when one
+    % wishes to sample from the set of detected correspondences.
+   
+    % Compute distance matrix; NxM, i.e., columns correspond to points in 
+    % pts1, and rows correspond to points in pts2.
+    distances = distance_matrix(pts2, pts1);
+    
+    % Apply distance threshold constraint.
+    distances(distances>distance_threshold) = Inf;
+    
+    % Find assignment
+    if nargout > 1,
+        assignment = lapjv(distances);
+
+        % The meaning of resulting assignment vector depends on which
+        % dimension of the distance matrix is larger...
+        if size(distances, 1) >= size(distances, 2),
+            idx1 = assignment;
+            idx2 = 1:size(distances, 2);
+        else
+            idx1 = 1:size(distances, 1);
+            idx2 = assignment;
+        end
+        
+        % LAPJV assigns the invalid (Inf) entries as well, hence the
+        % isfinite check in the resulting pairs
+        linear_idx = sub2ind(size(distances), idx1, idx2);
+        valid_mask = isfinite(distances(linear_idx)); % 
+
+        % The meaning of 'idx1' and 'idx2' is w.r.t. to dimensions of the
+        % distance matrix; so their meaning w.r.t. point sets is actually
+        % inverted!
+        correspondences = [ idx2(valid_mask)', idx1(valid_mask)' ];
+    end
+end
+
+function D = distance_matrix (X, Y)
+    % D = DISTANCE_MATRIX (X, Y)
+    %
+    % Computes a matrix of pair-wise Euclidean distances between two sets
+    % of points, X and Y.
+    %
+    % Input:
+    %  - X: MxD vector of points
+    %  - Y: NxD vector of points
+    %
+    % Output:
+    %  - D: MxN distance matrix
+    
+    Yt = Y';
+    XX = sum(X .* X, 2);
+    YY = sum(Yt .* Yt, 1);
+    D = bsxfun(@plus, XX, YY) - 2*X*Yt;
+    D = sqrt(D);
 end
 
 function invalid_idx = find_invalid_points (pts, I, filter_border)
