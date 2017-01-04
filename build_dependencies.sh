@@ -1,8 +1,10 @@
 #!/bin/bash
 
-MATLABDIR=${MATLABDIR:-/usr/local/MATLAB/R2015b}
+# Matlab directory; set only if not already set
+MATLABDIR=${MATLABDIR:-/usr/local/MATLAB/R2016b}
 
-EXTERNAL_ROOT=$(pwd)
+# Get the project's root directory (i.e., the location of this script)
+ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 
 # Quit on error
@@ -11,15 +13,37 @@ set -e
 ########################################################################
 #                             Build OpenCV                             #
 ########################################################################
-pushd opencv
+# NOTE: for the time being, we build and use a private branch of OpenCV
+# with various improvements for integration of descriptors into our
+# evaluation framework.
+#
+# Fedora dependencies:
+#  libtiff-devel libjpeg-devel libwebp-devel jasper-devel OpenEXR-devel
+#  ffmpeg-devel
+#  eigen3-devel tbb-devel openblas-devel
 
-mkdir -p build
-pushd build
+echo "Building OpenCV..."
+
+OPENCV_SOURCE_DIR="${ROOT_DIR}/external/opencv"
+OPENCV_CONTRIB_SOURCE_DIR="${ROOT_DIR}/external/opencv_contrib"
+OPENCV_BUILD_DIR="${OPENCV_SOURCE_DIR}/build"
+OPENCV_INSTALL_DIR="${ROOT_DIR}/external/opencv-bin"
+
+# Make sure the submodule has been checked out
+if [ ! -f "${OPENCV_SOURCE_DIR}/.git" ]; then
+    echo "The opencv submodule does not appear to be checked out!"
+    exit 1
+fi
+
+# Build and install
+mkdir -p "${OPENCV_BUILD_DIR}"
 
 cmake \
+    -H"${OPENCV_SOURCE_DIR}" \
+    -B"${OPENCV_BUILD_DIR}" \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-    -DCMAKE_INSTALL_PREFIX=${EXTERNAL_ROOT}/opencv-bin \
-    -DOPENCV_EXTRA_MODULES_PATH=${EXTERNAL_ROOT}/opencv_contrib/modules \
+    -DCMAKE_INSTALL_PREFIX="${OPENCV_INSTALL_DIR}" \
+    -DOPENCV_EXTRA_MODULES_PATH="${OPENCV_CONTRIB_SOURCE_DIR}/modules" \
     -DCMAKE_SKIP_RPATH=ON \
     -DWITH_UNICAP=OFF \
     -DWITH_OPENNI=OFF \
@@ -65,21 +89,16 @@ cmake \
     -DBUILD_opencv_tracking=OFF \
     -DBUILD_opencv_ximgproc=OFF \
     -DBUILD_opencv_xobjdetect=OFF \
-    -DBUILD_opencv_xphoto=OFF \
-    ..
+    -DBUILD_opencv_xphoto=OFF
 
-make -j4
-make install
-
-popd
-popd
+make -j4 -C "${OPENCV_BUILD_DIR}"
+make install -C "${OPENCV_BUILD_DIR}"
 
 
 ########################################################################
 #                            Build mexopencv                           #
 ########################################################################
-export PKG_CONFIG_PATH=${EXTERNAL_ROOT}/opencv-bin/lib/pkgconfig:${PKG_CONFIG_PATH}
+echo "Building mexopencv..."
+export PKG_CONFIG_PATH=${OPENCV_INSTALL_DIR}/lib/pkgconfig:${PKG_CONFIG_PATH}
 
-pushd mexopencv
-make -j4 MATLABDIR=${MATLABDIR}
-popd
+make -j4 MATLABDIR="${MATLABDIR}" -C "${ROOT_DIR}/external/mexopencv"
