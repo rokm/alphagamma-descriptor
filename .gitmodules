@@ -1,6 +1,6 @@
 [submodule "external/mexopencv"]
 	path = external/mexopencv
-	url = https://github.com/kyamagu/mexopencv.git
+	url = https://github.com/rokm/mexopencv.git
 [submodule "external/opencv"]
 	path = external/opencv
 	url = https://github.com/rokm/opencv
