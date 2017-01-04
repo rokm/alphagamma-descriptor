@@ -48,6 +48,7 @@ cmake \
     -DWITH_UNICAP=OFF \
     -DWITH_OPENNI=OFF \
     -DWITH_TBB=ON \
+    -DWITH_LAPACK=OFF \
     -DWITH_GDAL=OFF \
     -DWITH_QT=OFF \
     -DWITH_GTK=OFF \
