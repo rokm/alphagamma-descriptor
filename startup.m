@@ -1,7 +1,8 @@
 function startup ()
-    % Get root directory
+    % Root directory
     root_dir = fileparts(mfilename('fullpath'));
 
+    %% This folder
     addpath(root_dir);
 
     % mexopencv
@@ -12,4 +13,8 @@ function startup ()
 
     % tight subplot
     addpath( fullfile(root_dir, 'external', 'tight_subplot') );
+
+    %% Turn off warnings
+    % Image size warning
+    warning('off', 'Images:initSize:adjustingMag');
 end
