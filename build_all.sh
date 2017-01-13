@@ -114,6 +114,24 @@ echo "Building Mex files..."
 ${MATLABDIR}/bin/matlab -nodisplay -nodesktop -r "try, run('${ROOT_DIR}/compile_code.m'); catch e, exit(-1); end; exit(0);"
 
 
+########################################################################
+#                        Build LIFT dependencies                       #
+########################################################################
+echo "Building LIFT..."
+
+LIFT_SOURCE_DIR="${ROOT_DIR}/external/lift/c-code"
+LIFT_BUILD_DIR="${LIFT_SOURCE_DIR}/build"
+
+# Build
+cmake \
+    -H"${LIFT_SOURCE_DIR}" \
+    -B"${LIFT_BUILD_DIR}" \
+    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+    -DCMAKE_INSTALL_PREFIX="${OPENCV_INSTALL_DIR}" \
+    -DOpenCV_DIR="${OPENCV_INSTALL_DIR}/share/OpenCV"
+
+make -C "${LIFT_BUILD_DIR}"
+
+
 # End of script
 echo "Great success! Build script finished without errors!"
-
