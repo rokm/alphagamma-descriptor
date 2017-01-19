@@ -122,6 +122,8 @@ function run_experiment (self, experiment_name, keypoint_detector, descriptor_ex
         
         % Determine geometric consistency of matches (-1 =
         % inconsistent, 1 = consistent, 0 = could not be evaluated)
+        t = tic();
+                
         match.CorrectMatch = zeros(size(match.coord,1), 1);
         for j = 1:size(match.coord,1)
             % Get the coordinates of the matched pair from the match structure.
@@ -132,8 +134,14 @@ function run_experiment (self, experiment_name, keypoint_detector, descriptor_ex
             match.CorrectMatch(j) = self.is_match_consistent(quad3d, camera_ref, camera, pt1', pt2');
         end
         
+        fprintf(' >> match consistency: %f seconds\n', toc(t));
+        
         % Compute the ROC curve
+        t = tic();
         [ roc, area ] = self.compute_roc_curve(match.distRatio, match.CorrectMatch);
+        fprintf(' >> ROC curve: %f seconds\n', toc(t));
+        
+        
         
         %% Compute final results
         

@@ -49,7 +49,7 @@ function correct = is_match_consistent (self, grid, camera1, camera2, pt1, pt2)
     
     if pt2(1) > xmin && pt2(1) < xmax && pt2(2) > ymin && pt2(2) < ymax
         % Validate camera-geometry consistency
-        if self.check_camera_geometry_consistency(camera1, camera2, pt1, pt2),
+        if self.check_camera_geometry_consistency(camera1, camera2, pt1, pt2)
             correct = 1;
         else
             correct = -1;

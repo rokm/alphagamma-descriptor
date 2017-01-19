@@ -27,42 +27,41 @@ function [ mu, sigma, valid ] = lookup_point_3d (self, grid, pt2d)
     %  - valid: validity flag (false if point falls outside the
     %    quad tree)
     
-    % Grid column and row
-    c = ceil(pt2d(1) / self.grid_cell_size);
-    r = ceil(pt2d(2) / self.grid_cell_size);
+    grid_cell_size = self.grid_cell_size; % Cache for performance reasons
+    grid_cells = grid.grid3d;
+    grid_pts = grid.pts;
     
-    if r < 1 || r > size(grid.grid3d, 1) || c < 1 || c > size(grid.grid3d, 2)
+    % Grid column and row
+    c = ceil(pt2d(1) / grid_cell_size);
+    r = ceil(pt2d(2) / grid_cell_size);
+    
+    if r < 1 || r > size(grid_cells, 1) || c < 1 || c > size(grid_cells, 2)
         valid = false;
         mu = nan;
         sigma = nan;
         return;
     end
     
-    % Gather 3-D coordinates of the neighbouring points
-    pts3d = zeros(3, 0);
-    
-    for i = -1:1
-        for j = -1:1
-            r2 = r + i;
-            c2 = c + j;
-            
-            % Validate cell coordinates
-            if r2 < 1 || r2 > size(grid.grid3d, 1) || c2 < 1 || c2 > size(grid.grid3d, 2)
-                continue;
-            end
-            
-            % Check all points
-            indices = grid.grid3d{r2, c2};
-            for k = 1:numel(indices)
-                idx = indices(k);
-                
-                % If 2-D coordinates of a structured-light points
-                % are close enough to our 2-D point, append the
-                % corresponding 3-D coordinates to list.
-                if norm(grid.pts(1:2,idx) - pt2d) <= self.grid_cell_size
-                    pts3d(:, end+1) = grid.pts(3:5,idx); %#ok<AGROW>
-                end
-            end
+     % Gather 3-D coordinates of the neighbouring points
+     pts3d = zeros(3, 0);
+     
+     for i = -1:1
+         for j = -1:1
+             r2 = r + j;
+             c2 = c + i;
+             
+             % Validate cell coordinates
+             if r2 < 1 || r2 > size(grid_cells, 1) || c2 < 1 || c2 > size(grid_cells, 2)
+                 continue;
+             end
+             
+             % For all structured-light points in the grid cell, chech if
+             % their 2-D image coordinates are close enough to our 2-D
+             % point; if so, we will add them to our list of points
+             indices = grid.grid3d{r2, c2};
+             valid_mask = sqrt(sum((bsxfun(@minus, grid_pts(1:2,indices), pt2d)).^2)) <= grid_cell_size;
+             valid_indices = indices(valid_mask);
+             pts3d = [ pts3d, grid_pts(3:5,valid_indices) ]; %#ok<AGROW>
         end
     end
     
