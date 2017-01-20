@@ -141,8 +141,33 @@ function run_experiment (self, experiment_name, keypoint_detector, descriptor_ex
         [ roc, area ] = self.compute_roc_curve(match.distRatio, match.CorrectMatch);
         fprintf(' >> ROC curve: %f seconds\n', toc(t));
         
+        % Consistent correspondences (recall rate)       
+        t = tic();
+
+        consistent_correspondences.histogram = zeros(1,10); % 10 cells; first is 0, last is >= 9
+        consistent_correspondences.indices = cell(1, size(numel(ref_keypoints), 1));
+        consistent_correspondences.valid = false(1, size(numel(ref_keypoints), 1));
         
+        test_pts2d = vertcat(test_keypoints.pt) + keypoint_offset;
+        test_scales = (0.5*vertcat(test_keypoints.size)).^2;
         
+        for j = 1:numel(ref_keypoints)
+            ref_pt2d = ref_keypoints(j).pt + keypoint_offset;
+            ref_scale = (0.5*ref_keypoints(j).size)^2;
+            
+            [ idx, valid ] = self.get_consistent_correspondences(quad3d, camera_ref, camera, ref_pt2d, ref_scale, test_pts2d, test_scales);
+            
+            consistent_correspondences.indices{j} = idx;
+            consistent_correspondences.valid(j) = valid;
+            
+            if valid
+                hist_idx = min(numel(idx) + 1, numel(consistent_correspondences.histogram)); % First histogram element is for zero matches
+                consistent_correspondences.histogram(hist_idx) = consistent_correspondences.histogram(hist_idx) + 1;
+            end
+        end
+        
+        fprintf(' >> consistent correspondences: %f seconds\n', toc(t));
+                
         %% Compute final results
         
         %% Visualize

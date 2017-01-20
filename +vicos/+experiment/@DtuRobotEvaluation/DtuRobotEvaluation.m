@@ -16,6 +16,9 @@ classdef DtuRobotEvaluation < handle
         % Bounding box padding when evaluating matches in 3D (in meters)
         bbox_padding_3d
         
+        % Scale margin for correspondence consistency check
+        scale_margin
+        
         % Half-size images in dataset?
         half_size_images
     end
@@ -40,6 +43,7 @@ classdef DtuRobotEvaluation < handle
             parser.addParameter('grid_cell_size', 10, @isnumeric);
             parser.addParameter('backprojection_threshold', 2.5, @isnumeric);
             parser.addParameter('bbox_padding_3d', 3e-3, @isnumeric); % 3 mm
+            parser.addParameter('scale_margin', 2, @isnumeric); % 2x
             parser.parse(varargin{:});
             
             % Half-size images?
@@ -49,6 +53,7 @@ classdef DtuRobotEvaluation < handle
             self.grid_cell_size = parser.Results.grid_cell_size;
             self.backprojection_threshold = parser.Results.backprojection_threshold;
             self.bbox_padding_3d = parser.Results.bbox_padding_3d;
+            self.scale_margin = parser.Results.scale_margin;
             
             % Default dataset path
             self.dataset_path = parser.Results.dataset_path;
@@ -73,6 +78,8 @@ classdef DtuRobotEvaluation < handle
         
         consistent = check_camera_geometry_consistency (self, camera1, camera2, pt1, pt2)
         correct = is_match_consistent (self, grid, camera1, camera2, pt1, pt2)
+        
+        [ idx, valid ] = get_consistent_correspondences (self, grid, camera1, camera2, ref_point, ref_scale, points, scales)
         
         filename = construct_image_filename (self, image_set, image_number, light_number)
         filename = construct_cache_filename (self, cache_dir, set_number, image_number, light_number, suffix)
