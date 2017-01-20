@@ -21,6 +21,9 @@ classdef DtuRobotEvaluation < handle
         
         % Half-size images in dataset?
         half_size_images
+        
+        % Distance ratio threshold for putative matches
+        putative_match_ratio
     end
     
     methods (Static)
@@ -44,6 +47,7 @@ classdef DtuRobotEvaluation < handle
             parser.addParameter('backprojection_threshold', 2.5, @isnumeric);
             parser.addParameter('bbox_padding_3d', 3e-3, @isnumeric); % 3 mm
             parser.addParameter('scale_margin', 2, @isnumeric); % 2x
+            parser.addParameter('putative_match_ratio', 0.8, @isnumeric);
             parser.parse(varargin{:});
             
             % Half-size images?
@@ -54,6 +58,7 @@ classdef DtuRobotEvaluation < handle
             self.backprojection_threshold = parser.Results.backprojection_threshold;
             self.bbox_padding_3d = parser.Results.bbox_padding_3d;
             self.scale_margin = parser.Results.scale_margin;
+            self.putative_match_ratio = parser.Results.putative_match_ratio;
             
             % Default dataset path
             self.dataset_path = parser.Results.dataset_path;
@@ -70,7 +75,7 @@ classdef DtuRobotEvaluation < handle
             self.load_camera_calibration();
         end
         
-        run_experiment (self, experiment_name, keypoint_detector, descriptor_extractor, image_set, varargin)
+        results = run_experiment (self, experiment_name, keypoint_detector, descriptor_extractor, image_set, varargin)
 
         grid = generate_structured_light_grid (self, image_set, reference_image)
         [ mu, sigma, valid ] = lookup_point_3d (self, grid, pt2d)

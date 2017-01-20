@@ -1,4 +1,4 @@
-function run_experiment (self, experiment_name, keypoint_detector, descriptor_extractor, image_set, varargin)
+function results = run_experiment (self, experiment_name, keypoint_detector, descriptor_extractor, image_set, varargin)
     % Input:
     %  - self:
     %  - experiment_name: name of experiment
@@ -70,6 +70,17 @@ function run_experiment (self, experiment_name, keypoint_detector, descriptor_ex
     [ ref_keypoints, ref_descriptors ] = self.extract_features_from_image(image_file_ref, keypoint_detector, descriptor_extractor, cache_file);
     camera_ref = self.cameras(:,:,reference_image);
     
+    %% Pre-allocate results structure
+    results = repmat(struct('sequence', [], ...
+                            'lighting', [], ...
+                            'reference_image', [], ...
+                            'test_image', [], ...
+                            'putative_matches', [], ...
+                            'correct_matches', [], ...
+                            'putative_matches_unique', [], ...
+                            'correct_matches_unique', [], ...
+                            'consistent_correspondences', []), 1, numel(test_images));
+    
     %% Process all test images
     for i = 1:numel(test_images)
         test_image = test_images(i);
@@ -89,91 +100,134 @@ function run_experiment (self, experiment_name, keypoint_detector, descriptor_ex
         %% Evaluate
         fprintf('Evaluating pair #%d/#%d\n', test_image, reference_image);
         
-        keypoint_offset = 1; % C indexing to Matlab indexing
-        if self.half_size_images
-            keypoint_offset = keypoint_offset + 0.5; % Additional offset due to downscaling
+        if ~isempty(cache_dir)
+            cache_file = self.construct_cache_filename(cache_dir, image_set, test_image, light_number, '.evaluation.mat');
         end
         
-        % Compute descriptor distance matrix
-        M = descriptor_extractor.compute_pairwise_distances(ref_descriptors, test_descriptors);
-        
-        % For each test keypoint (row in M), find the closest match
-        Mm = M;
-        [ min_dist1, min_idx1 ]  = min(Mm, [], 2); % For each test keypoint, find the closest match
-        
-        % Find the next closest match (by masking the closest one)
-        cidx = sub2ind(size(Mm), [ 1:numel(min_idx1) ]', min_idx1);
-        Mm(cidx) = inf;
-        [ min_dist2, min_idx2 ] = min(Mm, [], 2);
-        
-        % Prepare the match structure (as specified by the DTU
-        % code)
-        clear match;
-        
-        match.matchIdx = [ min_idx1, min_idx2 ]; % Indices to first and second closest match in reference image
-        match.dist = [ min_dist1, min_dist2 ]; % Distances to first and second closest match in reference image
-        match.distRatio = min_dist1 ./ min_dist2; % Distance ratio
-        match.coord = vertcat(test_keypoints.pt) + keypoint_offset; % Coordinates of keypoints in test image
-        match.coordKey = vertcat(ref_keypoints.pt) + keypoint_offset; % Coordinates of keypoints in reference image
-        tmp_area = 1./(vertcat(test_keypoints.size)*0.5).^2; % [ a, b, c ] parameters of ellipse approximation for keypoints in test image -> [ r, 0, r ]
-        match.area = [ tmp_area, zeros(size(tmp_area)), tmp_area ];
-        tmp_area = 1./(vertcat(ref_keypoints.size)*0.5).^2; % [ a, b, c ] parameters of ellipse approximation for keypoints in test image -> [ r, 0, r ]
-        match.areaKey = [ tmp_area, zeros(size(tmp_area)), tmp_area ];
-        
-        % Determine geometric consistency of matches (-1 =
-        % inconsistent, 1 = consistent, 0 = could not be evaluated)
-        t = tic();
-                
-        match.CorrectMatch = zeros(size(match.coord,1), 1);
-        for j = 1:size(match.coord,1)
-            % Get the coordinates of the matched pair from the match structure.
-            pt2 = match.coord(j,:);
-            pt1 = match.coordKey(match.matchIdx(j,1),:);
+        if ~isempty(cache_file) && exist(cache_file, 'file')
+            fprintf(' >> loading from cache!\n');
             
-            % Determine if the match is consistent.
-            match.CorrectMatch(j) = self.is_match_consistent(quad3d, camera_ref, camera, pt1', pt2');
-        end
-        
-        fprintf(' >> match consistency: %f seconds\n', toc(t));
-        
-        % Compute the ROC curve
-        t = tic();
-        [ roc, area ] = self.compute_roc_curve(match.distRatio, match.CorrectMatch);
-        fprintf(' >> ROC curve: %f seconds\n', toc(t));
-        
-        % Consistent correspondences (recall rate)       
-        t = tic();
+            % Load from cache
+            tmp = load(cache_file);
+            
+            match = tmp.match;
+            roc = tmp.roc;
+            area = tmp.area;
+            consistent_correspondences = tmp.consistent_correspondences;
+        else
+            fprintf(' >> keypoints: %d, reference keypoints: %d\n', numel(test_keypoints), numel(ref_keypoints));
 
-        consistent_correspondences.histogram = zeros(1,10); % 10 cells; first is 0, last is >= 9
-        consistent_correspondences.indices = cell(1, size(numel(ref_keypoints), 1));
-        consistent_correspondences.valid = false(1, size(numel(ref_keypoints), 1));
-        
-        test_pts2d = vertcat(test_keypoints.pt) + keypoint_offset;
-        test_scales = (0.5*vertcat(test_keypoints.size)).^2;
-        
-        for j = 1:numel(ref_keypoints)
-            ref_pt2d = ref_keypoints(j).pt + keypoint_offset;
-            ref_scale = (0.5*ref_keypoints(j).size)^2;
+            keypoint_offset = 1; % C indexing to Matlab indexing
+            if self.half_size_images
+                keypoint_offset = keypoint_offset + 0.5; % Additional offset due to downscaling
+            end
+
+            % Compute descriptor distance matrix
+            M = descriptor_extractor.compute_pairwise_distances(ref_descriptors, test_descriptors);
+
+            % For each test keypoint (row in M), find the closest match
+            Mm = M;
+            [ min_dist1, min_idx1 ]  = min(Mm, [], 2); % For each test keypoint, find the closest match
+
+            % Find the next closest match (by masking the closest one)
+            cidx = sub2ind(size(Mm), [ 1:numel(min_idx1) ]', min_idx1);
+            Mm(cidx) = inf;
+            [ min_dist2, min_idx2 ] = min(Mm, [], 2);
+
+            % Prepare the match structure (as specified by the DTU
+            % code)
+            clear match;
+
+            match.matchIdx = [ min_idx1, min_idx2 ]; % Indices to first and second closest match in reference image
+            match.dist = [ min_dist1, min_dist2 ]; % Distances to first and second closest match in reference image
+            match.distRatio = min_dist1 ./ min_dist2; % Distance ratio
+            match.coord = vertcat(test_keypoints.pt) + keypoint_offset; % Coordinates of keypoints in test image
+            match.coordKey = vertcat(ref_keypoints.pt) + keypoint_offset; % Coordinates of keypoints in reference image
+            tmp_area = 1./(vertcat(test_keypoints.size)*0.5).^2; % [ a, b, c ] parameters of ellipse approximation for keypoints in test image -> [ r, 0, r ]
+            match.area = [ tmp_area, zeros(size(tmp_area)), tmp_area ];
+            tmp_area = 1./(vertcat(ref_keypoints.size)*0.5).^2; % [ a, b, c ] parameters of ellipse approximation for keypoints in test image -> [ r, 0, r ]
+            match.areaKey = [ tmp_area, zeros(size(tmp_area)), tmp_area ];
+
+            % Determine geometric consistency of matches (-1 =
+            % inconsistent, 1 = consistent, 0 = could not be evaluated)
+            t = tic();
+
+            match.CorrectMatch = zeros(size(match.coord,1), 1);
+            for j = 1:size(match.coord,1)
+                % Get the coordinates of the matched pair from the match structure.
+                pt2 = match.coord(j,:);
+                pt1 = match.coordKey(match.matchIdx(j,1),:);
+
+                % Determine if the match is consistent.
+                match.CorrectMatch(j) = self.is_match_consistent(quad3d, camera_ref, camera, pt1', pt2');
+            end
+
+            fprintf(' >> match consistency: %f seconds\n', toc(t));
+
+            % Compute the ROC curve
+            t = tic();
+            [ roc, area ] = self.compute_roc_curve(match.distRatio, match.CorrectMatch);
+            fprintf(' >> ROC curve: %f seconds\n', toc(t));
+
+            % Consistent correspondences (recall rate)       
+            t = tic();
+
+            consistent_correspondences.histogram = zeros(1,10); % 10 cells; first is 0, last is >= 9
+            consistent_correspondences.indices = cell(1, size(numel(ref_keypoints), 1));
+            consistent_correspondences.valid = false(1, size(numel(ref_keypoints), 1));
+
+            test_pts2d = vertcat(test_keypoints.pt) + keypoint_offset;
+            test_scales = (0.5*vertcat(test_keypoints.size)).^2;
+
+            for j = 1:numel(ref_keypoints)
+                ref_pt2d = ref_keypoints(j).pt + keypoint_offset;
+                ref_scale = (0.5*ref_keypoints(j).size)^2;
+
+                [ idx, valid ] = self.get_consistent_correspondences(quad3d, camera_ref, camera, ref_pt2d, ref_scale, test_pts2d, test_scales);
+
+                consistent_correspondences.indices{j} = idx;
+                consistent_correspondences.valid(j) = valid;
+
+                if valid
+                    hist_idx = min(numel(idx) + 1, numel(consistent_correspondences.histogram)); % First histogram element is for zero matches
+                    consistent_correspondences.histogram(hist_idx) = consistent_correspondences.histogram(hist_idx) + 1;
+                end
+            end
+
+            fprintf(' >> consistent correspondences: %f seconds\n', toc(t));
             
-            [ idx, valid ] = self.get_consistent_correspondences(quad3d, camera_ref, camera, ref_pt2d, ref_scale, test_pts2d, test_scales);
-            
-            consistent_correspondences.indices{j} = idx;
-            consistent_correspondences.valid(j) = valid;
-            
-            if valid
-                hist_idx = min(numel(idx) + 1, numel(consistent_correspondences.histogram)); % First histogram element is for zero matches
-                consistent_correspondences.histogram(hist_idx) = consistent_correspondences.histogram(hist_idx) + 1;
+            % Save to cache
+            if ~isempty(cache_file)
+                tmp = struct('match', match, 'roc', roc, 'area', area, 'consistent_correspondences', consistent_correspondences); %#ok<NASGU>
+                save(cache_file, '-v7.3', '-struct', 'tmp');
             end
         end
-        
-        fprintf(' >> consistent correspondences: %f seconds\n', toc(t));
                 
         %% Compute final results
+        results(i).sequence = image_set;
+        results(i).lighting = light_number;
+        results(i).reference_image = reference_image;
+        results(i).test_image = test_image;
         
-        %% Visualize
-        %Ir = imread(image_file_ref);
-        %I  = imread(image_file);
+        % Putative matches: those whose distance ratio is below the 
+        % specified threshold
+        putative_matches = match.distRatio < self.putative_match_ratio;
         
+        % Correct matches: putative matches that are geometrically
+        % consistent
+        correct_matches = (match.CorrectMatch == 1) & putative_matches; 
         
+        results(i).putative_matches = sum(putative_matches);
+        results(i).correct_matches = sum(correct_matches);
+                
+        % Construct the array of coordinate pairings; used to filter
+        % out duplicates
+        pairings = [ match.coord, match.coordKey(match.matchIdx(:,1),:) ];
+        
+        results(i).putative_matches_unique = size(unique(pairings(putative_matches,:), 'rows'), 1);
+        results(i).correct_matches_unique = size(unique(pairings(correct_matches,:), 'rows'), 1);
+        
+        % Number of consistent correspondences
+        results(i).consistent_correspondences = sum(consistent_correspondences.histogram(2:end));
     end
 end
