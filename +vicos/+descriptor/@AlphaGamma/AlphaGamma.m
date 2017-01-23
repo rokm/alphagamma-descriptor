@@ -26,8 +26,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
         % Orientation normalization
         orientation_normalized
         compute_orientation
-        hack_freak_orientation
-        freak_pattern_scale
         
         % Pre-computed stuff
         radii
@@ -107,9 +105,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             parser.addParameter('orientation_normalized', false, @islogical);
             parser.addParameter('compute_orientation', true, @islogical);
             parser.addParameter('orientation_num_rays', [], @isnumeric);
-            parser.addParameter('hack_freak_orientation', false, @islogical);
-            parser.addParameter('freak_pattern_scale', [], @isnumeric);
-
+            
             parser.addParameter('use_scale', [], @islogical); % FIXME: legacy
             parser.addParameter('scale_normalized', false, @islogical);
             parser.addParameter('base_keypoint_size', 18.5, @isnumeric);
@@ -139,8 +135,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             self.orientation_normalized = parser.Results.orientation_normalized;
             self.compute_orientation = parser.Results.compute_orientation;
             self.orientation_num_rays = parser.Results.orientation_num_rays;
-            self.hack_freak_orientation = parser.Results.hack_freak_orientation;
-            self.freak_pattern_scale = parser.Results.freak_pattern_scale;
             
             self.compute_type1 = parser.Results.compute_type1;
             self.compute_type2 = parser.Results.compute_type2;
@@ -165,12 +159,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             if isempty(self.orientation_num_rays),
                 self.orientation_num_rays = self.num_rays;
             end
-            
-            % FREAK orientation hack
-            if self.hack_freak_orientation,
-                self.compute_orientation = false;
-            end
-            
+                        
             % Determine thresholds as the inverse of Student's T CDF with
             % number of elements in alpha or gamma (minus 1) as degrees of
             % freedom, and 50% confidence interval
@@ -254,16 +243,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             % convention; therefore, we need to convert them to 1-based
             % indices (and round them) - this is done below, when calling
             % extract_descriptor_from_keypoint()
-
-            % Hack: compute orientations via FREAK descriptor
-            if self.hack_freak_orientation, 
-                if isempty(self.freak_pattern_scale),
-                    freak = vicos.descriptor.FREAK('OrientationNormalized', true, 'ScaleNormalized', self.scale_normalized);
-                else
-                    freak = vicos.descriptor.FREAK('OrientationNormalized', true, 'ScaleNormalized', self.scale_normalized, 'PatternScale', self.freak_pattern_scale);
-                end
-                [ ~, keypoints ] = freak.compute(I, keypoints);
-            end
             
             % Convert to grayscale
             if size(I, 3) == 3,
