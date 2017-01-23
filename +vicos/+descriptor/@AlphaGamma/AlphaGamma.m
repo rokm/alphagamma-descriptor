@@ -63,33 +63,44 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             % Input: key/value pairs:
             %  - num_circles: number of circles (11)
             %  - num_rays: number of rays (55)
-            %  - orientation: whether to estimate and correct orientation
-            %    (false)
-            %  - sampling: sampling type:
-            %     - simple: only base image is filtered; results in the
-            %       simple version of descriptor
-            %     - gaussian: image pyramid is built using a bank of
-            %       Gaussian filter, corresponding to the original complex
-            %       descriptor formulation
-            %  - extended_threshold: threshold to use in extended
-            %    descriptor (0.674)
-            %  - base_sigma: sigma for DoG filter of the base image.
-            %    Original formulation used sqrt(2), while the later ones
-            %    used sqrt(1.7), which is also the default now
-            %  - use_scale: use keypoints' scale information to crop
-            %    patches and rescale them to the reference size before
-            %    computing the descriptor. Otherwise, fixed reference-sized
-            %    windows are extracted around the keypoints' locations.
-            %    Default: false.
-            %
-            % - compute_type1: compute type 1 part of descriptor
-            % - compute_type2: compute type 2 part of descriptor
-            % - threshold_alpha:
-            % - threshold_gamma:
-            % - A:
-            % - G:
-            % - use_bitstrings:
-            % - bilinear_sampling
+            %  - circle_step: spacing between two circles; default: sqrt(2)
+            %  - base_sigma: sigma for DoG filter of the base image;
+            %    default: sqrt(1.7)
+            %  - orientation_normalized: normalize w.r.t. keypoint
+            %    orientation (default: false). If compute_orientation is
+            %    specified, the orientation is estimated by descriptor
+            %    extractor; otherwise, the keypoint's orientation is used.
+            %  - compute_orientation: whether to estimate orientation or
+            %    use the keypoint's angle value; default: true
+            %  - orientation_num_rays: number of rays used to estimate the
+            %    orientation; default: [] (use num_rays value)
+            %  - scale_normalized: whether to use keypoint's size parameter
+            %    to extract descriptor from size-normalized patch;
+            %    otherwise, descriptor is extracted from fixed-size region.
+            %    Default: false
+            %  - base_keypoint_size: base factor when converting keypoint
+            %    size to patch size; default: 18.5
+            %  - bilinear sampling: bilinear sampling of points. Default:
+            %    false
+            %  - non_binarized_descriptor: whether to compute binarized
+            %    descriptor or floating-point descriptor. Default: true
+            %    (compute binarized)
+            % - compute_type1: compute type 1 part of binarized descriptor.
+            %   Default: true
+            % - compute_type2: compute type 2 part of binarized descriptor.
+            %   Default: true
+            % - threshold_alpha: threshold value for alpha part of
+            %   binarized descriptor. Default: [] (compute from number of
+            %   circles)
+            % - threshold_gamma: threshold value for gamma part of
+            %   binarized descriptor. Default: [] (compute from number of
+            %   rays)
+            % - A: distance weight for alpha part of binarized descriptor.
+            %   Default: 5
+            % - G: distance weight for gamma part of binarized descriptor.
+            %   Default: 1
+            % - use_bitstrings: store binarized descriptor as bitstrings
+            %   (instead of byte). Default: false
             %
             % Output:
             %  - self: @AlphaGamma instance
@@ -101,15 +112,16 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             parser.addParameter('circle_step', sqrt(2), @isscalar);
             parser.addParameter('base_sigma', sqrt(1.7), @isnumeric);
 
-            parser.addParameter('orientation', [], @islogical); % FIXME: legacy
             parser.addParameter('orientation_normalized', false, @islogical);
             parser.addParameter('compute_orientation', true, @islogical);
             parser.addParameter('orientation_num_rays', [], @isnumeric);
             
-            parser.addParameter('use_scale', [], @islogical); % FIXME: legacy
             parser.addParameter('scale_normalized', false, @islogical);
             parser.addParameter('base_keypoint_size', 18.5, @isnumeric);
 
+            parser.addParameter('bilinear_sampling', false, @islogical);
+            parser.addParameter('non_binarized_descriptor', false, @islogical);
+            
             parser.addParameter('compute_type1', true, @islogical);
             parser.addParameter('compute_type2', true, @islogical);
             parser.addParameter('threshold_alpha', [], @isnumeric); % compute from LUT for num_circles-1!
@@ -118,9 +130,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             parser.addParameter('G', 1.0, @isnumeric);
             parser.addParameter('use_bitstrings', false, @islogical);
 
-            parser.addParameter('bilinear_sampling', false, @islogical);
-            
-            parser.addParameter('non_binarized_descriptor', false, @islogical);
             
             parser.parse(varargin{:});
 
@@ -129,12 +138,15 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             self.circle_step = parser.Results.circle_step;
             self.base_sigma = parser.Results.base_sigma;
             
-            self.scale_normalized = parser.Results.scale_normalized;
-            self.base_keypoint_size = parser.Results.base_keypoint_size;
-
             self.orientation_normalized = parser.Results.orientation_normalized;
             self.compute_orientation = parser.Results.compute_orientation;
             self.orientation_num_rays = parser.Results.orientation_num_rays;
+                        
+            self.scale_normalized = parser.Results.scale_normalized;
+            self.base_keypoint_size = parser.Results.base_keypoint_size;
+            
+            self.bilinear_sampling = parser.Results.bilinear_sampling;
+            self.non_binarized_descriptor = parser.Results.non_binarized_descriptor;
             
             self.compute_type1 = parser.Results.compute_type1;
             self.compute_type2 = parser.Results.compute_type2;
@@ -143,23 +155,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             self.A = parser.Results.A;
             self.G = parser.Results.G;
             self.use_bitstrings = parser.Results.use_bitstrings;
-            
-            self.bilinear_sampling = parser.Results.bilinear_sampling;
-            
-            self.non_binarized_descriptor = parser.Results.non_binarized_descriptor;
-            
-             % Legacy options
-            if ~isempty(parser.Results.orientation),
-                self.orientation_normalized = parser.Results.orientation;
-            end
-            if ~isempty(parser.Results.use_scale),
-                self.scale_normalized = parser.Results.use_scale;
-            end
-            
-            if isempty(self.orientation_num_rays),
-                self.orientation_num_rays = self.num_rays;
-            end
-                        
+                                    
             % Determine thresholds as the inverse of Student's T CDF with
             % number of elements in alpha or gamma (minus 1) as degrees of
             % freedom, and 50% confidence interval
@@ -178,30 +174,22 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             radii = zeros(self.num_circles, 1);
             self.filters = cell(self.num_circles, 1);
 
-            % Pure bank of Gaussian filters that was used with original
-            % version of complex descriptor
-            
+            % Filter parameters (radius and sigma)
             step = self.circle_step;
             for i = 1:self.num_circles,
                 if i == 1,
-                    %sigmas(i) = 0.3;
-                    %radii(i) = 0.71;
                     sigmas(i) = 0.3; % Variable
                     radii(i) = 0.71/0.3 * sigmas(i);
-                    continue; % Do not do anything
                 else
                     sigmas(i) = sigmas(i-1)*step;
                     radii(i) = radii(i-1) + step*sigmas(i);
                 end
-
-                
-                % Apply filter only if sigma is greater than 0.7
             end
     
             self.radii = radii;
             self.sigmas = sigmas;
                         
-            %% Compute filters
+            % Compute filters
             for i = 1:self.num_circles,
                 if self.sigmas(i) <= 0.7,
                     continue;
@@ -268,7 +256,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             if ~self.scale_normalized,
                 pyramid = self.create_image_pyramid(I);
             
-                
                 for p = 1:num_points,
                     % Extract each point from the first-level pyramid
                     % (which is also the only one we have). Note the 
@@ -283,7 +270,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                 % Construct pyramids
                 pyramids = cell(1, num_octaves);
                 
-                %  Option 1: Resizing of filtered images
+                % Option 1: Resizing of filtered images
                 pyramids{1} = self.create_image_pyramid(imresize(I,2));
                 for i = 2:num_octaves,
                     factor = 0.5^(i-1);
@@ -313,13 +300,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                     end
                     
                     % Scale the keypoint's center
-                    %new_center = keypoint.pt*2 + 1; % 0-based -> 1-based
-                 
-                    new_center = keypoint.pt - 0.5*(1-2^(octave-2))+ 1;
-                  
-                    %new_center = new_center * 0.5^(octave - 1);
                     new_center = new_center * 0.5^(octave - 2);
-                  
                     
                     % Scale factor for the radii
                     scale_factor = keypoint.size*2/(self.base_keypoint_size * 2^(octave-1));
@@ -355,6 +336,8 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
         function distances = compute_pairwise_distances (self, desc1, desc2)
             % distances = COMPUTE_PAIRWISE_DISTANCES (self, desc1, desc2)
 
+            % Compatibility layer; if descriptors are given in N1xD and
+            % N2xD, transpose them
             desc_size = get_descriptor_size(self);
             if (size(desc1, 1) ~= desc_size && size(desc1, 2) == desc_size),
                 desc1 = desc1';
@@ -368,12 +351,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                 % get an N2xN1 matrix, we switch desc1 and desc2
                 distances = cv.batchDistance(desc2', desc1', 'K', 0, 'NormType', 'L1');
             else
-                %% Binary version
-                % Compatibility layer; if descriptors are given in N1xD and
-                
-                
-                % N2xD, transpose them
-                
+                % Binarized version
                 if self.use_bitstrings,
                     distances = alpha_gamma_distances_fast(desc1, desc2, self.num_circles, self.num_rays, self.A, self.G);
                 else
@@ -641,34 +619,4 @@ function filt = create_dog_filter (sigma)
     % DoG
     filt = exp(-(x.^2/sigma^2 + y.^2/sigma^2)/2);
     filt = filt / sum(filt(:));
-end
-
-function filt = create_unif_filter (window)
-    % filt = CREATE_UNIF_FILTER (window)
-    %
-    % Creates a uniform filter with specified window size.
-
-    filt = ones(window, window);
-    filt = filt / sum(filt(:));
-end
-
-function patch = cut_patch_from_image (I, x, y, w, h)
-    % patch = CUT_PATCH_FROM_IMAGE (I, x, y, w, h)
-    %
-    % Cuts patch from image with border replication, if necessary.
-    
-    assert(mod(w,2) == 1, 'Patch must be of odd size!');
-    assert(mod(h,2) == 1, 'Patch must be of odd size!');
-
-    w2 = (w-1)/2;
-    h2 = (h-1)/2;
-
-    % Border replication
-    xidx = (x-w2):(x+w2);
-    xidx = min(max(xidx, 1), size(I, 2));
-
-    yidx = (y-h2):(y+h2);
-    yidx = min(max(yidx, 1), size(I, 1));
-
-    patch = I(yidx, xidx, :);
 end
