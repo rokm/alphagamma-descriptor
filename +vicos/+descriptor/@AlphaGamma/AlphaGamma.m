@@ -54,7 +54,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
         %
         use_bitstrings
         
-        hack_sigma = false
         hack_incremental = false
     end
 
@@ -129,7 +128,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             
             parser.addParameter('non_binarized_descriptor', false, @islogical);
             
-            parser.addParameter('hack_sigma', false, @islogical);
             parser.addParameter('hack_incremental', true, @islogical);
             parser.parse(varargin{:});
 
@@ -159,7 +157,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             
             self.non_binarized_descriptor = parser.Results.non_binarized_descriptor;
             
-            self.hack_sigma = parser.Results.hack_sigma;
             self.hack_incremental = parser.Results.hack_incremental;
 
              % Legacy options
@@ -217,13 +214,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                 % Apply filter only if sigma is greater than 0.7
             end
     
-                        
-            if self.hack_sigma,
-                assert(self.num_circles == 10, 'hack_sigma works only for M=10!');
-                radii= [ 0,1,3,5,7,11,18,26,40,56];
-                sigmas = [ 0.4500, 0.7000, 1.0890, 1.6941, 2.6354, 4.0997, 6.3776, 9.9212, 15.4338, 15.4338 ];
-            end
-            
             self.radii = radii;
             self.sigmas = sigmas;
                         
