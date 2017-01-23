@@ -266,7 +266,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                     % 0-based to 1-based coordinate system conversion
                     desc(:,p) = extract_descriptor_from_keypoint(self, pyramid, keypoints(p).pt + 1, 1.0, keypoints(p).angle); 
                 end
-                
             else
                 %% Multi-scale version
                 num_octaves = 6;
@@ -304,6 +303,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                     end
                     
                     % Scale the keypoint's center
+                    new_center = keypoint.pt - 0.5*(1-2^(octave-2)) + 1;
                     new_center = new_center * 0.5^(octave - 2);
                     
                     % Scale factor for the radii
