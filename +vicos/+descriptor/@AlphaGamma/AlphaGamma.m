@@ -61,8 +61,8 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             % Construct AlphaGamma descriptor extractor.
             %
             % Input: key/value pairs:
-            %  - num_circles: number of circles (11)
-            %  - num_rays: number of rays (55)
+            %  - num_circles: number of circles; default: 10
+            %  - num_rays: number of rays; default: 23
             %  - circle_step: spacing between two circles; default: sqrt(2)
             %  - base_sigma: sigma for DoG filter of the base image;
             %    default: sqrt(1.7)
@@ -107,8 +107,8 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
 
             % Input parameters
             parser = inputParser();
-            parser.addParameter('num_circles', 11, @isscalar);
-            parser.addParameter('num_rays', 55, @isscalar);
+            parser.addParameter('num_circles', 10, @isscalar);
+            parser.addParameter('num_rays', 23, @isscalar);
             parser.addParameter('circle_step', sqrt(2), @isscalar);
             parser.addParameter('base_sigma', sqrt(1.7), @isnumeric);
 
@@ -167,6 +167,10 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                 % Per-column gamma variances
                 dof = self.num_rays - 1;
                 self.threshold_gamma = tinv(1 - 0.5/2, dof);
+            end
+            
+            if isempty(self.orientation_num_rays),
+                self.orientation_num_rays = self.num_rays;
             end
             
             %% Pre-compute filters
