@@ -7,8 +7,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
         num_circles
         num_rays
         
-        sampling
-
         base_sigma
         circle_step
 
@@ -18,17 +16,33 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
         threshold_alpha
         threshold_gamma
 
-        use_scale
+        % Non-binarized
+        non_binarized_descriptor
+        
+        % Scale normalization
+        scale_normalized
         base_keypoint_size % Base keypoint size normalization factor
         
+        % Orientation normalization
+        orientation_normalized
+        compute_orientation
+        hack_freak_orientation
+        freak_pattern_scale
+        
         % Pre-computed stuff
+        radii
+        sigmas
         filters
-        sample_points
 
+        bilinear_sampling
+        
+        initial_filter
+        
         % Orientation estimation
-        orientation
-        orient_cos
-        orient_sin
+        orientation_num_rays
+        orientation_sample_points
+        orientation_cos
+        orientation_sin
 
         % Distance function weights
         A
@@ -40,11 +54,9 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
         %
         use_bitstrings
         
-        % Hacks
-        hack_overall_gamma_variance
-        hack_reduced_variance
-        hack_freak_like
-        hack_fixed_radii
+        hack_sigma = false
+        hack_beta = false
+        hack_incremental = false
     end
 
     % vicos.descriptor.Descriptor implementation
@@ -83,9 +95,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             % - A:
             % - G:
             % - use_bitstrings:
-            %
-            % - hack_overall_gamma_variance
-            % - hack_reduced_variance
+            % - bilinear_sampling
             %
             % Output:
             %  - self: @AlphaGamma instance
@@ -95,10 +105,17 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             parser.addParameter('num_circles', 11, @isscalar);
             parser.addParameter('num_rays', 55, @isscalar);
             parser.addParameter('circle_step', sqrt(2), @isscalar);
-            parser.addParameter('orientation', false, @islogical);
-            parser.addParameter('sampling', 'gaussian', @ischar);
             parser.addParameter('base_sigma', sqrt(1.7), @isnumeric);
-            parser.addParameter('use_scale', false, @islogical);
+
+            parser.addParameter('orientation', [], @islogical); % FIXME: legacy
+            parser.addParameter('orientation_normalized', false, @islogical);
+            parser.addParameter('compute_orientation', true, @islogical);
+            parser.addParameter('orientation_num_rays', [], @isnumeric);
+            parser.addParameter('hack_freak_orientation', false, @islogical);
+            parser.addParameter('freak_pattern_scale', [], @isnumeric);
+
+            parser.addParameter('use_scale', [], @islogical); % FIXME: legacy
+            parser.addParameter('scale_normalized', false, @islogical);
             parser.addParameter('base_keypoint_size', 18.5, @isnumeric);
 
             parser.addParameter('compute_type1', true, @islogical);
@@ -109,21 +126,28 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             parser.addParameter('G', 1.0, @isnumeric);
             parser.addParameter('use_bitstrings', false, @islogical);
 
-            parser.addParameter('hack_overall_gamma_variance', false, @islogical);
-            parser.addParameter('hack_reduced_variance', false, @islogical);
-            parser.addParameter('hack_freak_like', false, @islogical);
-            parser.addParameter('hack_fixed_radii', false, @islogical);
+            parser.addParameter('bilinear_sampling', false, @islogical);
             
+            parser.addParameter('non_binarized_descriptor', false, @islogical);
+            
+            parser.addParameter('hack_beta', false, @islogical);
+            parser.addParameter('hack_sigma', false, @islogical);
+            parser.addParameter('hack_incremental', true, @islogical);
             parser.parse(varargin{:});
 
             self.num_circles = parser.Results.num_circles;
             self.num_rays = parser.Results.num_rays;
             self.circle_step = parser.Results.circle_step;
-            self.orientation = parser.Results.orientation;
-            self.sampling = parser.Results.sampling;
             self.base_sigma = parser.Results.base_sigma;
-            self.use_scale = parser.Results.use_scale;
+            
+            self.scale_normalized = parser.Results.scale_normalized;
             self.base_keypoint_size = parser.Results.base_keypoint_size;
+
+            self.orientation_normalized = parser.Results.orientation_normalized;
+            self.compute_orientation = parser.Results.compute_orientation;
+            self.orientation_num_rays = parser.Results.orientation_num_rays;
+            self.hack_freak_orientation = parser.Results.hack_freak_orientation;
+            self.freak_pattern_scale = parser.Results.freak_pattern_scale;
             
             self.compute_type1 = parser.Results.compute_type1;
             self.compute_type2 = parser.Results.compute_type2;
@@ -132,138 +156,133 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             self.A = parser.Results.A;
             self.G = parser.Results.G;
             self.use_bitstrings = parser.Results.use_bitstrings;
-
-            self.hack_overall_gamma_variance = parser.Results.hack_overall_gamma_variance;
-            self.hack_reduced_variance = parser.Results.hack_reduced_variance;
-            self.hack_freak_like = parser.Results.hack_freak_like;
-            self.hack_fixed_radii = parser.Results.hack_fixed_radii;
             
-            assert(ismember(self.sampling, { 'simple', 'gaussian' }), 'Invalid sampling type!');
+            self.bilinear_sampling = parser.Results.bilinear_sampling;
+            
+            self.non_binarized_descriptor = parser.Results.non_binarized_descriptor;
+            
+            self.hack_beta = parser.Results.hack_beta;
+            self.hack_sigma = parser.Results.hack_sigma;
+            self.hack_incremental = parser.Results.hack_incremental;
 
+             % Legacy options
+            if ~isempty(parser.Results.orientation),
+                self.orientation_normalized = parser.Results.orientation;
+            end
+            if ~isempty(parser.Results.use_scale),
+                self.scale_normalized = parser.Results.use_scale;
+            end
+            
+            if isempty(self.orientation_num_rays),
+                self.orientation_num_rays = self.num_rays;
+            end
+            
+            % FREAK orientation hack
+            if self.hack_freak_orientation,
+                self.compute_orientation = false;
+            end
+            
             % Determine thresholds as the inverse of Student's T CDF with
             % number of elements in alpha or gamma (minus 1) as degrees of
             % freedom, and 50% confidence interval
             if isempty(self.threshold_alpha),
-                if self.hack_reduced_variance,
-                    dof = self.num_circles - 2;
-                else
-                    dof = self.num_circles - 1;
-                end
+                dof = self.num_circles - 1;
                 self.threshold_alpha = tinv(1 - 0.5/2, dof);
             end
             if isempty(self.threshold_gamma),
-                if self.hack_overall_gamma_variance,
-                    % Overall gamma variances
-                    dof = self.num_circles*self.num_rays - 1;
-                elseif self.hack_reduced_variance,
-                    dof = self.num_circles*self.num_rays - self.num_rays - 1;
-                else
-                    % Per-column gamma variances
-                    dof = self.num_rays - 1;
-                end
+                % Per-column gamma variances
+                dof = self.num_rays - 1;
                 self.threshold_gamma = tinv(1 - 0.5/2, dof);
             end
             
             %% Pre-compute filters
-if ~self.hack_freak_like,
             sigmas = zeros(self.num_circles, 1);
             radii = zeros(self.num_circles, 1);
             self.filters = cell(self.num_circles, 1);
 
-            switch self.sampling,
-                case 'simple',
-                    patch_size = 95;
-                    scale_factor = (patch_size-1) / (2*self.num_circles);
+            % Pure bank of Gaussian filters that was used with original
+            % version of complex descriptor
+            
+            step = self.circle_step;
+            for i = 1:self.num_circles,
+                if i == 1,
+                    %sigmas(i) = 0.3;
+                    %radii(i) = 0.71;
+                    sigmas(i) = 0.3; % Variable
+                    radii(i) = 0.71/0.3 * sigmas(i);
+                    continue; % Do not do anything
+                else
+                    sigmas(i) = sigmas(i-1)*step;
+                    radii(i) = radii(i-1) + step*sigmas(i);
+                end
 
-                    % Filters are intentionally left empty
-
-                    % Compute radii
-                    for i = 2:self.num_circles+1,
-                        radii(i) = scale_factor*(i-1);
-                    end
-                case 'gaussian',
-                    % Pure bank of Gaussian filters that was used with original
-                    % version of complex descriptor
-                    %step = sqrt(2);
-                    step = self.circle_step;
-                    for i = 1:self.num_circles,
-                        if i == 1,
-                            %sigmas(i) = 0.3;
-                            %radii(i) = 0.71;
-                            sigmas(i) = 0.3; % Variable
-                            radii(i) = 0.71/0.3 * sigmas(i);
-                            continue; % Do not do anything
-                        else
-                            sigmas(i) = sigmas(i-1)*step;
-                            radii(i) = radii(i-1) + step*sigmas(i);
-                        end
-
-                        % Apply filter only if sigma is greater than 0.7
-                        if sigmas(i) <= 0.7,
-                            continue;
-                        end
+                
+                % Apply filter only if sigma is greater than 0.7
+            end
+    
                         
-                        if isempty(self.filters{i-1}),
-                            % We do not have previous filter; create a 
-                            % full filter
-                            self.filters{i} = create_dog_filter(sigmas(i));
-                        else
-                            % We have previous filter; compute incremental
-                            % filter
-                            tmp_sigma = sqrt( sigmas(i)^2 - sigmas(i-1)^2 );
-                            self.filters{i} = create_dog_filter(tmp_sigma);
-                        end
+            if self.hack_sigma,
+                assert(self.num_circles == 10, 'hack_sigma works only for M=10!');
+                radii= [ 0,1,3,5,7,11,18,26,40,56];
+                sigmas = [ 0.4500, 0.7000, 1.0890, 1.6941, 2.6354, 4.0997, 6.3776, 9.9212, 15.4338, 15.4338 ];
+            end
+            
+            self.radii = radii;
+            self.sigmas = sigmas;
+                        
+            %% Compute filters
+            if self.hack_incremental,
+                for i = 1:self.num_circles,
+                    if self.sigmas(i) <= 0.7,
+                        continue;
                     end
-            end
-else
-            self.num_circles = 8;
-            
-            sigmas = zeros(self.num_circles, 1);
-            radii = zeros(self.num_circles, 1);
-            self.filters = cell(self.num_circles, 1);
-            
-            % Values determined for FREAK
-            radii = [ 43.3202, 32.4902, 23.4651, 16.2451, 10.8301, 7.2200, 5.4150, 0 ];
-            radii = radii(end:-1:1);
-            sigmas = radii/2;
-            
-            self.filters{1} = create_dog_filter(sigmas(1));
-            for i = 2:self.num_circles,
-                tmp_sigma = sqrt( sigmas(i)^2 - sigmas(i-1)^2 );
-                self.filters{i} = create_dog_filter(tmp_sigma);
-            end
-end
-            
-if self.hack_fixed_radii,
-            assert(self.num_circles == 10, 'Invalid parameter (%d circles)!', self.num_circles);
-            radii = [ 0, 1, 3, 5, 7, 11, 18, 26, 40, 56 ];
-end
 
-            %% Compute sampling points
-            self.sample_points = cell(self.num_circles, 1);
+                    if isempty(self.filters{i-1}),
+                        % We do not have previous filter; create a  full filter
+                        self.filters{i} = create_dog_filter(sigmas(i));
+                    else
+                        % We have previous filter; compute incremental filter
+                        tmp_sigma = sqrt( sigmas(i)^2 - sigmas(i-1)^2 );
+                        self.filters{i} = create_dog_filter(tmp_sigma);
+                    end
+                end
+            else
+                for i = 1:self.num_circles,
+                    if self.sigmas(i) <= 0.7,
+                        continue;
+                    end
 
-            self.sample_points{1} = zeros(2, self.num_rays);
+                    self.filters{i} = create_dog_filter(sigmas(i));
+                end
+            end
+                
+
+            
+            %% Compute effective patch size
+            self.effective_patch_size = 2*round(radii(end) + 3*sigmas(end)) + 1;
+            
+            %% Orientation estimation parameters
+            self.orientation_sample_points = cell(self.num_circles, 1);
+
+            self.orientation_sample_points{1} = zeros(2, self.orientation_num_rays);
             for j = 2:self.num_circles,
-                points = zeros(2, self.num_rays);
+                points = zeros(2, self.orientation_num_rays);
 
-                for i = 1:self.num_rays,
-                    angle = (i-1) * 2*pi/self.num_rays;
-                    x =  round(radii(j) * cos(angle));
-                    y = -round(radii(j) * sin(angle));
+                for i = 1:self.orientation_num_rays,
+                    angle = (i-1) * 2*pi/self.orientation_num_rays;
+                    x =  radii(j) * cos(angle);
+                    y = -radii(j) * sin(angle);
 
                     points(:, i) = [ x; y ];
                 end
 
-                self.sample_points{j} = points;
+                self.orientation_sample_points{j} = points;
             end
-
-            %% Compute effective patch size
-            self.effective_patch_size = 2*round(radii(end) + 3*sigmas(end)) + 1;
             
             %% Orientation correction
-            i = 0:self.num_rays-1;
-            self.orient_cos = cos(2*pi/self.num_rays*i);
-            self.orient_sin = sin(2*pi/self.num_rays*i);
+            i = 0:self.orientation_num_rays-1;
+            self.orientation_cos = cos(2*pi/self.orientation_num_rays*i);
+            self.orientation_sin = sin(2*pi/self.orientation_num_rays*i);
         end
 
         function [ desc, keypoints ] = compute (self, I, keypoints)
@@ -273,6 +292,16 @@ end
             % indices (and round them) - this is done below, when calling
             % extract_descriptor_from_keypoint()
 
+            % Hack: compute orientations via FREAK descriptor
+            if self.hack_freak_orientation, 
+                if isempty(self.freak_pattern_scale),
+                    freak = vicos.descriptor.FREAK('OrientationNormalized', true, 'ScaleNormalized', self.scale_normalized);
+                else
+                    freak = vicos.descriptor.FREAK('OrientationNormalized', true, 'ScaleNormalized', self.scale_normalized, 'PatternScale', self.freak_pattern_scale);
+                end
+                [ ~, keypoints ] = freak.compute(I, keypoints);
+            end
+            
             % Convert to grayscale
             if size(I, 3) == 3,
                 I = rgb2gray(I);
@@ -285,70 +314,76 @@ end
             
             num_points = numel(keypoints);
 
-            desc = zeros(get_descriptor_size(self), num_points, 'uint8');
+            if self.non_binarized_descriptor,
+                % Real-valued version
+                desc = zeros(get_descriptor_size(self), num_points, 'double');
+            else
+                % Binary version
+                desc = zeros(get_descriptor_size(self), num_points, 'uint8');
+            end
             
             %% Single-scale version
-            if ~self.use_scale,
+            if ~self.scale_normalized,
                 pyramid = self.create_image_pyramid(I);
+            
                 
                 for p = 1:num_points,
                     % Extract each point from the first-level pyramid
                     % (which is also the only one we have). Note the 
                     % 0-based to 1-based coordinate system conversion
-                    desc(:,p) = extract_descriptor_from_keypoint(self, pyramid, keypoints(p).pt + 1, 1.0);
+                    desc(:,p) = extract_descriptor_from_keypoint(self, pyramid, keypoints(p).pt + 1, 1.0, keypoints(p).angle); 
                 end
                 
             else
                 %% Multi-scale version
-                num_octaves = 5;
+                num_octaves = 6;
                 
                 % Construct pyramids
                 pyramids = cell(1, num_octaves);
                 
                 %  Option 1: Resizing of filtered images
-                pyramids{1} = self.create_image_pyramid(I);
+                pyramids{1} = self.create_image_pyramid(imresize(I,2));
                 for i = 2:num_octaves,
                     factor = 0.5^(i-1);
                     pyramids{i} = imresize(pyramids{1}, factor);
                 end
-                
-                %  Option 2: Filtering of resized images
-                %for i = 1:num_octaves,
-                %    It = imresize(I, 0.5^(i-1));
-                %    pyramids{i} = self.create_image_pyramid(It);
-                %end
-                              
-                % Compute maximum radius
-                max_radius = max(abs(self.sample_points{end}(:)));
                 
                 % Process all keypoints
                 for p = 1:num_points,
                     keypoint = keypoints(p);
                     
                     % Determine octave and scale factors
-                    if keypoint.size <= 28,
-                        octave = 1; % No downsampling
+                    if keypoint.size <= 14,
+                       octave = 1; 
+                    elseif keypoint.size <= 28,
+                  %  if keypoint.size <= 28,
+                        octave = 2; % No downsampling
                     elseif keypoint.size <= 56,
-                        octave = 2; % 1x downsampled
+                        octave = 3; % 1x downsampled
                     elseif keypoint.size <= 112,
-                        octave = 3; % 2x downsampled
+                        octave = 4; % 2x downsampled
                     elseif keypoint.size <= 224,
-                        octave = 4; % 3x downsampled
+                        octave = 5; % 3x downsampled
                     elseif keypoint.size <= 448,
-                        octave = 5; % 4x downsampled
+                        octave = 6; % 4x downsampled
                     else
                         error('Keypoint too large: %f!', keypoint.size);
                     end
                     
                     % Scale the keypoint's center
-                    new_center = keypoint.pt + 1; % 0-based -> 1-based
-                    new_center = new_center * 0.5^(octave - 1);
+                    %new_center = keypoint.pt*2 + 1; % 0-based -> 1-based
+                 
+                    new_center = keypoint.pt - 0.5*(1-2^(octave-2))+ 1;
+                  
+                    %new_center = new_center * 0.5^(octave - 1);
+                    new_center = new_center * 0.5^(octave - 2);
+                  
                     
                     % Scale factor for the radii
-                    scale_factor = keypoint.size/(self.base_keypoint_size * 2^(octave-1));
+                    scale_factor = keypoint.size*2/(self.base_keypoint_size * 2^(octave-1));
                     
                     % Extract
-                    desc(:,p) = extract_descriptor_from_keypoint(self, pyramids{octave}, new_center, scale_factor);
+                    desc(:,p) = extract_descriptor_from_keypoint(self, pyramids{octave}, new_center, scale_factor, keypoint.angle);
                 end
             end
         end
@@ -359,13 +394,27 @@ end
             % Creates and image pyramid from the given input image.
             
             pyramid = zeros(size(I, 1), size(I, 2), self.num_circles);
-                
-            pyramid(:,:,1) = filter2(create_dog_filter(self.base_sigma), I);
-            for i = 2:self.num_circles,
-                if isempty(self.filters{i}),
-                    pyramid(:,:,i) = pyramid(:,:,i-1);
-                else
-                    pyramid(:,:,i) = filter2(self.filters{i}, pyramid(:,:,i-1));
+            
+            if self.base_sigma ~= 0,
+                pyramid(:,:,1) = filter2(create_dog_filter(self.base_sigma), I);
+             
+            else
+                pyramid(:,:,1) = I;
+            end
+            
+            if self.hack_incremental,
+                for i = 2:self.num_circles,
+                    if isempty(self.filters{i}),
+                        pyramid(:,:,i) = pyramid(:,:,i-1);
+                    else
+                        pyramid(:,:,i) = filter2(self.filters{i}, pyramid(:,:,i-1));
+                     
+                    end
+                end
+            else
+                for i = 2:self.num_circles,
+                    pyramid(:,:,i) = filter2(self.filters{i}, pyramid(:,:,1));
+                   
                 end
             end
         end
@@ -373,8 +422,6 @@ end
         function distances = compute_pairwise_distances (self, desc1, desc2)
             % distances = COMPUTE_PAIRWISE_DISTANCES (self, desc1, desc2)
 
-            % Compatibility layer; if descriptors are given in N1xD and
-            % N2xD, transpose them
             desc_size = get_descriptor_size(self);
             if (size(desc1, 1) ~= desc_size && size(desc1, 2) == desc_size),
                 desc1 = desc1';
@@ -382,22 +429,40 @@ end
             if (size(desc2, 1) ~= desc_size && size(desc2, 2) == desc_size),
                 desc2 = desc2';
             end
-
-            if self.use_bitstrings,
-                distances = alpha_gamma_distances_fast(desc1, desc2, self.num_circles, self.num_rays, self.A, self.G);
+            
+            if self.non_binarized_descriptor,    
+                % Compute the distances using cv::batchDistance(); in order to
+                % get an N2xN1 matrix, we switch desc1 and desc2
+                distances = cv.batchDistance(desc2', desc1', 'K', 0, 'NormType', 'L1');
             else
-                distances = alpha_gamma_distances(desc1, desc2, self.num_circles, self.num_rays, self.A, self.G);
+                %% Binary version
+                % Compatibility layer; if descriptors are given in N1xD and
+                
+                
+                % N2xD, transpose them
+                
+                if self.use_bitstrings,
+                    distances = alpha_gamma_distances_fast(desc1, desc2, self.num_circles, self.num_rays, self.A, self.G);
+                else
+                    distances = alpha_gamma_distances(desc1, desc2, self.num_circles, self.num_rays, self.A, self.G);
+                end
             end
         end
 
         function descriptor_size = get_descriptor_size (self)
-            descriptor_size = self.num_circles + self.num_circles*self.num_rays;
-            
-            if self.use_bitstrings,
-                descriptor_size = ceil( descriptor_size/8 );
+            if self.non_binarized_descriptor,
+                % Real-valued version
+                descriptor_size = self.num_circles + self.num_circles*self.num_rays;
+            else
+                % Binary version
+                descriptor_size = self.num_circles + self.num_circles*self.num_rays;
+
+                if self.use_bitstrings,
+                    descriptor_size = ceil( descriptor_size/8 );
+                end
+
+                descriptor_size = self.compute_type1*descriptor_size + self.compute_type2*descriptor_size;
             end
-            
-            descriptor_size = self.compute_type1*descriptor_size + self.compute_type2*descriptor_size;
         end
 
         function decriptor = compute_from_patch (self, I)
@@ -433,47 +498,118 @@ end
             keypoints(invalid_idx) = [];
         end
 
-        function descriptor = extract_descriptor_from_keypoint (self, pyramid, center, radius_factor)
-            % descriptor = EXTRACT_DESCRIPTOR_FROM_KEYPOINT (self, pyramid, center, radius_factor)
+        function descriptor = extract_descriptor_from_keypoint (self, pyramid, center, radius_factor, angle)
+            % descriptor = EXTRACT_DESCRIPTOR_FROM_KEYPOINT (self, pyramid, center, radius_factor, angle)
             %
             % Extracts alpha-gamma descriptor from a given keypoint.
 
-            % TODO: implement bilinear interpolation while filtering
-            %center = round(center);
+            %% Orientation
+            %% Handle orientation
+            if self.orientation_normalized
+                % Override angle using built-in angle estimation
+                if self.compute_orientation,
+                    % Sample points into the field
+                    field = nan(self.orientation_num_rays, self.num_circles);
+                    
+                    for j = 1:self.num_circles,
+                        for i = 1:self.orientation_num_rays,
+                            x = radius_factor*self.orientation_sample_points{j}(1, i) + center(1);
+                            y = radius_factor*self.orientation_sample_points{j}(2, i) + center(2);
 
+                            % Clamp inside valid region
+                            x = max(min(x, size(pyramid, 2)), 1);
+                            y = max(min(y, size(pyramid, 1)), 1);
+
+                            if self.bilinear_sampling,
+                                % Bilinear interpolation
+                                x0 = floor(x);
+                                y0 = floor(y);
+                                x1 = x0 + 1;
+                                y1 = y0 + 1;
+
+                                a0 = x - x0;
+                                b0 = y - y0;
+                                a1 = 1 - a0;
+                                b1 = 1 - b0;
+
+                                val = a1*b1*pyramid(y0,x0,j);
+
+                                if a0,
+                                    val = val + a0*b1*pyramid(y0,x1,j);
+                                end
+                                if b0,
+                                     val = val + a1*b0*pyramid(y1,x0,j);
+                                end
+                                if a0 && b0,
+                                    val = val + a0*b0*pyramid(y1,x1,j);
+                                end
+
+                                field(i, j) = val;
+                            else
+                                x = round(x);
+                                y = round(y);
+                                field(i, j) = pyramid(y, x, j);
+                            end
+                        end
+                    end
+                    
+                    % Compute
+                    moment_beta = sum(field, 2);
+                    angle = atan2d(self.orientation_sin * moment_beta, self.orientation_cos * moment_beta);
+                else
+                    angle = -angle;
+                end
+            else
+                angle = 0;
+            end
+            
             %% Sample points into the field
             field = nan(self.num_rays, self.num_circles);
-            gamma = nan(self.num_rays, self.num_circles);
-
             for j = 1:self.num_circles,
                 for i = 1:self.num_rays,
-                    x = radius_factor*self.sample_points{j}(1, i) + center(1);
-                    y = radius_factor*self.sample_points{j}(2, i) + center(2);
-                    
-                    x = round(x);
-                    y = round(y);
+                    point_angle = (i-1) * 2*pi/self.num_rays + deg2rad(angle);
+                    x = radius_factor*self.radii(j)*cos(point_angle) + center(1);
+                    y = -radius_factor*self.radii(j)*sin(point_angle) + center(2);
                     
                     % Clamp inside valid region
                     x = max(min(x, size(pyramid, 2)), 1);
                     y = max(min(y, size(pyramid, 1)), 1);
                     
-                    field(i, j) = pyramid(y, x, j);
+                    if self.bilinear_sampling,
+                        % Bilinear interpolation
+                        x0 = floor(x);
+                        y0 = floor(y);
+                        x1 = x0 + 1;
+                        y1 = y0 + 1;
+                        
+                        a0 = x - x0;
+                        b0 = y - y0;
+                        a1 = 1 - a0;
+                        b1 = 1 - b0;
+    
+                        val = a1*b1*pyramid(y0,x0,j);
+    
+                        if a0,
+                            val = val + a0*b1*pyramid(y0,x1,j);
+                        end
+                        if b0,
+                             val = val + a1*b0*pyramid(y1,x0,j);
+                        end
+                        if a0 && b0,
+                            val = val + a0*b0*pyramid(y1,x1,j);
+                        end
+                        
+                        field(i, j) = val;
+                    else
+                        x = round(x);
+                        y = round(y);
+                        field(i, j) = pyramid(y, x, j);
+                    end
                 end
             end
-
-            %% Handle orientation
-            if self.orientation,
-                moment_beta = sum(field, 2);
-
-                angle = atan2(self.orient_sin * moment_beta, self.orient_cos * moment_beta) * 180/pi;
-                shift = -round(angle * self.num_rays/360);
-
-                %shift = shift + 1; %% NOTE: this hack makes result compliant with original implementation!
-
-                field = circshift(field, shift, 1); % Circularly shift along the first dimension
-            end
-
+            
             %% Compute descriptor
+            gamma = nan(self.num_rays, self.num_circles);
             field_avg = mean(field(:)); % Average value in the field
             
             % Compute alpha effects
@@ -482,6 +618,21 @@ end
             % Compute beta effects
             b = mean(field, 2) - field_avg;
 
+            if self.hack_beta,
+                N = self.num_rays;
+                for ii=5:N-4
+                    b(ii)=(b(ii-4)+b(ii-3)+b(ii-2)+b(ii-1)+b(ii)+b(ii+1)+b(ii+2)+b(ii+3)+b(ii+4))/9;
+                end
+                b(1)=(b(1)+b(2)+b(3)+b(4)+b(5)+b(N)+b(N-1)+b(N-2)+b(N-3))/9;
+                b(2)=(b(N-2)+b(N-1)+b(N)+b(1)+b(2)+b(3)+b(4)+b(5)+b(6))/9;
+                b(3)=(b(N-1)+b(N)+b(1)+b(2)+b(3)+b(4)+b(5)+b(6)+b(7))/9;
+                b(4)=(b(N)+b(1)+b(2)+b(3)+b(4)+b(5)+b(6)+b(7)+b(8))/9;
+                b(N)=(b(N-4)+b(N-3)+b(N-2)+b(N-1)+b(N)+b(1)+b(2)+b(3)+b(4))/9;
+                b(N-1)=(b(N-5)+b(N-4)+b(N-3)+b(N-2)+b(N-1)+b(N)+b(1)+b(2)+b(3))/9;
+                b(N-2)=(b(N-6)+b(N-5)+b(N-4)+b(N-3)+b(N-2)+b(N-1)+b(N)+b(1)+b(2))/9;
+                b(N-3)=(b(N-7)+b(N-6)+b(N-5)+b(N-4)+b(N-3)+b(N-2)+b(N-1)+b(N)+b(1))/9;
+            end
+            
             % Compute gamma effects
             for j = 1:self.num_circles,
                 gamma(:,j) = b;
@@ -490,6 +641,22 @@ end
                 gamma(j,:) = gamma(j,:) + a;
             end
             gamma = field - gamma - field_avg;
+            
+            % Non-binarized descriptor?
+            if self.non_binarized_descriptor,
+                
+                %sall= sqrt((sum(a.*a)+ sum(sum(gamma.*gamma)))/((self.num_rays+1)*self.num_circles-1));
+                sa = sqrt( sum(a.*a) / (self.num_circles-1) );
+                aa = a / (sa+eps);
+                %aa=a/sall;
+                
+                sg = sqrt( sum(gamma.*gamma) / (self.num_rays-1) )+eps;
+                gg = bsxfun(@rdivide, gamma, sg);
+               %gg = bsxfun(@rdivide, gamma, sall);
+                
+                descriptor = [ aa(:); gg(:) ];
+                return;
+            end
             
             % "Type 1" part of descriptor
             if self.compute_type1,
@@ -500,26 +667,14 @@ end
             % "Type 2" part of descriptor
             if self.compute_type2,
                 % Alpha part
-                if self.hack_reduced_variance,
-                    sa = sqrt( sum(a(2:end).*a(2:end)) / (self.num_circles-2) );
-                else
-                    sa = sqrt( sum(a.*a) / (self.num_circles-1) );
-                end
+                sa = sqrt( sum(a.*a) / (self.num_circles-1) );
                 aa = abs(a) > sa*self.threshold_alpha;
                 desc_alpha_ext = aa - (1 - aa);
                 desc_alpha_ext = reshape(desc_alpha_ext, [], 1);
             
                 % Gamma part
-                if self.hack_overall_gamma_variance,
-                    sg = sqrt( sum(sum(gamma.*gamma)) / (numel(gamma) - 1) );
-                    gg = abs(gamma) > sg*self.threshold_gamma;
-                elseif self.hack_reduced_variance,
-                    sg = sqrt( sum(sum(gamma(2:end,:).*gamma(2:end,:))) / (self.num_circles*self.num_rays - self.num_rays - 1) );
-                    gg = abs(gamma) > sg*self.threshold_gamma;
-                else
-                    sg = sqrt( sum(gamma.*gamma) / (self.num_rays-1) );
-                    gg = bsxfun(@gt, abs(gamma), sg*self.threshold_gamma);
-                end
+                sg = sqrt( sum(gamma.*gamma) / (self.num_rays-1) );
+                gg = bsxfun(@gt, abs(gamma), sg*self.threshold_gamma);
                 desc_gamma_ext = gg - (1 - gg);
                 desc_gamma_ext = reshape(desc_gamma_ext, [], 1);
             end
