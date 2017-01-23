@@ -53,8 +53,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
         
         %
         use_bitstrings
-        
-        hack_incremental = false
     end
 
     % vicos.descriptor.Descriptor implementation
@@ -128,7 +126,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             
             parser.addParameter('non_binarized_descriptor', false, @islogical);
             
-            parser.addParameter('hack_incremental', true, @islogical);
             parser.parse(varargin{:});
 
             self.num_circles = parser.Results.num_circles;
@@ -157,8 +154,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             
             self.non_binarized_descriptor = parser.Results.non_binarized_descriptor;
             
-            self.hack_incremental = parser.Results.hack_incremental;
-
              % Legacy options
             if ~isempty(parser.Results.orientation),
                 self.orientation_normalized = parser.Results.orientation;
@@ -218,32 +213,13 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             self.sigmas = sigmas;
                         
             %% Compute filters
-            if self.hack_incremental,
-                for i = 1:self.num_circles,
-                    if self.sigmas(i) <= 0.7,
-                        continue;
-                    end
-
-                    if isempty(self.filters{i-1}),
-                        % We do not have previous filter; create a  full filter
-                        self.filters{i} = create_dog_filter(sigmas(i));
-                    else
-                        % We have previous filter; compute incremental filter
-                        tmp_sigma = sqrt( sigmas(i)^2 - sigmas(i-1)^2 );
-                        self.filters{i} = create_dog_filter(tmp_sigma);
-                    end
+            for i = 1:self.num_circles,
+                if self.sigmas(i) <= 0.7,
+                    continue;
                 end
-            else
-                for i = 1:self.num_circles,
-                    if self.sigmas(i) <= 0.7,
-                        continue;
-                    end
-
-                    self.filters{i} = create_dog_filter(sigmas(i));
-                end
-            end
                 
-
+                self.filters{i} = create_dog_filter(sigmas(i));
+            end
             
             %% Compute effective patch size
             self.effective_patch_size = 2*round(radii(end) + 3*sigmas(end)) + 1;
@@ -384,24 +360,15 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             
             if self.base_sigma ~= 0,
                 pyramid(:,:,1) = filter2(create_dog_filter(self.base_sigma), I);
-             
             else
                 pyramid(:,:,1) = I;
             end
             
-            if self.hack_incremental,
-                for i = 2:self.num_circles,
-                    if isempty(self.filters{i}),
-                        pyramid(:,:,i) = pyramid(:,:,i-1);
-                    else
-                        pyramid(:,:,i) = filter2(self.filters{i}, pyramid(:,:,i-1));
-                     
-                    end
-                end
-            else
-                for i = 2:self.num_circles,
-                    pyramid(:,:,i) = filter2(self.filters{i}, pyramid(:,:,1));
-                   
+            for i = 2:self.num_circles,
+                if isempty(self.filters{i}),
+                    pyramid(:,:,i) = pyramid(:,:,i-1);
+                else
+                    pyramid(:,:,i) = filter2(self.filters{i}, pyramid(:,:,i-1));
                 end
             end
         end
