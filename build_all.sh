@@ -103,3 +103,12 @@ echo "Building mexopencv..."
 export PKG_CONFIG_PATH=${OPENCV_INSTALL_DIR}/lib/pkgconfig:${PKG_CONFIG_PATH}
 
 make -j4 MATLABDIR="${MATLABDIR}" -C "${ROOT_DIR}/external/mexopencv"
+
+
+########################################################################
+#                    Build Matlab/MEX dependencies                     #
+########################################################################
+# This could have been done from inside Matlab, but it is more convenient
+# to keep it inside a single script
+${MATLABDIR}/bin/matlab -nodisplay -nodesktop -r "try, run ${ROOT_DIR}/compile_code.m; catch; end; quit"
+
