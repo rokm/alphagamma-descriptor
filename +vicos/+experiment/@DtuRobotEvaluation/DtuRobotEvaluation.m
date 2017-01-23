@@ -24,6 +24,9 @@ classdef DtuRobotEvaluation < handle
         
         % Distance ratio threshold for putative matches
         putative_match_ratio
+        
+        % Global cache directory settings
+        cache_dir
     end
     
     methods (Static)
@@ -48,6 +51,7 @@ classdef DtuRobotEvaluation < handle
             parser.addParameter('bbox_padding_3d', 3e-3, @isnumeric); % 3 mm
             parser.addParameter('scale_margin', 2, @isnumeric); % 2x
             parser.addParameter('putative_match_ratio', 0.8, @isnumeric);
+            parser.addParameter('cache_dir', '', @ischar);
             parser.parse(varargin{:});
             
             % Half-size images?
@@ -59,6 +63,9 @@ classdef DtuRobotEvaluation < handle
             self.bbox_padding_3d = parser.Results.bbox_padding_3d;
             self.scale_margin = parser.Results.scale_margin;
             self.putative_match_ratio = parser.Results.putative_match_ratio;
+            
+            % Global cache dir
+            self.cache_dir = parser.Results.cache_dir;
             
             % Default dataset path
             self.dataset_path = parser.Results.dataset_path;
