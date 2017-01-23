@@ -55,7 +55,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
         use_bitstrings
         
         hack_sigma = false
-        hack_beta = false
         hack_incremental = false
     end
 
@@ -130,7 +129,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             
             parser.addParameter('non_binarized_descriptor', false, @islogical);
             
-            parser.addParameter('hack_beta', false, @islogical);
             parser.addParameter('hack_sigma', false, @islogical);
             parser.addParameter('hack_incremental', true, @islogical);
             parser.parse(varargin{:});
@@ -161,7 +159,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             
             self.non_binarized_descriptor = parser.Results.non_binarized_descriptor;
             
-            self.hack_beta = parser.Results.hack_beta;
             self.hack_sigma = parser.Results.hack_sigma;
             self.hack_incremental = parser.Results.hack_incremental;
 
@@ -617,21 +614,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             
             % Compute beta effects
             b = mean(field, 2) - field_avg;
-
-            if self.hack_beta,
-                N = self.num_rays;
-                for ii=5:N-4
-                    b(ii)=(b(ii-4)+b(ii-3)+b(ii-2)+b(ii-1)+b(ii)+b(ii+1)+b(ii+2)+b(ii+3)+b(ii+4))/9;
-                end
-                b(1)=(b(1)+b(2)+b(3)+b(4)+b(5)+b(N)+b(N-1)+b(N-2)+b(N-3))/9;
-                b(2)=(b(N-2)+b(N-1)+b(N)+b(1)+b(2)+b(3)+b(4)+b(5)+b(6))/9;
-                b(3)=(b(N-1)+b(N)+b(1)+b(2)+b(3)+b(4)+b(5)+b(6)+b(7))/9;
-                b(4)=(b(N)+b(1)+b(2)+b(3)+b(4)+b(5)+b(6)+b(7)+b(8))/9;
-                b(N)=(b(N-4)+b(N-3)+b(N-2)+b(N-1)+b(N)+b(1)+b(2)+b(3)+b(4))/9;
-                b(N-1)=(b(N-5)+b(N-4)+b(N-3)+b(N-2)+b(N-1)+b(N)+b(1)+b(2)+b(3))/9;
-                b(N-2)=(b(N-6)+b(N-5)+b(N-4)+b(N-3)+b(N-2)+b(N-1)+b(N)+b(1)+b(2))/9;
-                b(N-3)=(b(N-7)+b(N-6)+b(N-5)+b(N-4)+b(N-3)+b(N-2)+b(N-1)+b(N)+b(1))/9;
-            end
             
             % Compute gamma effects
             for j = 1:self.num_circles,
