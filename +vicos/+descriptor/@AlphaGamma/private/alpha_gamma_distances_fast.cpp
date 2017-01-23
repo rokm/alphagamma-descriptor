@@ -21,7 +21,12 @@
 
 
 #include <immintrin.h>
-#include <x86intrin.h>
+#ifdef _MSC_VER
+#   include <intrin.h>
+#else
+#   include <x86intrin.h>
+#endif
+
 
 #include <opencv2/core.hpp>
 
@@ -130,7 +135,11 @@ static uint16_t compute_hamming_distance (const unsigned char *desc1, const unsi
         const uint64_t a = *reinterpret_cast<const uint64_t*>(desc1_ptr);
         const uint64_t b = *reinterpret_cast<const uint64_t*>(desc2_ptr);
 
+#ifdef _MSC_VER
+        result += __popcnt64(a ^ b);
+#else
         result += _popcnt64(a ^ b);
+#endif
     }
 
     // Process 32-bit blocks
@@ -138,7 +147,11 @@ static uint16_t compute_hamming_distance (const unsigned char *desc1, const unsi
         const uint32_t a = *reinterpret_cast<const uint32_t*>(desc1_ptr);
         const uint32_t b = *reinterpret_cast<const uint32_t*>(desc2_ptr);
 
+#ifdef _MSC_VER
+        result += __popcnt(a ^ b);
+#else
         result += _popcnt32(a ^ b);
+#endif
     }
 
     // Process the remaining 8-bit blocks
@@ -203,7 +216,11 @@ static uint16_t compute_extended_distance (const unsigned char *desc1, const uns
 
         const uint64_t ab = a ^ b;
 
+#ifdef _MSC_VER
+        result += __popcnt64(ab) + __popcnt64(a_e ^ b_e) + 2*__popcnt64(a_e & b_e & ab);
+#else
         result += _popcnt64(ab) + _popcnt64(a_e ^ b_e) + 2*_popcnt64(a_e & b_e & ab);
+#endif
     }
 
     // Process 32-bit blocks
@@ -215,7 +232,11 @@ static uint16_t compute_extended_distance (const unsigned char *desc1, const uns
 
         const uint32_t ab = a ^ b;
 
+#ifdef _MSC_VER
+        result += __popcnt(ab) + __popcnt(a_e ^ b_e) + 2*__popcnt(a_e & b_e & ab);
+#else
         result += _popcnt32(ab) + _popcnt32(a_e ^ b_e) + 2*_popcnt32(a_e & b_e & ab);
+#endif
     }
 
     // Process the remaining 8-bit blocks
