@@ -1,5 +1,10 @@
-function jasna_dtu_experiment (experiment_id)
-    image_sets = [ ];
+function jasna_dtu_experiment (experiment_id, image_sets)
+    % JASNA_DTU_EXPERIMENT (experiment_id, image_sets)
+
+    % Default image sets
+    if ~exist('image_sets', 'var') || isempty(image_sets)
+        image_sets = [ 7, 19, 22, 23, 49 ];
+    end
     
     % Each experiment specifies the following options:
     %  - experiment_prefix: prefix name for the experiment (typically the
@@ -13,12 +18,12 @@ function jasna_dtu_experiment (experiment_id)
             experiment_prefix = 'SURF';
             keypoint_detector = vicos.keypoint_detector.SURF('HessianThreshold', 400, 'NOctaves', 3, 'NOctaveLayers', 4);
             descriptor_extractor = vicos.descriptor.SURF();
-            base_keypoint_size = 18.5;
+            base_keypoint_size = 17.5;
         case 'sift'
             experiment_prefix = 'SIFT';
             keypoint_detector = vicos.keypoint_detector.SIFT();
             descriptor_extractor = vicos.descriptor.SIFT();
-            base_keypoint_size = 18.5;
+            base_keypoint_size = 3.5;
         case 'brisk'
             experiment_prefix = 'BRISK';
             keypoint_detector = vicos.keypoint_detector.BRISK('Threshold', 60);
@@ -33,12 +38,12 @@ function jasna_dtu_experiment (experiment_id)
             experiment_prefix = 'KAZE';
             keypoint_detector = vicos.keypoint_detector.KAZE();
             descriptor_extractor = vicos.descriptor.KAZE('Extended', false);
-            base_keypoint_size = 18.5;
+            base_keypoint_size = 5.0;
         case 'radial'
             experiment_prefix = 'Radial';
             keypoint_detector = vicos.keypoint_detector.FeatureRadial('SaliencyThreshold', 0);
             descriptor_extractor = [];
-            base_keypoint_size = 18.5;
+            base_keypoint_size = 8.5;
         otherwise
             error('Invalid experiment id: "%s"', experiment_id);
     end
