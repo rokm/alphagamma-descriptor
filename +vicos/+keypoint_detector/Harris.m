@@ -26,27 +26,25 @@ classdef Harris < vicos.keypoint_detector.OpenCvKeypointDetector
             
             % Input parser
             parser = inputParser();
-            
+            parser.KeepUnmatched = true;
             parser.addParameter('MaxFeatures', 0, @isnumeric);
             parser.addParameter('QualityLevel', [], @isnumeric);
             parser.addParameter('MinDistance', [], @isnumeric);
             parser.addParameter('BlockSize', [], @isnumeric);
             parser.addParameter('K', [], @isnumeric);
-            
             parser.parse(varargin{:});
-            
-            %% Gather parameters   
-            fields = fieldnames(parser.Results);
-            params = {};
-            for f = 1:numel(fields),
-                field = fields{f};
-                if ~isempty(parser.Results.(field)),
-                    params = [ params, field, parser.Results.(field) ];
-                end
-            end
-            
+
+            self = self@vicos.keypoint_detector.OpenCvKeypointDetector(parser.Unmatched);
+
             %% Create implementation
+            params = self.gather_parameters(parser);
             self.implementation = cv.FeatureDetector('GFTTDetector', 'HarrisDetector', true, params{:});
+        end
+    end
+    
+    methods (Access = protected)
+        function identifier = get_identifier (self)
+            identifier = 'Harris';
         end
     end
 end

@@ -26,6 +26,7 @@ classdef SURF < vicos.keypoint_detector.OpenCvKeypointDetector
             
             % Input parser
             parser = inputParser();
+            parser.KeepUnmatched = true;
             parser.addParameter('HessianThreshold', [], @isnumeric);
             parser.addParameter('NOctaves', [], @isnumeric);
             parser.addParameter('NOctaveLayers', [], @isnumeric);
@@ -33,18 +34,17 @@ classdef SURF < vicos.keypoint_detector.OpenCvKeypointDetector
             parser.addParameter('Upright', [], @islogical);  
             parser.parse(varargin{:});
             
-            %% Gather parameters   
-            fields = fieldnames(parser.Results);
-            params = {};
-            for f = 1:numel(fields),
-                field = fields{f};
-                if ~isempty(parser.Results.(field)),
-                    params = [ params, field, parser.Results.(field) ];
-                end
-            end
-            
+            self = self@vicos.keypoint_detector.OpenCvKeypointDetector(parser.Unmatched);
+
             %% Create implementation
+            params = self.gather_parameters(parser);
             self.implementation = cv.FeatureDetector('SURF', params{:});
+        end
+    end
+    
+    methods (Access = protected)
+        function identifier = get_identifier (self)
+            identifier = 'SURF';
         end
     end
 end

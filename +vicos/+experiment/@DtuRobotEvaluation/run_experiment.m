@@ -115,7 +115,6 @@ function results = run_experiment (self, experiment_name, keypoint_detector, des
         %% Camera for test image
         camera = self.cameras(:,:,test_image);
         
-        
         %% Evaluate
         fprintf('Evaluating pair #%d/#%d\n', test_image, reference_image);
         

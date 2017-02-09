@@ -22,11 +22,13 @@ classdef FeatureRadial < vicos.keypoint_detector.KeypointDetector
             %  - NumScales:
             
             parser = inputParser();
-            
+            parser.KeepUnmatched = true;
             parser.addParameter('SaliencyThreshold', 0.3, @isnumeric);
             parser.addParameter('VarianceThreshold', 3.75, @isnumeric);
             parser.addParameter('NumCircles', 10 , @isnumeric);
             parser.parse(varargin{:});
+            
+            self = self@vicos.keypoint_detector.KeypointDetector(parser.Unmatched);
             
             self.saliency_threshold = parser.Results.SaliencyThreshold;
             self.variance_threshold = parser.Results.VarianceThreshold;
@@ -158,6 +160,12 @@ classdef FeatureRadial < vicos.keypoint_detector.KeypointDetector
         end
     end
     
+    
+    methods (Access = protected)
+        function identifier = get_identifier (self)
+            identifier = 'Radial';
+        end
+    end
 end
 
 function features = find_LSSM(R_min, t, saliency, variance, saliency_threshold, variance_threshold, average)

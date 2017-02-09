@@ -25,27 +25,25 @@ classdef Star < vicos.keypoint_detector.OpenCvKeypointDetector
             
             % Input parser
             parser = inputParser();
-            
+            parser.KeepUnmatched = true;
             parser.addParameter('MaxSize', [], @isnumeric);
             parser.addParameter('ResponseThreshold', [], @isnumeric);
             parser.addParameter('LineThresholdProjected', [], @isnumeric);
             parser.addParameter('LineThresholdBinarized', [], @isnumeric);
             parser.addParameter('SuppressNonmaxSize', [], @isnumeric);
-            
             parser.parse(varargin{:});
             
-            %% Gather parameters   
-            fields = fieldnames(parser.Results);
-            params = {};
-            for f = 1:numel(fields),
-                field = fields{f};
-                if ~isempty(parser.Results.(field)),
-                    params = [ params, field, parser.Results.(field) ];
-                end
-            end
-            
+            self = self@vicos.keypoint_detector.OpenCvKeypointDetector(parser.Unmatched);
+
             %% Create implementation
+            params = self.gather_parameters(parser);
             self.implementation = cv.FeatureDetector('StarDetector', params{:});
+        end
+    end
+    
+    methods (Access = protected)
+        function identifier = get_identifier (self)
+            identifier = 'Star';
         end
     end
 end

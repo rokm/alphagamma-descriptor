@@ -27,24 +27,16 @@ classdef BRISK < vicos.descriptor.OpenCvDescriptor
             
             % Input parser
             parser = inputParser();
-            
+            parser.KeepUnmatched = true;            
             parser.addParameter('Threshold', [], @isnumeric);
             parser.addParameter('Octaves', [], @isnumeric);
             parser.addParameter('PatternScale', [], @isnumeric);
-            
             parser.parse(varargin{:});
-            
-            %% Gather parameters   
-            fields = fieldnames(parser.Results);
-            params = {};
-            for f = 1:numel(fields),
-                field = fields{f};
-                if ~isempty(parser.Results.(field)),
-                    params = [ params, field, parser.Results.(field) ];
-                end
-            end
-            
+
+            self = self@vicos.descriptor.OpenCvDescriptor(parser.Unmatched);
+
             %% Create implementation
+            params = self.gather_parameters(parser);
             self.implementation = cv.DescriptorExtractor('BRISK', params{:});
         end
         
@@ -62,6 +54,12 @@ classdef BRISK < vicos.descriptor.OpenCvDescriptor
             
             % Compute descriptor for the keypoint
             desc = self.compute(I, keypoint);
+        end
+    end
+    
+    methods (Access = protected)
+        function identifier = get_identifier (self)
+            identifier = 'BRISK';
         end
     end
 end

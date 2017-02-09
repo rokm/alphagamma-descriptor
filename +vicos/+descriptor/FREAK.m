@@ -28,26 +28,18 @@ classdef FREAK < vicos.descriptor.OpenCvDescriptor
             
             % Input parser
             parser = inputParser();
-            
+            parser.KeepUnmatched = true;            
             parser.addParameter('OrientationNormalized', [], @islogical);
             parser.addParameter('ScaleNormalized', [], @islogical);
             parser.addParameter('PatternScale', [], @isnumeric);
             parser.addParameter('NOctaves', [], @isnumeric);
             parser.addParameter('SelectedPairs', [], @isnumeric);
-                        
             parser.parse(varargin{:});
             
-            %% Gather parameters   
-            fields = fieldnames(parser.Results);
-            params = {};
-            for f = 1:numel(fields),
-                field = fields{f};
-                if ~isempty(parser.Results.(field)),
-                    params = [ params, field, parser.Results.(field) ];
-                end
-            end
-            
+            self = self@vicos.descriptor.OpenCvDescriptor(parser.Unmatched);
+
             %% Create implementation
+            params = self.gather_parameters(parser);
             self.implementation = cv.DescriptorExtractor('FREAK', params{:});
         end
         
@@ -70,6 +62,12 @@ classdef FREAK < vicos.descriptor.OpenCvDescriptor
             
             % Compute descriptor for the keypoint
             desc = self.compute(I, keypoint);
+        end
+    end
+    
+    methods (Access = protected)
+        function identifier = get_identifier (self)
+            identifier = 'FREAK';
         end
     end
 end

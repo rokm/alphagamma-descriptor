@@ -30,6 +30,7 @@ classdef KAZE < vicos.descriptor.OpenCvDescriptor
             
             % Input parser
             parser = inputParser();
+            parser.KeepUnmatched = true;            
             parser.addParameter('Extended', [], @islogical);
             parser.addParameter('Upright', [], @islogical);
             parser.addParameter('Threshold', [], @isnumeric);
@@ -37,18 +38,11 @@ classdef KAZE < vicos.descriptor.OpenCvDescriptor
             parser.addParameter('NOctaveLayers', [], @isnumeric);
             parser.addParameter('Diffusivity', [], @isnumeric);
             parser.parse(varargin{:});
-            
-            %% Gather parameters   
-            fields = fieldnames(parser.Results);
-            params = {};
-            for f = 1:numel(fields),
-                field = fields{f};
-                if ~isempty(parser.Results.(field)),
-                    params = [ params, field, parser.Results.(field) ];
-                end
-            end
+
+            self = self@vicos.descriptor.OpenCvDescriptor(parser.Unmatched);
             
             %% Create implementation
+            params = self.gather_parameters(parser);
             self.implementation = cv.DescriptorExtractor('KAZE', params{:});
         end
         
@@ -67,6 +61,12 @@ classdef KAZE < vicos.descriptor.OpenCvDescriptor
             
             % Compute descriptor for the keypoint
             desc = self.compute(I, keypoint);
+        end
+    end
+    
+    methods (Access = protected)
+        function identifier = get_identifier (self)
+            identifier = 'KAZE';
         end
     end
 end

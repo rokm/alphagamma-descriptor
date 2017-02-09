@@ -7,7 +7,7 @@ classdef ORB < vicos.descriptor.OpenCvDescriptor
         implementation
         
         % The following should make use of the whole patch
-        %patch_size = 24
+        patch_size = 24
     end
     
     methods
@@ -32,7 +32,7 @@ classdef ORB < vicos.descriptor.OpenCvDescriptor
             
            % Input parser
             parser = inputParser();
-            
+            parser.KeepUnmatched = true;            
             parser.addParameter('MaxFeatures', [], @isnumeric);
             parser.addParameter('ScaleFactor', [], @isnumeric);
             parser.addParameter('NLevels', [], @isnumeric);
@@ -41,20 +41,12 @@ classdef ORB < vicos.descriptor.OpenCvDescriptor
             parser.addParameter('ScoreType', [], @(x) ismember(x, { 'Harris', 'FAST' }));
             parser.addParameter('PatchSize', [], @isnumeric);
             parser.addParameter('FastThreshold', [], @isnumeric);
-            
             parser.parse(varargin{:});
             
-            %% Gather parameters   
-            fields = fieldnames(parser.Results);
-            params = {};
-            for f = 1:numel(fields),
-                field = fields{f};
-                if ~isempty(parser.Results.(field)),
-                    params = [ params, field, parser.Results.(field) ];
-                end
-            end
+            self = self@vicos.descriptor.OpenCvDescriptor(parser.Unmatched);
             
             %% Create implementation
+            params = self.gather_parameters(parser);
             self.implementation = cv.DescriptorExtractor('ORB', params{:});
         end
         
@@ -70,6 +62,12 @@ classdef ORB < vicos.descriptor.OpenCvDescriptor
             
             % Compute descriptor for the keypoint
             desc = self.compute(I, keypoint);
+        end
+    end
+    
+    methods (Access = protected)
+        function identifier = get_identifier (self)
+            identifier = 'ORB';
         end
     end
 end

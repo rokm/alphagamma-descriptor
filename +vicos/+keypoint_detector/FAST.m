@@ -24,25 +24,23 @@ classdef FAST < vicos.keypoint_detector.OpenCvKeypointDetector
             
             % Input parser
             parser = inputParser();
-            
+            parser.KeepUnmatched = true;
             parser.addParameter('Threshold', [], @isnumeric);
             parser.addParameter('NonmaxSuppression', [], @islogical);
             parser.addParameter('Type', '', @(x) ismember(x, { 'TYPE_5_8', 'TYPE_7_12', 'TYPE_9_16' }));
-            
             parser.parse(varargin{:});
             
-            %% Gather parameters   
-            fields = fieldnames(parser.Results);
-            params = {};
-            for f = 1:numel(fields),
-                field = fields{f};
-                if ~isempty(parser.Results.(field)),
-                    params = [ params, field, parser.Results.(field) ];
-                end
-            end
+            self = self@vicos.keypoint_detector.OpenCvKeypointDetector(parser.Unmatched);
             
             %% Create implementation
+            params = self.gather_parameters(parser);
             self.implementation = cv.FeatureDetector('FastFeatureDetector', params{:});
+        end
+    end
+    
+    methods (Access = protected)
+        function identifier = get_identifier (self)
+            identifier = 'FAST';
         end
     end
 end

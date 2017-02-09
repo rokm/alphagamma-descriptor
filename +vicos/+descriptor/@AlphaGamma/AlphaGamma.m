@@ -107,6 +107,8 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
 
             % Input parameters
             parser = inputParser();
+            parser.KeepUnmatched = true;            
+
             parser.addParameter('num_circles', 10, @isscalar);
             parser.addParameter('num_rays', 23, @isscalar);
             parser.addParameter('circle_step', sqrt(2), @isscalar);
@@ -130,8 +132,9 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             parser.addParameter('G', 1.0, @isnumeric);
             parser.addParameter('use_bitstrings', false, @islogical);
 
-            
             parser.parse(varargin{:});
+            
+            self = self@vicos.descriptor.Descriptor(parser.Unmatched);
 
             self.num_circles = parser.Results.num_circles;
             self.num_rays = parser.Results.num_rays;
