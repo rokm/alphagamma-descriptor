@@ -285,7 +285,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                     if keypoint.size <= 14
                        octave = 1; 
                     elseif keypoint.size <= 28
-                  %  if keypoint.size <= 28,
                         octave = 2; % No downsampling
                     elseif keypoint.size <= 56
                         octave = 3; % 1x downsampled
@@ -310,6 +309,9 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                     desc(:,p) = extract_descriptor_from_keypoint(self, pyramids{octave}, new_center, scale_factor, keypoint.angle);
                 end
             end
+            
+            % Transpose the descriptor to get MxD matrix
+            desc = desc';
         end
         
         function pyramid = create_image_pyramid (self, I)
@@ -336,27 +338,22 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
 
         function distances = compute_pairwise_distances (self, desc1, desc2)
             % distances = COMPUTE_PAIRWISE_DISTANCES (self, desc1, desc2)
-
-            % Compatibility layer; if descriptors are given in N1xD and
-            % N2xD, transpose them
-            desc_size = get_descriptor_size(self);
-            if (size(desc1, 1) ~= desc_size && size(desc1, 2) == desc_size)
-                desc1 = desc1';
-            end
-            if (size(desc2, 1) ~= desc_size && size(desc2, 2) == desc_size)
-                desc2 = desc2';
-            end
+            
+            % We are expecting descriptors to be N1xD and N2xD...
+            expected_size = self.get_descriptor_size();
+            assert(size(desc1, 2) == expected_size, 'Invalid desc1 dimension!');
+            assert(size(desc2, 2) == expected_size, 'Invalid desc2 dimension!');
             
             if self.non_binarized_descriptor  
                 % Compute the distances using cv::batchDistance(); in order to
                 % get an N2xN1 matrix, we switch desc1 and desc2
-                distances = cv.batchDistance(desc2', desc1', 'K', 0, 'NormType', 'L1');
+                distances = cv.batchDistance(desc2, desc1, 'K', 0, 'NormType', 'L1');
             else
                 % Binarized version
                 if self.use_bitstrings
-                    distances = alpha_gamma_distances_fast(desc1, desc2, self.num_circles, self.num_rays, self.A, self.G);
+                    distances = alpha_gamma_distances_fast(desc1', desc2', self.num_circles, self.num_rays, self.A, self.G);
                 else
-                    distances = alpha_gamma_distances(desc1, desc2, self.num_circles, self.num_rays, self.A, self.G);
+                    distances = alpha_gamma_distances(desc1', desc2', self.num_circles, self.num_rays, self.A, self.G);
                 end
             end
         end
@@ -378,6 +375,12 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
         end
     end
 
+    methods (Access = protected)
+        function identifier = get_identifier (self)
+            identifier = 'AlphaGamma';
+        end
+    end
+    
     % Internal methods
     methods
         function keypoints = filter_keypoints (self, I, keypoints)
