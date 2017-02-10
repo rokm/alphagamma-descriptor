@@ -28,18 +28,6 @@ classdef Descriptor < handle
         %  - keypoints: 1xM array of keypoints        
         [ descriptors, keypoints ] = compute (self, I, keypoints)
         
-        % descriptor = COMPUTE_FROM_PATCH (self, I)
-        %
-        % Extracts a descriptor from the input patch. 
-        %
-        % Input:
-        %  - self: @Descriptor instance
-        %  - I: input patch
-        %
-        % Output:
-        %  - descriptor: 1xD descriptor vector
-        decriptor = compute_from_patch (self, I)
-        
         % descriptor_size = GET_DESCRIPTOR_SIZE (self)
         %
         % Returns the size of descriptor.

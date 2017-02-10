@@ -5,9 +5,6 @@ classdef KAZE < vicos.descriptor.OpenCvDescriptor
     
     properties
         implementation
-        
-        % The following should make use of the whole patch
-        keypoint_size = 24
     end
     
     methods
@@ -44,23 +41,6 @@ classdef KAZE < vicos.descriptor.OpenCvDescriptor
             %% Create implementation
             params = self.gather_parameters(parser);
             self.implementation = cv.DescriptorExtractor('KAZE', params{:});
-        end
-        
-        function desc = compute_from_patch (self, I)            
-            % Keypoint position: center of the patch
-            [ h, w, ~ ] = size(I);
-            keypoint.pt = ([ w, h ] - 1) / 2;
-            
-            % Keypoint size: determined by patch_scale_factor parameter
-            keypoint.size = self.keypoint_size;
-            
-            keypoint.octave = 1; % KAZE descriptor needs octave to ne specified!
-            
-            keypoint.angle = 0;            
-            keypoint.class_id = -1;
-            
-            % Compute descriptor for the keypoint
-            desc = self.compute(I, keypoint);
         end
     end
     

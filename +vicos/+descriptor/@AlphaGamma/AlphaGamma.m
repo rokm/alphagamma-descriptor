@@ -45,9 +45,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
         % Distance function weights
         A
         G
-
-        %
-        effective_patch_size
         
         %
         use_bitstrings
@@ -162,17 +159,17 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             % Determine thresholds as the inverse of Student's T CDF with
             % number of elements in alpha or gamma (minus 1) as degrees of
             % freedom, and 50% confidence interval
-            if isempty(self.threshold_alpha),
+            if isempty(self.threshold_alpha)
                 dof = self.num_circles - 1;
                 self.threshold_alpha = tinv(1 - 0.5/2, dof);
             end
-            if isempty(self.threshold_gamma),
+            if isempty(self.threshold_gamma)
                 % Per-column gamma variances
                 dof = self.num_rays - 1;
                 self.threshold_gamma = tinv(1 - 0.5/2, dof);
             end
             
-            if isempty(self.orientation_num_rays),
+            if isempty(self.orientation_num_rays)
                 self.orientation_num_rays = self.num_rays;
             end
             
@@ -183,8 +180,8 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
 
             % Filter parameters (radius and sigma)
             step = self.circle_step;
-            for i = 1:self.num_circles,
-                if i == 1,
+            for i = 1:self.num_circles
+                if i == 1
                     sigmas(i) = 0.3; % Variable
                     radii(i) = 0.71/0.3 * sigmas(i);
                 else
@@ -197,25 +194,22 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             self.sigmas = sigmas;
                         
             % Compute filters
-            for i = 1:self.num_circles,
-                if self.sigmas(i) <= 0.7,
+            for i = 1:self.num_circles
+                if self.sigmas(i) <= 0.7
                     continue;
                 end
                 
                 self.filters{i} = create_dog_filter(sigmas(i));
             end
-            
-            %% Compute effective patch size
-            self.effective_patch_size = 2*round(radii(end) + 3*sigmas(end)) + 1;
-            
+                        
             %% Orientation estimation parameters
             self.orientation_sample_points = cell(self.num_circles, 1);
 
             self.orientation_sample_points{1} = zeros(2, self.orientation_num_rays);
-            for j = 2:self.num_circles,
+            for j = 2:self.num_circles
                 points = zeros(2, self.orientation_num_rays);
 
-                for i = 1:self.orientation_num_rays,
+                for i = 1:self.orientation_num_rays
                     angle = (i-1) * 2*pi/self.orientation_num_rays;
                     x =  radii(j) * cos(angle);
                     y = -radii(j) * sin(angle);
@@ -240,7 +234,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             % extract_descriptor_from_keypoint()
             
             % Convert to grayscale
-            if size(I, 3) == 3,
+            if size(I, 3) == 3
                 I = rgb2gray(I);
             end
 
@@ -251,7 +245,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             
             num_points = numel(keypoints);
 
-            if self.non_binarized_descriptor,
+            if self.non_binarized_descriptor
                 % Real-valued version
                 desc = zeros(get_descriptor_size(self), num_points, 'double');
             else
@@ -260,10 +254,10 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             end
             
             %% Single-scale version
-            if ~self.scale_normalized,
+            if ~self.scale_normalized
                 pyramid = self.create_image_pyramid(I);
             
-                for p = 1:num_points,
+                for p = 1:num_points
                     % Extract each point from the first-level pyramid
                     % (which is also the only one we have). Note the 
                     % 0-based to 1-based coordinate system conversion
@@ -278,28 +272,28 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                 
                 % Option 1: Resizing of filtered images
                 pyramids{1} = self.create_image_pyramid(imresize(I,2));
-                for i = 2:num_octaves,
+                for i = 2:num_octaves
                     factor = 0.5^(i-1);
                     pyramids{i} = imresize(pyramids{1}, factor);
                 end
                 
                 % Process all keypoints
-                for p = 1:num_points,
+                for p = 1:num_points
                     keypoint = keypoints(p);
                     
                     % Determine octave and scale factors
-                    if keypoint.size <= 14,
+                    if keypoint.size <= 14
                        octave = 1; 
-                    elseif keypoint.size <= 28,
+                    elseif keypoint.size <= 28
                   %  if keypoint.size <= 28,
                         octave = 2; % No downsampling
-                    elseif keypoint.size <= 56,
+                    elseif keypoint.size <= 56
                         octave = 3; % 1x downsampled
-                    elseif keypoint.size <= 112,
+                    elseif keypoint.size <= 112
                         octave = 4; % 2x downsampled
-                    elseif keypoint.size <= 224,
+                    elseif keypoint.size <= 224
                         octave = 5; % 3x downsampled
-                    elseif keypoint.size <= 448,
+                    elseif keypoint.size <= 448
                         octave = 6; % 4x downsampled
                     else
                         error('Keypoint too large: %f!', keypoint.size);
@@ -325,14 +319,14 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             
             pyramid = zeros(size(I, 1), size(I, 2), self.num_circles);
             
-            if self.base_sigma ~= 0,
+            if self.base_sigma ~= 0
                 pyramid(:,:,1) = filter2(create_dog_filter(self.base_sigma), I);
             else
                 pyramid(:,:,1) = I;
             end
             
-            for i = 2:self.num_circles,
-                if isempty(self.filters{i}),
+            for i = 2:self.num_circles
+                if isempty(self.filters{i})
                     pyramid(:,:,i) = pyramid(:,:,i-1);
                 else
                     pyramid(:,:,i) = filter2(self.filters{i}, pyramid(:,:,i-1));
@@ -346,20 +340,20 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             % Compatibility layer; if descriptors are given in N1xD and
             % N2xD, transpose them
             desc_size = get_descriptor_size(self);
-            if (size(desc1, 1) ~= desc_size && size(desc1, 2) == desc_size),
+            if (size(desc1, 1) ~= desc_size && size(desc1, 2) == desc_size)
                 desc1 = desc1';
             end
-            if (size(desc2, 1) ~= desc_size && size(desc2, 2) == desc_size),
+            if (size(desc2, 1) ~= desc_size && size(desc2, 2) == desc_size)
                 desc2 = desc2';
             end
             
-            if self.non_binarized_descriptor,    
+            if self.non_binarized_descriptor  
                 % Compute the distances using cv::batchDistance(); in order to
                 % get an N2xN1 matrix, we switch desc1 and desc2
                 distances = cv.batchDistance(desc2', desc1', 'K', 0, 'NormType', 'L1');
             else
                 % Binarized version
-                if self.use_bitstrings,
+                if self.use_bitstrings
                     distances = alpha_gamma_distances_fast(desc1, desc2, self.num_circles, self.num_rays, self.A, self.G);
                 else
                     distances = alpha_gamma_distances(desc1, desc2, self.num_circles, self.num_rays, self.A, self.G);
@@ -368,34 +362,19 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
         end
 
         function descriptor_size = get_descriptor_size (self)
-            if self.non_binarized_descriptor,
+            if self.non_binarized_descriptor
                 % Real-valued version
                 descriptor_size = self.num_circles + self.num_circles*self.num_rays;
             else
                 % Binary version
                 descriptor_size = self.num_circles + self.num_circles*self.num_rays;
 
-                if self.use_bitstrings,
+                if self.use_bitstrings
                     descriptor_size = ceil( descriptor_size/8 );
                 end
 
                 descriptor_size = self.compute_type1*descriptor_size + self.compute_type2*descriptor_size;
             end
-        end
-
-        function decriptor = compute_from_patch (self, I)
-            % Resize to patch size
-            I = imresize(I, [ self.effective_patch_size, self.effective_patch_size ]);
-
-            % Keypoint position: center of the patch
-            [ h, w, ~ ] = size(I);
-            keypoint.pt = ([ w, h ] - 1) / 2; % NOTE: we use OpenCV convention and 0-based coordinate system here, because compute() method will convert it to 1-based one...
-
-            % We do not need to specify keypoint size here, because we are
-            % not using mexopencv...
-
-            % Compute descriptor for the keypoint
-            decriptor = self.compute(I, keypoint);
         end
     end
 
@@ -425,12 +404,12 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             %% Handle orientation
             if self.orientation_normalized
                 % Override angle using built-in angle estimation
-                if self.compute_orientation,
+                if self.compute_orientation
                     % Sample points into the field
                     field = nan(self.orientation_num_rays, self.num_circles);
                     
-                    for j = 1:self.num_circles,
-                        for i = 1:self.orientation_num_rays,
+                    for j = 1:self.num_circles
+                        for i = 1:self.orientation_num_rays
                             x = radius_factor*self.orientation_sample_points{j}(1, i) + center(1);
                             y = radius_factor*self.orientation_sample_points{j}(2, i) + center(2);
 
@@ -438,7 +417,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                             x = max(min(x, size(pyramid, 2)), 1);
                             y = max(min(y, size(pyramid, 1)), 1);
 
-                            if self.bilinear_sampling,
+                            if self.bilinear_sampling
                                 % Bilinear interpolation
                                 x0 = floor(x);
                                 y0 = floor(y);
@@ -452,13 +431,13 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
 
                                 val = a1*b1*pyramid(y0,x0,j);
 
-                                if a0,
+                                if a0
                                     val = val + a0*b1*pyramid(y0,x1,j);
                                 end
-                                if b0,
+                                if b0
                                      val = val + a1*b0*pyramid(y1,x0,j);
                                 end
-                                if a0 && b0,
+                                if a0 && b0
                                     val = val + a0*b0*pyramid(y1,x1,j);
                                 end
 
@@ -483,8 +462,8 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             
             %% Sample points into the field
             field = nan(self.num_rays, self.num_circles);
-            for j = 1:self.num_circles,
-                for i = 1:self.num_rays,
+            for j = 1:self.num_circles
+                for i = 1:self.num_rays
                     point_angle = (i-1) * 2*pi/self.num_rays + deg2rad(angle);
                     x = radius_factor*self.radii(j)*cos(point_angle) + center(1);
                     y = -radius_factor*self.radii(j)*sin(point_angle) + center(2);
@@ -493,7 +472,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                     x = max(min(x, size(pyramid, 2)), 1);
                     y = max(min(y, size(pyramid, 1)), 1);
                     
-                    if self.bilinear_sampling,
+                    if self.bilinear_sampling
                         % Bilinear interpolation
                         x0 = floor(x);
                         y0 = floor(y);
@@ -507,13 +486,13 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
     
                         val = a1*b1*pyramid(y0,x0,j);
     
-                        if a0,
+                        if a0
                             val = val + a0*b1*pyramid(y0,x1,j);
                         end
-                        if b0,
+                        if b0
                              val = val + a1*b0*pyramid(y1,x0,j);
                         end
-                        if a0 && b0,
+                        if a0 && b0
                             val = val + a0*b0*pyramid(y1,x1,j);
                         end
                         
@@ -537,38 +516,34 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             b = mean(field, 2) - field_avg;
             
             % Compute gamma effects
-            for j = 1:self.num_circles,
+            for j = 1:self.num_circles
                 gamma(:,j) = b;
             end
-            for j = 1:self.num_rays,
+            for j = 1:self.num_rays
                 gamma(j,:) = gamma(j,:) + a;
             end
             gamma = field - gamma - field_avg;
             
             % Non-binarized descriptor?
-            if self.non_binarized_descriptor,
-                
-                %sall= sqrt((sum(a.*a)+ sum(sum(gamma.*gamma)))/((self.num_rays+1)*self.num_circles-1));
+            if self.non_binarized_descriptor
                 sa = sqrt( sum(a.*a) / (self.num_circles-1) );
                 aa = a / (sa+eps);
-                %aa=a/sall;
                 
                 sg = sqrt( sum(gamma.*gamma) / (self.num_rays-1) )+eps;
                 gg = bsxfun(@rdivide, gamma, sg);
-               %gg = bsxfun(@rdivide, gamma, sall);
                 
                 descriptor = [ aa(:); gg(:) ];
                 return;
             end
             
             % "Type 1" part of descriptor
-            if self.compute_type1,
+            if self.compute_type1
                 desc_alpha = reshape(a > 0, [], 1);
                 desc_gamma = reshape(gamma > 0, [], 1);
             end
             
             % "Type 2" part of descriptor
-            if self.compute_type2,
+            if self.compute_type2
                 % Alpha part
                 sa = sqrt( sum(a.*a) / (self.num_circles-1) );
                 aa = abs(a) > sa*self.threshold_alpha;
@@ -583,30 +558,30 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             end
 
             %% Write descriptor
-            if self.use_bitstrings,
+            if self.use_bitstrings
                 % Bitstring version
-                if self.compute_type1 && self.compute_type2,
+                if self.compute_type1 && self.compute_type2
                     % Both types
                     descriptor = [ ...
                         convert_bytestring_to_bitstring( uint8([ desc_alpha; desc_gamma ]) ); ...
                         convert_bytestring_to_bitstring( uint8([ desc_alpha_ext; desc_gamma_ext ]) ) ...
                     ];
-                elseif self.compute_type1,
+                elseif self.compute_type1
                     % Type 1 only
                     descriptor = convert_bytestring_to_bitstring( uint8( [ desc_alpha; desc_gamma ]) );
-                elseif self.compute_type2,
+                elseif self.compute_type2
                     % Type 2 only
                     descriptor = convert_bytestring_to_bitstring( uint8( [ desc_alpha_ext; desc_gamma_ext ]) );
                 end
             else
                 % Original byte-string version
-                if self.compute_type1 && self.compute_type2,
+                if self.compute_type1 && self.compute_type2
                     % Both types
                     descriptor = [ desc_alpha; desc_gamma; desc_alpha_ext; desc_gamma_ext ];
-                elseif self.compute_type1,
+                elseif self.compute_type1
                     % Type 1 only
                     descriptor = [ desc_alpha; desc_gamma ];
-                elseif self.compute_type2,
+                elseif self.compute_type2
                     % Type 2 only
                     descriptor = [ desc_alpha_ext; desc_gamma_ext ];
                 end

@@ -5,9 +5,6 @@ classdef ORB < vicos.descriptor.OpenCvDescriptor
     
     properties
         implementation
-        
-        % The following should make use of the whole patch
-        patch_size = 24
     end
     
     methods
@@ -48,20 +45,6 @@ classdef ORB < vicos.descriptor.OpenCvDescriptor
             %% Create implementation
             params = self.gather_parameters(parser);
             self.implementation = cv.DescriptorExtractor('ORB', params{:});
-        end
-        
-        function desc = compute_from_patch (self, I)
-            % Keypoint position: center of the patch
-            [ h, w, ~ ] = size(I);
-            keypoint.pt = ([ w, h ] - 1) / 2;
-            
-            % Keypoint size: determined by patch_scale_factor parameter
-            keypoint.size = 10; %size(I, 1);% / self.patch_size;
-            
-            keypoint.class_id = 1;
-            
-            % Compute descriptor for the keypoint
-            desc = self.compute(I, keypoint);
         end
     end
     

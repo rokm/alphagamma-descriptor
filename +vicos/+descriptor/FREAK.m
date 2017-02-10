@@ -5,9 +5,6 @@ classdef FREAK < vicos.descriptor.OpenCvDescriptor
     
     properties
         implementation
-        
-        % The following should make use of the whole patch
-        keypoint_size = 9
     end
     
     methods
@@ -41,27 +38,6 @@ classdef FREAK < vicos.descriptor.OpenCvDescriptor
             %% Create implementation
             params = self.gather_parameters(parser);
             self.implementation = cv.DescriptorExtractor('FREAK', params{:});
-        end
-        
-        function desc = compute_from_patch (self, I)            
-            % When used with 'ScaleNormalized'=false, the minimum patch
-            % size for which we can get the descriptor is 134 pixels. With
-            % 'ScaleNormalized'=true, a 64x64 patch has a maximum keypoint
-            % size of 9.68 (This is for stock FREAK implementation, which
-            % discards points that are too close to the border)
-            
-            % Keypoint position: center of the patch
-            [ h, w, ~ ] = size(I);
-            keypoint.pt = ([ w, h ] - 1) / 2;
-            
-            % Keypoint size: determined by patch_scale_factor parameter
-            keypoint.size = self.keypoint_size;
-            
-            keypoint.angle = 0;            
-            keypoint.class_id = -1;
-            
-            % Compute descriptor for the keypoint
-            desc = self.compute(I, keypoint);
         end
     end
     

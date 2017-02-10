@@ -5,10 +5,6 @@ classdef SURF < vicos.descriptor.OpenCvDescriptor
     
     properties
         implementation
-        
-        % The following scale factor should theoretically make use of the 
-        % whole patch
-        patch_scale_factor = 1 / (9.0/1.2 * 1/(20+1))
     end
     
     methods
@@ -43,26 +39,6 @@ classdef SURF < vicos.descriptor.OpenCvDescriptor
             %% Create implementation
             params = self.gather_parameters(parser);            
             self.implementation = cv.DescriptorExtractor('SURF', params{:});
-        end
-        
-        function desc = compute_from_patch (self, I)            
-            % SURF implementation has a PATCH_SIZE constant of 20; when
-            % computing descriptor, it takes the keypoint's size parameter,
-            % and multiplies it by 1.2/9.0, and divides by (PATCH_SIZE+1)
-            % to obtain the sampling window around the keypoint...
-            
-            % Keypoint position: center of the patch
-            [ h, w, ~ ] = size(I);
-            keypoint.pt = ([ w, h ] - 1) / 2;
-            
-            % Keypoint size: determined by patch_scale_factor parameter
-            keypoint.size = size(I, 1) / self.patch_scale_factor;
-            
-            keypoint.angle = 0;
-            keypoint.class_id = -1;
-            
-            % Compute descriptor for the keypoint
-            desc = self.compute(I, keypoint);
         end
     end
     
