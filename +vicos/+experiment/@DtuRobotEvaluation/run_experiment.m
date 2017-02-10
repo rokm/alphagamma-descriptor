@@ -1,14 +1,12 @@
-function results = run_experiment (self, experiment_name, keypoint_detector, descriptor_extractor, image_set, varargin)
+function results = run_experiment (self, keypoint_detector, descriptor_extractor, image_set, varargin)
     % Input:
     %  - self:
-    %  - experiment_name: name of experiment
     %  - keypoint_detector: function handle that creates keypoint
     %    detector instance, or a keypoint detector instance
     %  - descriptor_extractor: function handle that creates
     %    descriptor extractor instance, or a descriptor extractor
     %    instance
-    %  - image_set: image set to perform experiment on. If multiple sets
-    %    are given, the function is called again, once for each set.
+    %  - image_set: image set to perform experiment on.
     %  - varargin: optional key/value pairs
     %    - cache_dir: cache directory; default: use global cache dir
     %      setting
@@ -16,22 +14,7 @@ function results = run_experiment (self, experiment_name, keypoint_detector, des
     %     are compared (default: 25)
     %    - test_images: list of test images; default: all (1~119)
     %    - light_number: number of light preset to use; default: 8
-    
-    % If multiple image sets are given, call again for each
-    if numel(image_set) > 1,
-        num_sets = numel(image_set);
-        results = cell(1, num_sets);
         
-        % Run for each set
-        for i = 1:num_sets,
-            current_set = image_set(i);
-            
-            results{i} = self.run_experiment(experiment_name, keypoint_detector, descriptor_extractor, current_set, varargin{:});
-        end
-        
-        return;
-    end     
-    
     % Parse arguments
     parser = inputParser();
     parser.addParameter('reference_image', 25, @isnumeric);
@@ -40,10 +23,10 @@ function results = run_experiment (self, experiment_name, keypoint_detector, des
     parser.addParameter('cache_dir', self.cache_dir, @ischar);
     parser.parse(varargin{:});
     
-    reference_image = parser.Results.reference_image;
+    ref_image = parser.Results.reference_image;
     test_images = parser.Results.test_images;
     light_number = parser.Results.light_number;
-    cache_dir = parser.Results.cache_dir;
+    cache_root = parser.Results.cache_dir;
     
     % Keypoint detector
     if isa(keypoint_detector, 'function_handle')
@@ -60,192 +43,80 @@ function results = run_experiment (self, experiment_name, keypoint_detector, des
     % Default test images
     if isempty(test_images)
         % All but reference
-        test_images = setdiff(1:size(self.cameras, 3), reference_image);
-    end
-    
-    %% Cache directory
-    if ~isempty(cache_dir)
-        cache_dir = fullfile(cache_dir, experiment_name);
-        if ~exist(cache_dir, 'dir')
-            mkdir(cache_dir);
-        end
+        test_images = setdiff(1:size(self.cameras, 3), ref_image);
     end
     
     %% Prepare
     % Pre-compute the quad tree of projected structured-light
     % points, which serves as ground-truth for evaluation
-    quad3d = self.generate_structured_light_grid(image_set, reference_image);
+    quad3d = self.generate_structured_light_grid(image_set, ref_image);
+        
+    %% Process reference image   
+    fprintf('Processing reference image (seq #%03d, img #%03d, light #%02d)\n', image_set, ref_image, light_number);
     
-    % Default cache file (empty)
-    cache_file = '';
+    % Detect keypoints
+    Ir = [];
+    [ ref_keypoints_raw, Ir ] = self.detect_keypoints_in_image(image_set, ref_image, light_number, Ir, keypoint_detector);
     
-    %% Process reference image
-    image_file_ref = self.construct_image_filename(image_set, reference_image, light_number);
-    fprintf('Processing reference image (seq #%03d, img #%03d, light #%02d)\n', image_set, reference_image, light_number);
-    if ~isempty(cache_dir)
-        cache_file = self.construct_cache_filename(cache_dir, image_set, reference_image, light_number, '.features.mat');
-    end
-    
-    [ ref_keypoints, ref_descriptors ] = self.extract_features_from_image(image_file_ref, keypoint_detector, descriptor_extractor, cache_file);
-    camera_ref = self.cameras(:,:,reference_image);
-    
+    % Extract descriptors
+    [ ref_descriptors, ref_keypoints ] = self.extract_descriptors_from_keypoints(image_set, ref_image, light_number, Ir, keypoint_detector, ref_keypoints_raw, descriptor_extractor);
+        
     %% Pre-allocate results structure
-    results = repmat(struct('sequence', [], ...
-                            'lighting', [], ...
-                            'reference_image', [], ...
-                            'test_image', [], ...
-                            'putative_matches', [], ...
-                            'correct_matches', [], ...
-                            'putative_matches_unique', [], ...
-                            'correct_matches_unique', [], ...
-                            'consistent_correspondences', []), 1, numel(test_images));
+%     results = repmat(struct('sequence', [], ...
+%                             'lighting', [], ...
+%                             'reference_image', [], ...
+%                             'test_image', [], ...
+%                             'putative_matches', [], ...
+%                             'correct_matches', [], ...
+%                             'putative_matches_unique', [], ...
+%                             'correct_matches_unique', [], ...
+%                             'consistent_correspondences', []), 1, numel(test_images));
     
     %% Process all test images
     for i = 1:numel(test_images)
         test_image = test_images(i);
         
-        %% Process test image
-        image_file = self.construct_image_filename(image_set, test_image, light_number);
         fprintf('Processing test image #%d/%d (seq #%03d, img #%03d, light #%02d)\n', i, numel(test_images), image_set, test_image, light_number);
-        if ~isempty(cache_dir)
-            cache_file = self.construct_cache_filename(cache_dir, image_set, test_image, light_number, '.features.mat');
-        end
-        [ test_keypoints, test_descriptors ] = self.extract_features_from_image(image_file, keypoint_detector, descriptor_extractor, cache_file);
         
-        %% Camera for test image
-        camera = self.cameras(:,:,test_image);
+        %% Process test image
+        % Detect keypoints
+        It = [];
+        [ test_keypoints_raw, It ] = self.detect_keypoints_in_image(image_set, test_image, light_number, It, keypoint_detector);
+
+        % Extract descriptors
+        [ test_descriptors, test_keypoints ] = self.extract_descriptors_from_keypoints(image_set, test_image, light_number, It, keypoint_detector, test_keypoints_raw, descriptor_extractor);
         
-        %% Evaluate
-        fprintf('Evaluating pair #%d/#%d\n', test_image, reference_image);
+        %% Evaluate consistent correspondences
+        % Note: the results are cached on per-keypoint detector level (i.e,
+        % the value is cached across all descriptors extracted from the
+        % given keypoint type)
+        fprintf('Evaluating consistent references for pair #%d|#%d\n', test_image, ref_image);
+        [ consistent_correspondences, valid_correspondences ] = self.evaluate_consistent_correspondences(image_set, ref_image, test_image, light_number, keypoint_detector, raw_ref_keypoints, raw_test_keypoints);
         
-        if ~isempty(cache_dir)
-            cache_file = self.construct_cache_filename(cache_dir, image_set, test_image, light_number, '.evaluation.mat');
-        end
+        % FIXME: post-process and compute histogram!
         
-        if ~isempty(cache_file) && exist(cache_file, 'file')
-            fprintf(' >> loading from cache!\n');
-            
-            % Load from cache
-            tmp = load(cache_file);
-            
-            match = tmp.match;
-            roc = tmp.roc;
-            area = tmp.area;
-            consistent_correspondences = tmp.consistent_correspondences;
-        else
-            fprintf(' >> keypoints: %d, reference keypoints: %d\n', numel(test_keypoints), numel(ref_keypoints));
+        %% Evaluate putative and correct matches
+        [ match_idx, match_dist, consistent_matches, putative_matches ] = self.evaluate_matches(image_set, ref_image, test_image, light_number, quad3d, keypoint_detector, descriptor_extractor, ref_keypoints, ref_descriptors, test_keypoints, test_descriptors);
+        [ roc, area ] = self.compute_roc_curve(match_dist(:,1)./match_dist(:,2), consistent_matches);
 
-            keypoint_offset = 1; % C indexing to Matlab indexing
-            if self.half_size_images
-                keypoint_offset = keypoint_offset + 0.5; % Additional offset due to downscaling
-            end
-
-            % Compute descriptor distance matrix
-            M = descriptor_extractor.compute_pairwise_distances(ref_descriptors, test_descriptors);
-
-            % For each test keypoint (row in M), find the closest match
-            Mm = M;
-            [ min_dist1, min_idx1 ]  = min(Mm, [], 2); % For each test keypoint, find the closest match
-
-            % Find the next closest match (by masking the closest one)
-            cidx = sub2ind(size(Mm), [ 1:numel(min_idx1) ]', min_idx1);
-            Mm(cidx) = inf;
-            [ min_dist2, min_idx2 ] = min(Mm, [], 2);
-
-            % Prepare the match structure (as specified by the DTU
-            % code)
-            clear match;
-
-            match.matchIdx = [ min_idx1, min_idx2 ]; % Indices to first and second closest match in reference image
-            match.dist = [ min_dist1, min_dist2 ]; % Distances to first and second closest match in reference image
-            match.distRatio = min_dist1 ./ min_dist2; % Distance ratio
-            match.coord = vertcat(test_keypoints.pt) + keypoint_offset; % Coordinates of keypoints in test image
-            match.coordKey = vertcat(ref_keypoints.pt) + keypoint_offset; % Coordinates of keypoints in reference image
-            tmp_area = 1./(vertcat(test_keypoints.size)*0.5).^2; % [ a, b, c ] parameters of ellipse approximation for keypoints in test image -> [ r, 0, r ]
-            match.area = [ tmp_area, zeros(size(tmp_area)), tmp_area ];
-            tmp_area = 1./(vertcat(ref_keypoints.size)*0.5).^2; % [ a, b, c ] parameters of ellipse approximation for keypoints in test image -> [ r, 0, r ]
-            match.areaKey = [ tmp_area, zeros(size(tmp_area)), tmp_area ];
-
-            % Determine geometric consistency of matches (-1 =
-            % inconsistent, 1 = consistent, 0 = could not be evaluated)
-            t = tic();
-
-            match.CorrectMatch = zeros(size(match.coord,1), 1);
-            for j = 1:size(match.coord,1)
-                % Get the coordinates of the matched pair from the match structure.
-                pt2 = match.coord(j,:);
-                pt1 = match.coordKey(match.matchIdx(j,1),:);
-
-                % Determine if the match is consistent.
-                match.CorrectMatch(j) = self.is_match_consistent(quad3d, camera_ref, camera, pt1', pt2');
-            end
-
-            fprintf(' >> match consistency: %f seconds\n', toc(t));
-
-            % Compute the ROC curve
-            t = tic();
-            [ roc, area ] = self.compute_roc_curve(match.distRatio, match.CorrectMatch);
-            fprintf(' >> ROC curve: %f seconds\n', toc(t));
-
-            % Consistent correspondences (recall rate)       
-            t = tic();
-
-            consistent_correspondences.histogram = zeros(1,10); % 10 cells; first is 0, last is >= 9
-            consistent_correspondences.indices = cell(1, size(numel(ref_keypoints), 1));
-            consistent_correspondences.valid = false(1, size(numel(ref_keypoints), 1));
-
-            test_pts2d = vertcat(test_keypoints.pt) + keypoint_offset;
-            test_scales = (0.5*vertcat(test_keypoints.size)).^2;
-
-            for j = 1:numel(ref_keypoints)
-                ref_pt2d = ref_keypoints(j).pt + keypoint_offset;
-                ref_scale = (0.5*ref_keypoints(j).size)^2;
-
-                [ idx, valid ] = self.get_consistent_correspondences(quad3d, camera_ref, camera, ref_pt2d, ref_scale, test_pts2d, test_scales);
-
-                consistent_correspondences.indices{j} = idx;
-                consistent_correspondences.valid(j) = valid;
-
-                if valid
-                    hist_idx = min(numel(idx) + 1, numel(consistent_correspondences.histogram)); % First histogram element is for zero matches
-                    consistent_correspondences.histogram(hist_idx) = consistent_correspondences.histogram(hist_idx) + 1;
-                end
-            end
-
-            fprintf(' >> consistent correspondences: %f seconds\n', toc(t));
-            
-            % Save to cache
-            if ~isempty(cache_file)
-                tmp = struct('match', match, 'roc', roc, 'area', area, 'consistent_correspondences', consistent_correspondences); %#ok<NASGU>
-                save(cache_file, '-v7.3', '-struct', 'tmp');
-            end
-        end
-                
-        %% Compute final results
-        results(i).sequence = image_set;
-        results(i).lighting = light_number;
-        results(i).reference_image = reference_image;
-        results(i).test_image = test_image;
-        
-        % Putative matches: those whose distance ratio is below the 
-        % specified threshold
-        putative_matches = match.distRatio < self.putative_match_ratio;
-        
-        % Correct matches: putative matches that are geometrically
-        % consistent
-        correct_matches = (match.CorrectMatch == 1) & putative_matches; 
-        
-        results(i).putative_matches = sum(putative_matches);
-        results(i).correct_matches = sum(correct_matches);
-                
-        % Construct the array of coordinate pairings; used to filter
-        % out duplicates
-        pairings = [ match.coord, match.coordKey(match.matchIdx(:,1),:) ];
-        
-        results(i).putative_matches_unique = size(unique(pairings(putative_matches,:), 'rows'), 1);
-        results(i).correct_matches_unique = size(unique(pairings(correct_matches,:), 'rows'), 1);
-        
-        % Number of consistent correspondences
-        results(i).consistent_correspondences = sum(consistent_correspondences.histogram(2:end));
+%         %% Compute final results
+%         results(i).sequence = image_set;
+%         results(i).lighting = light_number;
+%         results(i).reference_image = ref_image;
+%         results(i).test_image = test_image;
+% 
+%         results(i).num_putative_matches = sum(putative_matches);
+%         results(i).num_correct_matches = sum((consistent_matches == 1) & putative_matches); % Correct matches: putative matches that are geometrically consistent
+% 
+%                 
+%         % Construct the array of coordinate pairings; used to filter
+%         % out duplicates
+%         pairings = [ match.coord, match.coordKey(match.matchIdx(:,1),:) ];
+%         
+%         results(i).putative_matches_unique = size(unique(pairings(putative_matches,:), 'rows'), 1);
+%         results(i).correct_matches_unique = size(unique(pairings(correct_matches,:), 'rows'), 1);
+%         
+%         % Number of consistent correspondences
+%         results(i).consistent_correspondences = sum(consistent_correspondences.histogram(2:end));
     end
 end

@@ -25,6 +25,9 @@ classdef DtuRobotEvaluation < handle
         % Distance ratio threshold for putative matches
         putative_match_ratio
         
+        % Image border size (for keypoint filtering)
+        filter_border
+        
         % Global cache directory settings
         cache_dir
     end
@@ -51,11 +54,14 @@ classdef DtuRobotEvaluation < handle
             parser.addParameter('bbox_padding_3d', 3e-3, @isnumeric); % 3 mm
             parser.addParameter('scale_margin', 2, @isnumeric); % 2x
             parser.addParameter('putative_match_ratio', 0.8, @isnumeric);
+            parser.addParameter('filter_border', 25, @isnumeric);
             parser.addParameter('cache_dir', '', @ischar);
             parser.parse(varargin{:});
             
             % Half-size images?
             self.half_size_images = parser.Results.half_size_images;
+            
+            self.filter_border = parser.Results.filter_border;
 
             % Parameters
             self.grid_cell_size = parser.Results.grid_cell_size;
@@ -94,6 +100,9 @@ classdef DtuRobotEvaluation < handle
         [ idx, valid ] = get_consistent_correspondences (self, grid, camera1, camera2, ref_point, ref_scale, points, scales)
         
         filename = construct_image_filename (self, image_set, image_number, light_number)
-        filename = construct_cache_filename (self, cache_dir, set_number, image_number, light_number, suffix)
+        
+        % Processing steps
+        [ keypoints, I ] = detect_keypoints_in_image (self, cache_root, I, keypoint_detector, image_set, image_number, light_number)
+        [ descriptors, keypoints ] = extract_descriptors_from_keypoints (self, cache_root, I, keypoints, keypoint_detector, descriptor_extractor, image_set, image_number, light_number)
     end
 end
