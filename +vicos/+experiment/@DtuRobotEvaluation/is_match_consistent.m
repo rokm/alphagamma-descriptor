@@ -34,8 +34,8 @@ function correct = is_match_consistent (self, grid, camera1, camera2, pt1, pt2)
     % Create a bounding box with applied padding
     sigma = sigma + self.bbox_padding_3d;
     pts3d = mu*ones(1, 8) + [ sigma(1)*[ -1,  1, -1,  1, -1,  1, -1, 1 ];
-        sigma(2)*[ -1, -1,  1,  1, -1, -1,  1, 1 ];
-        sigma(3)*[ -1, -1, -1, -1,  1,  1,  1, 1 ] ]; % Eight bounding box corners
+                              sigma(2)*[ -1, -1,  1,  1, -1, -1,  1, 1 ];
+                              sigma(3)*[ -1, -1, -1, -1,  1,  1,  1, 1 ] ]; % Eight bounding box corners
     
     % Project bounding box to second image
     pts2d = camera2 * [ pts3d; ones(1, size(pts3d, 2)) ];
