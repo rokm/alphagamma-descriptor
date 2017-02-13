@@ -1,5 +1,5 @@
-function [ correspondences, valid ] = evaluate_consistent_correspondences (self, image_set, ref_image, test_image, light_number, keypoint_detector, ref_keypoints, test_keypoints)
-    % [ correspondences, valid ] = EVALUATE_CONSISTENT_CORRESPONDENCES (self, image_set, ref_image, test_image, light_number, keypoint_detector, ref_keypoints, test_keypoints)
+function [ correspondences, valid ] = evaluate_consistent_correspondences (self, image_set, ref_image, test_image, light_number, quad3d, keypoint_detector, ref_keypoints, test_keypoints)
+    % [ correspondences, valid ] = EVALUATE_CONSISTENT_CORRESPONDENCES (self, image_set, ref_image, test_image, light_number, quad3d, keypoint_detector, ref_keypoints, test_keypoints)
     %
     % Input:
     %  - self:
@@ -21,9 +21,17 @@ function [ correspondences, valid ] = evaluate_consistent_correspondences (self,
         % Consistent correspondences
         t = tic();
 
+        % Get camera matrices
         ref_camera = self.cameras(:,:,ref_image);
         test_camera = self.cameras(:,:,test_image);
         
+        % Upscale keypoints to full-size image
+        if self.half_size_images
+            ref_keypoints = self.upscale_keypoints_to_full_image_size(ref_keypoints);
+            test_keypoints = self.upscale_keypoints_to_full_image_size(test_keypoints);
+        end
+        
+        % Pre-allocate outputs
         correspondences = cell(numel(ref_keypoints), 1);
         valid = false(numel(ref_keypoints), 1);
 
@@ -44,7 +52,7 @@ function [ correspondences, valid ] = evaluate_consistent_correspondences (self,
          % Save to cache
         if ~isempty(cache_file)
             vicos.utils.ensure_path_exists(cache_file);
-            tmp = struct('correspondences', correspondences, 'valid', valid, 'time_correspondences', time_correspondences); %#ok<NASGU>
+            tmp = struct('correspondences', {correspondences}, 'valid', valid, 'time_correspondences', time_correspondences); %#ok<NASGU>
             save(cache_file, '-v7.3', '-struct', 'tmp');
         end
     end

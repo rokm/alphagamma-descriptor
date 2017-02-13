@@ -11,8 +11,8 @@ function [ match_idx, match_dist, correct_matches, putative_matches ] = evaluate
     
     % Construct cache filename
     cache_file = '';
-    if ~isempty(cache_root)
-        cache_path = fullfile(cache_root, '_matches', sprintf('%s+%s', keypoint_detector.identifier, descriptor_extractor.identifier), sprintf('SET%03d', image_set));
+    if ~isempty(self.cache_dir)
+        cache_path = fullfile(self.cache_dir, '_matches', sprintf('%s+%s', keypoint_detector.identifier, descriptor_extractor.identifier), sprintf('SET%03d', image_set));
         cache_file = fullfile(cache_path, sprintf('SET%03d_Img%03d_%02d_Img%03d_%02d.matches.mat', image_set, ref_image, light_number, test_image, light_number));
     end
     
@@ -41,6 +41,16 @@ function [ match_idx, match_dist, correct_matches, putative_matches ] = evaluate
         % Store indices and distances
         match_idx = [ min_idx1, min_idx2 ];
         match_dist = [ min_dist1, min_dist2 ];
+        
+        % Camera matrices
+        ref_camera = self.cameras(:,:,ref_image);
+        test_camera = self.cameras(:,:,test_image);
+        
+        % Upscale keypoints to full-size image
+        if self.half_size_images
+            ref_keypoints = self.upscale_keypoints_to_full_image_size(ref_keypoints);
+            test_keypoints = self.upscale_keypoints_to_full_image_size(test_keypoints);
+        end
         
         % Determine geometric consistency of matches
         correct_matches = nan(numel(test_keypoints), 1);

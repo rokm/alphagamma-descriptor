@@ -22,10 +22,6 @@ function grid = generate_structured_light_grid (self, image_set, reference_image
     % Image dimensions
     image_width = 1600;
     image_height = 1200;
-    if self.half_size_images
-        image_width = image_width / 2;
-        image_height = image_height / 2;
-    end
     
     % Load data file
     data_file = fullfile(self.dataset_path, 'CleanRecon_2009_11_16', sprintf('Clean_Reconstruction_%02d.mat', image_set));

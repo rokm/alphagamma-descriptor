@@ -91,7 +91,7 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
         % the value is cached across all descriptors extracted from the
         % given keypoint type)
         fprintf('Evaluating consistent references for pair #%d|#%d\n', test_image, ref_image);
-        [ consistent_correspondences, valid_correspondences ] = self.evaluate_consistent_correspondences(image_set, ref_image, test_image, light_number, keypoint_detector, raw_ref_keypoints, raw_test_keypoints);
+        [ consistent_correspondences, valid_correspondences ] = self.evaluate_consistent_correspondences(image_set, ref_image, test_image, light_number, quad3d, keypoint_detector, ref_keypoints_raw, test_keypoints_raw);
         
         % FIXME: post-process and compute histogram!
         

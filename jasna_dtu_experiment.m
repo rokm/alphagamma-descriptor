@@ -7,6 +7,10 @@ function jasna_dtu_experiment (experiment_id, image_sets)
         image_sets = [ 7, 22, 49 ];
     end
     
+    %% FIXME!
+    image_sets = [ 19 ];
+    test_images = [ 1 ];
+    
     % Each experiment specifies the following options:
     %  - experiment_prefix: prefix name for the experiment (typically the
     %    keypoint detector name)
@@ -68,15 +72,15 @@ function jasna_dtu_experiment (experiment_id, image_sets)
         % Native experiment (if native descriptor extractor exists)
         if ~isempty(descriptor_extractor)
             fprintf('--- Running experiments with native descriptor ---\n');
-            dtu.run_experiment(keypoint_detector, descriptor_extractor, image_set);
+            dtu.run_experiment(keypoint_detector, descriptor_extractor, image_set, 'test_images', test_images);
         end
 
         % AG-float
         fprintf('--- Running experiments with AG-float ---\n');
-        dtu.run_experiment(keypoint_detector, alphagamma_float, image_set);
+        dtu.run_experiment(keypoint_detector, alphagamma_float, image_set, 'test_images', test_images);
 
         % AG-60B
         fprintf('--- Running experiment with AG-60B ---\n');
-        dtu.run_experiment(keypoint_detector, alphagamma_ag60b, image_set);
+        dtu.run_experiment(keypoint_detector, alphagamma_ag60b, image_set, 'test_images', test_images);
     end
 end

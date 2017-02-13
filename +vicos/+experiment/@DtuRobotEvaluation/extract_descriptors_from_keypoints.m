@@ -40,7 +40,7 @@ function [ descriptors, keypoints ] = extract_descriptors_from_keypoints (self, 
     else
         % Load image, if necessary
         if isempty(I)
-            image_file = self.construct_image_filename(image_set, reference_image, light_number);
+            image_file = self.construct_image_filename(image_set, image_number, light_number);
             I = imread(image_file);
         end
         

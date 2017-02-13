@@ -53,6 +53,13 @@ function [ keypoints, I ] = detect_keypoints_in_image (self, image_set, image_nu
         end
     end
     
+    % Sanity check; validate image size
+    if self.half_size_images
+        assert(image_size(1) == 600 && image_size(2) == 800, 'Half-sized images must be 800x600!')
+    else
+        assert(image_size(1) == 1200 && image_size(2) == 1600, 'Full-sized images must be 1600x1200!')
+    end
+    
     % Filter keypoints at image border
     image_height = image_size(1);
     image_width = image_size(2);
