@@ -30,6 +30,9 @@ classdef DtuRobotEvaluation < handle
         
         % Global cache directory settings
         cache_dir
+        
+        % Force experiments on grayscale images
+        force_grayscale
     end
     
     methods (Static)
@@ -55,6 +58,7 @@ classdef DtuRobotEvaluation < handle
             parser.addParameter('putative_match_ratio', 0.8, @isnumeric);
             parser.addParameter('filter_border', 25, @isnumeric);
             parser.addParameter('cache_dir', '', @ischar);
+            parser.addParameter('force_grayscale', false, @islogical);
             parser.parse(varargin{:});
             
             % Half-size images?
@@ -71,6 +75,9 @@ classdef DtuRobotEvaluation < handle
             
             % Global cache dir
             self.cache_dir = parser.Results.cache_dir;
+
+            % Grayscale images
+            self.force_grayscale = parser.Results.force_grayscale;
             
             % Default dataset path
             self.dataset_path = parser.Results.dataset_path;

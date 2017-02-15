@@ -42,6 +42,9 @@ function [ descriptors, keypoints ] = extract_descriptors_from_keypoints (self, 
         if isempty(I)
             image_file = self.construct_image_filename(image_set, image_number, light_number);
             I = imread(image_file);
+            if self.force_grayscale
+                I = rgb2gray(I);
+            end
         end
         
         % Augment keypoints with sequential class IDs, so we can track

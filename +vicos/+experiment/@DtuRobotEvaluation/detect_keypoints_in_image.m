@@ -37,6 +37,9 @@ function [ keypoints, I ] = detect_keypoints_in_image (self, image_set, image_nu
         if isempty(I)
             image_file = self.construct_image_filename(image_set, image_number, light_number);
             I = imread(image_file);
+            if self.force_grayscale
+                I = rgb2gray(I);
+            end
         end
         image_size = size(I);
         
