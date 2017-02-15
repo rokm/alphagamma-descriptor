@@ -16,7 +16,7 @@ function jasna_dtu_experiment (experiment_id, image_sets)
     %    descriptor
     switch lower(experiment_id)
         case 'surf'
-            keypoint_detector = vicos.keypoint_detector.SURF('HessianThreshold', 400, 'NOctaves', 3, 'NOctaveLayers', 4);
+            keypoint_detector = vicos.keypoint_detector.SURF();
             descriptor_extractor = vicos.descriptor.SURF();
             base_keypoint_size = 17.5;
         case 'sift'
@@ -24,7 +24,7 @@ function jasna_dtu_experiment (experiment_id, image_sets)
             descriptor_extractor = vicos.descriptor.SIFT();
             base_keypoint_size = 3.25;
         case 'brisk'
-            keypoint_detector = vicos.keypoint_detector.BRISK('Threshold', 60);
+            keypoint_detector = vicos.keypoint_detector.BRISK();
             descriptor_extractor = vicos.descriptor.BRISK();
             base_keypoint_size = 18.5;
         case 'orb'
