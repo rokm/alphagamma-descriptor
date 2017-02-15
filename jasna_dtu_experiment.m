@@ -58,7 +58,8 @@ function jasna_dtu_experiment (experiment_id, image_sets)
     alphagamma_ag60b = @() vicos.descriptor.AlphaGamma(alphagamma_ag60b_opts{:});
 
     %% Run experiments
-    dtu = vicos.experiment.DtuRobotEvaluation('cache_dir', '_cache_dtu');
+    output_dir = '_cache_dtu';
+    dtu = vicos.experiment.DtuRobotEvaluation('cache_dir', output_dir);
 
     for i = 1:numel(image_sets)
         image_set = image_sets(i);
