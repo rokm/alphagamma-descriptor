@@ -15,6 +15,9 @@ classdef AffineEvaluation < handle
         
         % Global cache directory settings
         cache_dir
+        
+        % Force experiments on grayscale images
+        force_grayscale
     end
     
     methods
@@ -26,6 +29,7 @@ classdef AffineEvaluation < handle
             parser.addParameter('putative_match_ratio', 0.8, @isnumeric);
             parser.addParameter('filter_border', 25, @isnumeric);
             parser.addParameter('cache_dir', '', @ischar);
+            parser.addParameter('force_grayscale', false, @islogical);
             parser.parse(varargin{:});
             
             % Parameters
@@ -35,6 +39,9 @@ classdef AffineEvaluation < handle
             
             % Global cache dir
             self.cache_dir = parser.Results.cache_dir;
+            
+            % Grayscale images
+            self.force_grayscale = parser.Results.force_grayscale;
             
             % Default dataset path
             self.dataset_path = parser.Results.dataset_path;
@@ -60,86 +67,13 @@ classdef AffineEvaluation < handle
     end
     
     methods
-        function keypoints = detect_keypoints_in_image (self, I, keypoint_detector)
-            %% FIXME: caching?
-            image_size = size(I);
-            keypoints = keypoint_detector.detect(I);
-
-            % Filter keypoints at image border
-            image_height = image_size(1);
-            image_width = image_size(2);
-
-            pts = vertcat(keypoints.pt) + 1; % C -> Matlab coordinates
-
-            valid_mask = pts(:,1) >= (1+self.filter_border) & pts(:,1) <= (image_width-self.filter_border) & pts(:,2) >= (1+self.filter_border) & pts(:,2) <= (image_height-self.filter_border);
-            keypoints(~valid_mask) = [];
+        keypoints = detect_keypoints_in_image (self, sequence, image_id, I, keypoint_detector)
             
-            %% FIXME: caching
-        end
+        [ descriptors, keypoints ] = extract_descriptors_from_keypoints (self, sequence, image_id, I, keypoint_detector, keypoints, descriptor_extractor)
         
+        [ match_idx, match_dist, correct_matches, putative_matches ] = evaluate_matches (self, sequence, ref_image_id, test_image, H21, image_size, keypoint_detector, descriptor_extractor, ref_keypoints, ref_descriptors, test_keypoints, test_descriptors)
         
-        function [ descriptors, keypoints ] = extract_descriptors_from_keypoints (self, I, keypoint_detector, keypoints, descriptor_extractor)
-            %% FIXME: caching?
-            % Augment keypoints with sequential class IDs, so we can track
-            % which points were dropped by descriptor extractor
-            assert(all([ keypoints.class_id ] == -1), 'Keypoints do not have their class_id field set to -1! This may mean that the keypoint detector/descriptor extractor is using this field for its own purposes, which is not supported by this evaluation framework!');
-
-            ids = num2cell(1:numel(keypoints));
-            [ keypoints.class_id ] = deal(ids{:});
-
-            % Extract descriptors
-            t = tic();
-            [ descriptors, keypoints ] = descriptor_extractor.compute(I, keypoints);
-            time_descriptors = toc(t);
-            
-            %% FIXME: caching
-        end        
-        
-        function [ match_idx, match_dist, correct_matches, putative_matches ] = evaluate_matches (self, H21, image_size, keypoint_detector, descriptor_extractor, ref_keypoints, ref_descriptors, test_keypoints, test_descriptors)
-            % Compute descriptor distance matrix
-            M = descriptor_extractor.compute_pairwise_distances(ref_descriptors, test_descriptors);
-
-            % For each test keypoint (row in M), find the closest match
-            Mm = M;
-            [ min_dist1, min_idx1 ] = min(Mm, [], 2); % For each test keypoint, find the closest match
-
-            % Find the next closest match (by masking the closest one)
-            cidx = sub2ind(size(Mm), [ 1:numel(min_idx1) ]', min_idx1);
-            Mm(cidx) = inf;
-            [ min_dist2, min_idx2 ] = min(Mm, [], 2);
-
-            % Store indices and distances
-            match_idx = [ min_idx1, min_idx2 ];
-            match_dist = [ min_dist1, min_dist2 ];
-
-            % Determine geometric consistency of matches
-            correct_matches = nan(numel(test_keypoints), 1);
-            for j = 1:numel(test_keypoints)
-                % Get the coordinates of the matched pair
-                pt2 = test_keypoints(j).pt;
-                pt1 = ref_keypoints(match_idx(j,1)).pt;
-            
-                % Evaluate geometric consistency; project test keypoint to
-                % reference image
-                pt2p = H21 * [ pt2, 1 ]';
-                pt2p = pt2p(1:2)' / pt2p(3);
-                
-                if pt2p(1) >= 0 && pt2p(1) < image_size(2) && pt2p(2) >= 0 && pt2p(2) < image_size(1)
-                    % Projection falls inside the reference image; check
-                    % the distance
-                    if norm(pt1 - pt2p) < self.backprojection_threshold
-                        correct_matches(j) = 1;
-                    else
-                        correct_matches(j) = 0;
-                    end
-                else
-                    % Projection falls outside the image
-                    correct_matches(j) = -1;
-                end
-            end
-
-            putative_matches = (min_dist1 ./ min_dist2) < self.putative_match_ratio;
-        end
+        [ correspondences, valid ] = evaluate_consistent_correspondences (self, sequence, ref_image_id, test_image_id, image_size, H21, keypoint_detector, ref_keypoints, test_keypoints)
     end
 end
 
