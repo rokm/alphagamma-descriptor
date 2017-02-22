@@ -128,4 +128,9 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
         % geometrically-consistent match)
         results(i).num_consistent_correspondences = sum(num_consistent_correspondences >= 1);
     end
+    
+    %% Store results
+    if ~isempty(results_file)
+        save(results_file, '-v7.3', 'results');
+    end
 end
