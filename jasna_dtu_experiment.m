@@ -3,7 +3,7 @@ function jasna_dtu_experiment (experiment_ids, varargin)
     
     % Parser
     parser = inputParser();
-    parser.addParameter('image_sets', [ 7, 22, 44 ], @isnumeric);
+    parser.addParameter('image_sets', [ 7, 22, 44 ]);
     parser.addParameter('force_grayscale', false, @islogical);
     parser.addParameter('cache_dir', '', @ischar);
     parser.parse(varargin{:});
@@ -21,7 +21,7 @@ function jasna_dtu_experiment (experiment_ids, varargin)
     end
         
     
-    %% Create DTU experiment
+    %% Create experiment
     dtu = vicos.experiment.DtuRobotEvaluation('cache_dir', cache_dir, 'force_grayscale', force_grayscale);
 
     %% Run experiment(s)

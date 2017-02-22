@@ -1,9 +1,9 @@
-function jasna_affine_experiment (experiment_ids, varargin)
-    % JASNA_AFFINE_EXPERIMENT (experiment_ids, varargin)
+function jasna_webcam_experiment (experiment_ids, varargin)
+    % JASNA_WEBCAM_EXPERIMENT (experiment_ids, varargin)
     
     % Parser
     parser = inputParser();
-    parser.addParameter('sequences', { 'bikes', 'trees', 'leuven', 'boat', 'graffiti', 'wall' });
+    parser.addParameter('sequences', 'Frankfurt');
     parser.addParameter('force_grayscale', false, @islogical);
     parser.addParameter('cache_dir', '', @ischar);
     parser.parse(varargin{:});
@@ -14,19 +14,19 @@ function jasna_affine_experiment (experiment_ids, varargin)
     
     % Default cache dir
     if isempty(cache_dir)
-        cache_dir = '_cache_affine';
+        cache_dir = '_cache_webcam';
         if force_grayscale
             cache_dir = [ cache_dir, '-gray' ];
         end
     end
-        
+    
     % If only one sequence is given, make it into cell array
     if ~iscell(sequences)
         sequences = { sequences };
     end
     
     %% Create experiment
-    dtu = vicos.experiment.AffineEvaluation('cache_dir', cache_dir, 'force_grayscale', force_grayscale);
+    dtu = vicos.experiment.WebcamEvaluation('cache_dir', cache_dir, 'force_grayscale', force_grayscale);
 
     %% Run experiment(s)
     % If only one ID is given, make it into cell array
