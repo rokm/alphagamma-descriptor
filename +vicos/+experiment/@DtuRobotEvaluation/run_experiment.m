@@ -8,8 +8,6 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
     %    instance
     %  - image_set: image set to perform experiment on.
     %  - varargin: optional key/value pairs
-    %    - cache_dir: cache directory; default: use global cache dir
-    %      setting
     %    - reference_image: reference/key image to which all others
     %     are compared (default: 25)
     %    - test_images: list of test images; default: all (1~119)
@@ -20,13 +18,11 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
     parser.addParameter('reference_image', 25, @isnumeric);
     parser.addParameter('test_images', [], @isnumeric);
     parser.addParameter('light_number', 8, @isnumeric);
-    parser.addParameter('cache_dir', self.cache_dir, @ischar);
     parser.parse(varargin{:});
     
     ref_image = parser.Results.reference_image;
     test_images = parser.Results.test_images;
     light_number = parser.Results.light_number;
-    cache_root = parser.Results.cache_dir;
     
     % Keypoint detector
     if isa(keypoint_detector, 'function_handle')

@@ -8,15 +8,11 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
     %    instance
     %  - sequence: image sequence to perform experiment on.
     %  - varargin: optional key/value pairs
-    %    - cache_dir: cache directory; default: use global cache dir
-    %      setting
         
     % Parse arguments
     parser = inputParser();
-    parser.addParameter('cache_dir', self.cache_dir, @ischar);
     parser.parse(varargin{:});
     
-    cache_root = parser.Results.cache_dir;
     ref_image = '';
     test_images = {};
     

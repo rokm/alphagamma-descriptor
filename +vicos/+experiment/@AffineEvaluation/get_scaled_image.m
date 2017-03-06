@@ -19,10 +19,6 @@ function [ I1, I2, H12 ] = get_scaled_image (self, sequence, img, scale)
     % homography assumes a 0-based coordinate system (unlike the
     % Matlab's 1-based image coordinate system)
     
-    % Validate parameters
-    assert(ismember(sequence, self.valid_sequences), 'Invalid sequence name!');
-    assert(img >= 1 && img <= 6, 'Image must be #1..#6!'); % TODO - FIXME!
-    
     % Load
     data_path = fullfile(self.dataset_path, sequence);
     

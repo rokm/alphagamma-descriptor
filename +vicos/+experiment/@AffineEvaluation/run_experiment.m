@@ -8,15 +8,21 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
     %    instance
     %  - sequence: image sequence to perform experiment on.
     %  - varargin: optional key/value pairs
-    %    - cache_dir: cache directory; default: use global cache dir
-    %      setting
+    %    - experiment_type: experiment type (pairs, rotation, scale, shear)
+    %    - test_images: vector of test image numbers (if experiment_type is
+    %      pairs) or deformation parameter values (i.e., angles for
+    %      rotation, scale factors for scale, or shear values for shear)
         
     % Parse arguments
     parser = inputParser();
-    parser.addParameter('cache_dir', self.cache_dir, @ischar);
+    parser.addParameter('experiment_type', 'pairs', @ischar);
+    parser.addParameter('test_images', [], @isnumeric);
     parser.parse(varargin{:});
+        
+    experiment_type = parser.Results.experiment_type;
+    assert(ismember(experiment_type, { 'pairs', 'rotation', 'scale', 'shear' }), 'Invalid experiment type: %s!', experiment_type);
     
-    cache_root = parser.Results.cache_dir;
+    test_images = parser.Results.test_images;
     
     % Keypoint detector
     if isa(keypoint_detector, 'function_handle')
@@ -31,20 +37,36 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
     assert(isa(descriptor_extractor, 'vicos.descriptor.Descriptor'), 'Invalid descriptor extractor!');
     
     % Default test images
-    %if isempty(test_images)
-        % All but reference
-        test_images = 2:6;
-    %end
+    if isempty(test_images)
+        switch experiment_type
+            case 'pairs'
+                test_images = 2:6; % All but reference
+            case 'rotation'
+                test_images = -180:5:180; % Rotation angles
+            case 'scale'
+                test_images = 0.50:0.05:1.50; % Scale factors
+            case 'shear'
+                test_images = -0.65:0.05:0.65; % Shear factors
+            otherwise
+                error('Default test images not defined for experiment type: %s!', experiment_type);
+        end
+    end
     
     % Results filename (caching)
     results_file = '';
     if ~isempty(self.cache_dir)
-        results_file = sprintf('%s_%s+%s', sequence, keypoint_detector.identifier, descriptor_extractor.identifier);
+        if isequal(experiment_type, 'pairs')
+            % No prefix for pairs (default) experiment type
+            results_file = sprintf('%s_%s+%s', sequence, keypoint_detector.identifier, descriptor_extractor.identifier);
+        else
+            results_file = sprintf('%s_%s_%s+%s', experiment_type, sequence, keypoint_detector.identifier, descriptor_extractor.identifier);
+        end
         results_file = fullfile(self.cache_dir, results_file);
     end
     
     if ~isempty(results_file) && exist(results_file, 'file')
         tmp = load(results_file);
+        assert(isequal(tmp.experiment_type, experiment_type), 'Sanity check on results failed!'); % Sanity check
         results = tmp_results;
         return;
     end
@@ -66,12 +88,28 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
         ref_image = 1;
         test_image = test_images(i);
         
-         fprintf('Processing test image #%d/%d (seq %s, ref %d, test %d)\n', i, numel(test_images), sequence, ref_image, test_image);
+         fprintf('Processing test image #%d/%d (%s: seq %s, ref %d, test %g)\n', i, numel(test_images), experiment_type, sequence, ref_image, test_image);
 
          ref_image_id = sprintf('img%d', ref_image);
-         test_image_id = sprintf('img%d', test_image);
          
-         [ I1, I2, H12 ] = self.get_image_pair(sequence, ref_image, test_image);
+         % Handle different experiment types
+         switch experiment_type
+             case 'pairs'
+                 test_image_id = sprintf('img%d', test_image);
+                 [ I1, I2, H12 ] = self.get_image_pair(sequence, ref_image, test_image);
+            case 'rotation'
+                 test_image_id = sprintf('img%d-rotation%g', ref_image, test_image);
+                 [ I1, I2, H12 ] = self.get_rotated_image(sequence, ref_image, test_image);
+            case 'scale'
+                 test_image_id = sprintf('img%d-scale%g', ref_image, test_image);
+                 [ I1, I2, H12 ] = self.get_scaled_image(sequence, ref_image, test_image);
+            case 'shear'
+                 test_image_id = sprintf('img%d-shear%g-%g', ref_image, test_image, test_image);
+                 [ I1, I2, H12 ] = self.get_sheared_image(sequence, ref_image, test_image, test_image);
+             otherwise
+                 error('Unhandled experiment type: %s!', experiment_type);
+         end
+         
          H21 = inv(H12); % Invert the projection matrix (image 1 is our reference image, so we need projection into it, not from it)
          
          if self.force_grayscale
@@ -131,6 +169,6 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
     
     %% Store results
     if ~isempty(results_file)
-        save(results_file, '-v7.3', 'results');
+        save(results_file, '-v7.3', 'results', 'experiment_type');
     end
 end

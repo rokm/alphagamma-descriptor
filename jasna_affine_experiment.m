@@ -3,11 +3,13 @@ function jasna_affine_experiment (experiment_ids, varargin)
     
     % Parser
     parser = inputParser();
-    parser.addParameter('sequences', { 'bikes', 'trees', 'leuven', 'boat', 'graffiti', 'wall' });
+    parser.addParameter('experiment_type', 'pairs', @ischar);
+    parser.addParameter('sequences', {});
     parser.addParameter('force_grayscale', false, @islogical);
     parser.addParameter('cache_dir', '', @ischar);
     parser.parse(varargin{:});
     
+    experiment_type = parser.Results.experiment_type;
     sequences = parser.Results.sequences;
     force_grayscale = parser.Results.force_grayscale;
     cache_dir = parser.Results.cache_dir;
@@ -15,11 +17,25 @@ function jasna_affine_experiment (experiment_ids, varargin)
     % Default cache dir
     if isempty(cache_dir)
         cache_dir = '_cache_affine';
+        
+        if ~isequal(experiment_type, 'pairs')
+            cache_dir = [ cache_dir, '-', experiment_type ];
+        end
+        
         if force_grayscale
             cache_dir = [ cache_dir, '-gray' ];
         end
     end
-        
+    
+    % Default sequences (for non-pairs, use only graffiti)
+    if isempty(sequences)
+        if isequal(experiment_type, 'pairs')
+            sequences = { 'bikes', 'trees', 'leuven', 'boat', 'graffiti', 'wall' };
+        else
+            sequences = 'graffiti';
+        end
+    end
+    
     % If only one sequence is given, make it into cell array
     if ~iscell(sequences)
         sequences = { sequences };
@@ -90,16 +106,16 @@ function jasna_affine_experiment (experiment_ids, varargin)
             % Native experiment (if native descriptor extractor exists)
             if ~isempty(descriptor_extractor)
                 fprintf('--- Running experiments with native descriptor ---\n');
-                dtu.run_experiment(keypoint_detector, descriptor_extractor, sequence);
+                dtu.run_experiment(keypoint_detector, descriptor_extractor, sequence, 'experiment_type', experiment_type);
             end
 
             % AG-float
             fprintf('--- Running experiments with AG-float ---\n');
-            dtu.run_experiment(keypoint_detector, alphagamma_float, sequence);
+            dtu.run_experiment(keypoint_detector, alphagamma_float, sequence, 'experiment_type', experiment_type);
 
             % AG-60B
             fprintf('--- Running experiment with AG-60B ---\n');
-            dtu.run_experiment(keypoint_detector, alphagamma_ag60b, sequence);
+            dtu.run_experiment(keypoint_detector, alphagamma_ag60b, sequence, 'experiment_type', experiment_type);
         end
     end
 end
