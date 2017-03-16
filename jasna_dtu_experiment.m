@@ -71,11 +71,11 @@ function jasna_dtu_experiment (experiment_ids, varargin)
         % normalization, use external keypoint orientation, apply bilinear
         % sampling, use bitstrings (applicable to binarized version only)
         alphagamma_common_opts = { 'orientation_normalized', true, 'scale_normalized', true, 'compute_orientation', false, 'bilinear_sampling', true, 'use_bitstrings', true };
-        alphagamma_float_opts  = [ 'identifier', 'AG', alphagamma_common_opts, { 'non_binarized_descriptor', true,  'num_rays', 13, 'num_circles',  9,  'circle_step', sqrt(2)*1.104, 'base_keypoint_size', base_keypoint_size(1) } ];
-        alphagamma_ag60b_opts  = [ 'identifier', 'AG-60B', alphagamma_common_opts, { 'non_binarized_descriptor', false, 'num_rays', 23, 'num_circles', 10,  'circle_step',sqrt(2)*1.042, 'base_keypoint_size', base_keypoint_size(2) } ];
+        alphagamma_float_opts  = [ 'identifier', 'AG',  alphagamma_common_opts, { 'non_binarized_descriptor', true,  'num_rays', 13, 'num_circles',  9,  'circle_step', sqrt(2)*1.104, 'base_keypoint_size', base_keypoint_size(1) } ];
+        alphagamma_short_opts  = [ 'identifier', 'AGS', alphagamma_common_opts, { 'non_binarized_descriptor', false, 'num_rays', 23, 'num_circles', 10,  'circle_step', sqrt(2)*1.042, 'base_keypoint_size', base_keypoint_size(2) } ];
 
         alphagamma_float = @() vicos.descriptor.AlphaGamma(alphagamma_float_opts{:});
-        alphagamma_ag60b = @() vicos.descriptor.AlphaGamma(alphagamma_ag60b_opts{:});
+        alphagamma_short = @() vicos.descriptor.AlphaGamma(alphagamma_short_opts{:});
 
         % Run experiments
         for i = 1:numel(image_sets)
@@ -94,8 +94,8 @@ function jasna_dtu_experiment (experiment_ids, varargin)
             dtu.run_experiment(keypoint_detector, alphagamma_float, image_set);
 
             % AG-60B
-            fprintf('--- Running experiment with AG-60B ---\n');
-            dtu.run_experiment(keypoint_detector, alphagamma_ag60b, image_set);
+            fprintf('--- Running experiment with AG-short ---\n');
+            dtu.run_experiment(keypoint_detector, alphagamma_short, image_set);
         end
     end
 end
