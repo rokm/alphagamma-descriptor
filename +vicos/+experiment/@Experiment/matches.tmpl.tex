@@ -1,0 +1,45 @@
+% This figure was generated from template using
+% vicos.experiment.Experiment.visualize_matches()
+
+\documentclass[tikz]{standalone}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+
+\usepackage{siunitx}
+\sisetup{detect-weight=true, detect-family=true}
+
+\usepackage[outline]{contour}
+
+\usepackage{fix-cm}
+
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.10}
+
+\begin{document}
+	
+\begin{tikzpicture}
+
+\begin{axis}[%
+	width=$$FIG_WIDTH$$,
+	height=$$FIG_HEIGHT$$,
+	scale only axis,
+	axis on top,
+	xmin=$$X_MIN$$,
+	xmax=$$X_MAX$$,
+	tick align=outside,
+	y dir=reverse,
+	ymin=$$Y_MIN$$,
+	ymax=$$Y_MAX$$,
+	axis line style={draw=none},
+	ticks=none
+]
+\addplot [forget plot] graphics [xmin=$$X_MIN$$, xmax=$$X_MAX$$, ymin=$$Y_MIN$$, ymax=$$Y_MAX$$] {image};%
+\addplot[-,color=red,mark=*,mark options={solid},mark size=0.75pt,line width=.5pt] table {incorrect.txt};%
+\addplot[-,color=green,mark=*,mark options={solid},mark size=0.75pt,line width=.5pt] table {correct.txt};%
+
+\node at (axis cs: $$X_MIN$$,$$Y_MIN$$) [$$CAPTION_LEFT_SPEC$$] {\contour{$$CAPTION_COLOR$$}{$$CAPTION_LEFT$$}};
+\node at (axis cs: $$X_MAX$$,$$Y_MIN$$) [$$CAPTION_RIGHT_SPEC$$] {\contour{$$CAPTION_COLOR$$}{$$CAPTION_RIGHT$$}};
+
+\end{axis}
+\end{tikzpicture}%
+\end{document}

@@ -17,12 +17,15 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
     parser = inputParser();
     parser.addParameter('experiment_type', 'pairs', @ischar);
     parser.addParameter('test_images', [], @isnumeric);
+    parser.addParameter('visualize_correct_matches', false, @islogical);
     parser.parse(varargin{:});
         
     experiment_type = parser.Results.experiment_type;
     assert(ismember(experiment_type, { 'pairs', 'rotation', 'scale', 'shear' }), 'Invalid experiment type: %s!', experiment_type);
     
     test_images = parser.Results.test_images;
+    
+    visualize_correct_matches = parser.Results.visualize_correct_matches;
     
     % Keypoint detector
     if isa(keypoint_detector, 'function_handle')
@@ -165,6 +168,11 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
         % Number of consistent correspondences (at least one
         % geometrically-consistent match)
         results(i).num_consistent_correspondences = sum(num_consistent_correspondences >= 1);
+        
+        %% Visualization of matches
+        if visualize_correct_matches
+            self.visualize_matches(I1, I2, ref_keypoints, test_keypoints, match_idx, putative_matches, consistent_matches);
+        end
     end
     
     %% Store results

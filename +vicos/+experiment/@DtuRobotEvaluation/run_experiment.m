@@ -18,11 +18,13 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
     parser.addParameter('reference_image', 25, @isnumeric);
     parser.addParameter('test_images', [], @isnumeric);
     parser.addParameter('light_number', 8, @isnumeric);
+    parser.addParameter('visualize_matches', false, @islogical);
     parser.parse(varargin{:});
     
     ref_image = parser.Results.reference_image;
     test_images = parser.Results.test_images;
     light_number = parser.Results.light_number;
+    visualize_matches = parser.Results.visualize_matches;
     
     % Keypoint detector
     if isa(keypoint_detector, 'function_handle')
@@ -146,6 +148,18 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
         % Number of consistent correspondences (at least one
         % geometrically-consistent match)
         results(i).num_consistent_correspondences = sum(num_consistent_correspondences >= 1);
+
+        %% Visualization of matches
+        if visualize_matches
+            tikz_output_path = '';
+            if ~isempty(self.cache_dir)
+                tikz_output_path = fullfile(self.cache_dir, sprintf('SET%03d_Img%03d_%02d_Img%03d_%02d_%s_%s', image_set, ref_image, light_number, test_image, light_number, keypoint_detector.identifier, descriptor_extractor.identifier));
+            end
+            % Always load images
+            Ir_ = imread(self.construct_image_filename(image_set, ref_image, light_number));
+            It_ = imread(self.construct_image_filename(image_set, test_image, light_number));
+            self.visualize_matches(Ir_, It_, ref_keypoints, test_keypoints, match_idx, putative_matches, consistent_matches, 'tikz_code_path', tikz_output_path);
+        end
     end
     
     %% Store results

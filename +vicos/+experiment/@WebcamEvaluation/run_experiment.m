@@ -11,10 +11,14 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
         
     % Parse arguments
     parser = inputParser();
+    parser.addParameter('reference_image', '', @ischar);
+    parser.addParameter('test_images', {}, @iscell);
+    parser.addParameter('visualize_matches', false, @islogical);
     parser.parse(varargin{:});
     
-    ref_image = '';
-    test_images = {};
+    ref_image = parser.Results.reference_image;
+    test_images = parser.Results.test_images;
+    visualize_matches = parser.Results.visualize_matches;
     
     % Keypoint detector
     if isa(keypoint_detector, 'function_handle')
@@ -86,9 +90,11 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
     %% Process reference image
     [ ~, ref_image_id ] = fileparts(ref_image); % Strip suffix
     
-    Ir = imread(fullfile(sequence_dir, ref_image));
+    Ir_ = imread(fullfile(sequence_dir, ref_image));
     if self.force_grayscale
-        Ir = rgb2gray(Ir);
+        Ir = rgb2gray(Ir_);
+    else
+        Ir = Ir_;
     end
     
     ref_keypoints_raw = self.detect_keypoints_in_image(sequence, ref_image_id, Ir, keypoint_detector);
@@ -102,9 +108,11 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
 
          [ ~, test_image_id ] = fileparts(test_image); % Strip suffix
          
-         It = imread(fullfile(sequence_dir, test_image));
+         It_ = imread(fullfile(sequence_dir, test_image));
          if self.force_grayscale
-             It = rgb2gray(It);
+             It = rgb2gray(It_);
+         else
+             It = It_;
          end
          
          H21 = eye(3); % As we are using the AffineExperiment framework, we need transformation matrix, which is identity
@@ -153,6 +161,15 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
         % Number of consistent correspondences (at least one
         % geometrically-consistent match)
         results(i).num_consistent_correspondences = sum(num_consistent_correspondences >= 1);
+        
+        %% Visualization of matches
+        if visualize_matches
+            tikz_output_path = '';
+            if ~isempty(self.cache_dir)
+                tikz_output_path = fullfile(self.cache_dir, sprintf('%s_%s_%s_%s_%s', sequence, ref_image_id, test_image_id, keypoint_detector.identifier, descriptor_extractor.identifier));
+            end
+            self.visualize_matches(Ir_, It_, ref_keypoints, test_keypoints, match_idx, putative_matches, consistent_matches, 'tikz_code_path', tikz_output_path);
+        end
     end
     
     %% Store results

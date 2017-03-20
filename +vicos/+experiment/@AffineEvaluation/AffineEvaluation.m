@@ -1,4 +1,4 @@
-classdef AffineEvaluation < handle
+classdef AffineEvaluation < vicos.experiment.Experiment
     properties
         % Dataset path
         dataset_path

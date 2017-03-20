@@ -1,4 +1,4 @@
-classdef DtuRobotEvaluation < handle
+classdef DtuRobotEvaluation < vicos.experiment.Experiment
     properties
         % Dataset path
         dataset_path
