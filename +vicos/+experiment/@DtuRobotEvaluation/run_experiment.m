@@ -19,12 +19,14 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
     parser.addParameter('test_images', [], @isnumeric);
     parser.addParameter('light_number', 8, @isnumeric);
     parser.addParameter('visualize_matches', false, @islogical);
+    parser.addParameter('visualization_parameters', {}, @iscell);
     parser.parse(varargin{:});
     
     ref_image = parser.Results.reference_image;
     test_images = parser.Results.test_images;
     light_number = parser.Results.light_number;
     visualize_matches = parser.Results.visualize_matches;
+    visualization_parameters = parser.Results.visualization_parameters;
     
     % Keypoint detector
     if isa(keypoint_detector, 'function_handle')
@@ -158,7 +160,7 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
             % Always load images
             Ir_ = imread(self.construct_image_filename(image_set, ref_image, light_number));
             It_ = imread(self.construct_image_filename(image_set, test_image, light_number));
-            self.visualize_matches(Ir_, It_, ref_keypoints, test_keypoints, match_idx, putative_matches, consistent_matches, 'tikz_code_path', tikz_output_path);
+            self.visualize_matches(Ir_, It_, ref_keypoints, test_keypoints, match_idx, putative_matches, consistent_matches, 'tikz_code_path', tikz_output_path, visualization_parameters{:});
         end
     end
     

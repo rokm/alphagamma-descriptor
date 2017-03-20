@@ -7,11 +7,15 @@ function visualize_matches (self, I1, I2, kpts1, kpts2, match_idx, putative_matc
     parser.addParameter('pad', 10, @isnumeric);
     parser.addParameter('tikz_code_path', '', @ischar);
     parser.addParameter('caption_color', 'green', @ischar);
+    parser.addParameter('show_incorrect', false, @islogical);
+    parser.addParameter('image_scale', 1.0, @isnumeric);
     parser.parse(varargin{:});
     
     hpad = parser.Results.pad;
     tikz_code_path = parser.Results.tikz_code_path;
     caption_color = parser.Results.caption_color;
+    show_incorrect = parser.Results.show_incorrect;
+    image_scale = parser.Results.image_scale;
     
     %% Gather correct-match pairings
     correct_matches = (consistent_matches == 1) & putative_matches;
@@ -74,6 +78,10 @@ function visualize_matches (self, I1, I2, kpts1, kpts2, match_idx, putative_matc
         text_handle.Position(1) = wo - 5 - text_handle.Extent(3);
         text_handle.Position(2) = text_handle.Extent(4)/2;
         
+        if show_incorrect
+            warning('FIXME: implement show_incorrect!');
+        end
+        
         drawnow();
     else
         % Tikz output
@@ -123,6 +131,9 @@ function visualize_matches (self, I1, I2, kpts1, kpts2, match_idx, putative_matc
         
         % Write image
         output_filename = fullfile(tikz_code_path, 'image.jpg');
+        if image_scale ~= 1
+            I = imresize(I, image_scale);
+        end
         imwrite(I, output_filename);
         
         % Write correct matches data
@@ -136,6 +147,9 @@ function visualize_matches (self, I1, I2, kpts1, kpts2, match_idx, putative_matc
         % Write incorrect matches data
         output_filename = fullfile(tikz_code_path, 'incorrect.txt');
         fid = fopen(output_filename, 'w+');
+        if show_incorrect
+            warning('FIXME: implement show_incorrect!');
+        end
         fclose(fid);
     end
 end

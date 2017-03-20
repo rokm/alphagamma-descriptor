@@ -18,6 +18,7 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
     parser.addParameter('experiment_type', 'pairs', @ischar);
     parser.addParameter('test_images', [], @isnumeric);
     parser.addParameter('visualize_correct_matches', false, @islogical);
+    parser.addParameter('visualization_parameters', {}, @iscell);
     parser.parse(varargin{:});
         
     experiment_type = parser.Results.experiment_type;
@@ -26,6 +27,7 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
     test_images = parser.Results.test_images;
     
     visualize_correct_matches = parser.Results.visualize_correct_matches;
+    visualization_parameters = parser.Results.visualization_parameters;
     
     % Keypoint detector
     if isa(keypoint_detector, 'function_handle')
@@ -171,7 +173,11 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
         
         %% Visualization of matches
         if visualize_correct_matches
-            self.visualize_matches(I1, I2, ref_keypoints, test_keypoints, match_idx, putative_matches, consistent_matches);
+            tikz_output_path = '';
+            if ~isempty(self.cache_dir)
+                tikz_output_path = fullfile(self.cache_dir, sprintf('%s_%s_%s_%s_%s', sequence, ref_image_id, test_image_id, keypoint_detector.identifier, descriptor_extractor.identifier));
+            end
+            self.visualize_matches(I1, I2, ref_keypoints, test_keypoints, match_idx, putative_matches, consistent_matches, 'tikz_code_path', tikz_output_path, visualization_parameters{:});
         end
     end
     
