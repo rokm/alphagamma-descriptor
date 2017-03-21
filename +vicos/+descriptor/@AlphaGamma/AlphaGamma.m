@@ -331,7 +331,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                 if isempty(self.filters{i})
                     pyramid(:,:,i) = pyramid(:,:,i-1);
                 else
-                    pyramid(:,:,i) = filter2(self.filters{i}, pyramid(:,:,i-1));
+                    pyramid(:,:,i) = filter2(self.filters{i}, pyramid(:,:,1));
                 end
             end
         end
@@ -344,7 +344,19 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             assert(size(desc1, 2) == expected_size, 'Invalid desc1 dimension!');
             assert(size(desc2, 2) == expected_size, 'Invalid desc2 dimension!');
             
-            if self.non_binarized_descriptor  
+            if self.non_binarized_descriptor
+                % Apply distance weights to descriptors - alternatively, we
+                % could compute separate distances between alpha and gamma
+                % parts, and perform weighted sums. Also, the weights could
+                % be applied when computing descriptors instead of when
+                % computing distances, but the latter seems slightly
+                % cleaner...
+                desc1(:,1:self.num_circles) = self.A * desc1(:,1:self.num_circles);
+                desc1(:,self.num_circles+1:end) = self.G * desc1(:,self.num_circles+1:end);
+                
+                desc2(:,1:self.num_circles) = self.A * desc2(:,1:self.num_circles);
+                desc2(:,self.num_circles+1:end) = self.G * desc2(:,self.num_circles+1:end);
+                
                 % Compute the distances using cv::batchDistance(); in order to
                 % get an N2xN1 matrix, we switch desc1 and desc2
                 distances = cv.batchDistance(desc2, desc1, 'K', 0, 'NormType', 'L1');
