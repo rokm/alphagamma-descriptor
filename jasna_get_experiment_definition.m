@@ -38,7 +38,7 @@ function [ keypoint_detector, descriptor_extractor, alphagamma_float, alphagamma
             descriptor_extractor = @() vicos.descriptor.KAZE('Extended', false);
             base_keypoint_size = 4.75;
         case 'radial'
-            keypoint_detector = @() vicos.keypoint_detector.FeatureRadial('SaliencyThreshold', 0);
+            keypoint_detector = @() vicos.keypoint_detector.FeatureRadial('MaxFeatures', 15000);
             descriptor_extractor = [];
             base_keypoint_size = [ 8.25, 8.0 ];
         otherwise
