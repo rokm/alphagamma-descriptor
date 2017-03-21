@@ -26,9 +26,9 @@ function jasna_visualizations_webcam (varargin)
         experiment_ids = { 'sift', 'surf', 'kaze', 'brisk', 'orb', 'radial' };
     end
     
-    % Default sequences (for non-pairs, use only graffiti)
+    % Default sequences
     if isempty(sequences)
-        sequences = { 'Frankfurt',  '20131230_142421.png', '20130806_082410.png';
+        sequences = { 'Frankfurt',  '20131230_142421.png', '20130909_085406.png';
                       'Courbevoie', '20131007_155702.png', '20140515_102704.png';
                       'Mexico',     '20130102_151723.png', '20130526_144728.png' };
     end
