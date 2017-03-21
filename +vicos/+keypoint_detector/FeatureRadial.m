@@ -1,11 +1,18 @@
 classdef FeatureRadial < vicos.keypoint_detector.KeypointDetector
     % FEATURERADIAL - Radial feature detector
+    %
+    % RADIAL feature detector from:
+    % J. Maver, "Self-similarity and points of interest," IEEE Transactions
+    % on Pattern Analysis and Machine Intelligence, vol. 32, no. 7, 
+    % pp. 1211-1226, 2010.
     
     properties
-        saliency_threshold
+        max_features
+        
         variance_threshold
         
         num_circles
+        min_circle
         
         num_points
         filters
@@ -18,32 +25,42 @@ classdef FeatureRadial < vicos.keypoint_detector.KeypointDetector
             % Creates Radial feature detector.
             %
             % Input: optional key/value pairs
-            %  - Threshold:
-            %  - NumScales:
+            %  - VarianceThreshold: value of threshold for variance maps
+            %    (default: 0.5)
+            %  - NumCircles: number of sampling circles (default: 10)
+            %  - MinCircle: minimum keypoint radius (default: 5)
+            %  - MaxFeatures: maximum number of returned keypoints
+            %    (default: inf).
+            %
+            % Output:
+            %  - self:
             
+            % Parse command-line parameters
             parser = inputParser();
             parser.KeepUnmatched = true;
-            parser.addParameter('SaliencyThreshold', 0.3, @isnumeric);
-            parser.addParameter('VarianceThreshold', 3.75, @isnumeric);
+            parser.addParameter('VarianceThreshold', 0.5, @isnumeric);
             parser.addParameter('NumCircles', 10 , @isnumeric);
+            parser.addParameter('MinCircle', 5, @isnumeric);
+            parser.addParameter('MaxFeatures', inf, @isnumeric);
             parser.parse(varargin{:});
             
             self = self@vicos.keypoint_detector.KeypointDetector(parser.Unmatched);
             
-            self.saliency_threshold = parser.Results.SaliencyThreshold;
             self.variance_threshold = parser.Results.VarianceThreshold;
             self.num_circles = parser.Results.NumCircles;
+            self.min_circle = parser.Results.MinCircle;
+            self.max_features = parser.Results.MaxFeatures;
             
-            % Pre-compute the filters
+            % Pre-compute the sampling filters
             self.num_points = 11*(self.num_circles + 1);
             
             self.filters = cell(self.num_circles, 1);
             
             M = self.num_circles;
             N = self.num_points;
-            for i = 1:M,
+            for i = 1:M
                 filter = zeros((i-1)*2 + 1, (i-1)*2 + 1);
-                for j = 1:N,
+                for j = 1:N
                     r = i - 1;
                     x = i + round(r * cos(2*pi/N*(j-1)));
                     y = i + round(r * sin(2*pi/N*(j-1)));
@@ -55,17 +72,16 @@ classdef FeatureRadial < vicos.keypoint_detector.KeypointDetector
             end
         end
         
-        
-        function keypoints = detect (self, I)
+        function keypoints = detect (self, I)    
             % Handle 3-channel images
-            if size(I, 3) == 3,
+            if size(I, 3) == 3
                 I = rgb2gray(I);
             end
             
             im_orig = double(I);
             im = im_orig;
             max_intensity = max(im(:));
-                        
+            
             % Compute number of octaves
             M = self.num_circles;
             N = self.num_points;
@@ -73,7 +89,7 @@ classdef FeatureRadial < vicos.keypoint_detector.KeypointDetector
             d = min(size(im, 1), size(im, 2));
             num_octaves = 1;
             
-            while (d - 1)/2 > (2*M + 2),
+            while (d - 1)/2 > (2*M + 2)
                 num_octaves = num_octaves + 1;
                 d = d/2;
             end
@@ -83,83 +99,85 @@ classdef FeatureRadial < vicos.keypoint_detector.KeypointDetector
             im = imresize(im_orig, 2);
             
             % Process all octaves
-            features = [];
-            for t = 1:num_octaves,
+            features = zeros(5, 0);
+            for t = 1:num_octaves
                 height = size(im, 1);
                 width = size(im, 2);
                 
-                saliency = zeros(height, width, M);
-                n_average_x = zeros(height, width, M);
-                total_ss = zeros(height, width, M);
+                % Initialize maps (once map for each sampling circle size)
+                saliency = zeros(height, width, M); % Saliency maps
+                avg = zeros(height, width, M);  % Average of local region weight(1/r) multplied by number of samples
+                norm_std = zeros(height, width, M); % Normalized variance, used for thresholding
                 
                 im2 = im.^2;
                 
-                % Initialization for anulli
-                sum_st  = filter2(self.filters{1}, im,  'same');
-                sum_st2 = filter2(self.filters{1}, im2, 'same');
+                % Initialize for center point (first circle)
+                C = filter2(self.filters{1}, im, 'same'); % Sample intensities witht the given circle, sum up
                 
-                n_average_x(:,:,1) = sum_st;
-                n_average_x2 = n_average_x(:,:,1).^2;
-                x_2 = sum_st2;
-                xyc = n_average_x2;
+                avg(:,:,1) = C;
+                C2 = C.^2; % Sum of squared C-maps
                 
-                % Anulli
-                for r = 2:M,
-                    n = r*N;
-                    sum_st  = filter2(self.filters{r}, im,  'same');
-                    sum_st2 = filter2(self.filters{r}, im2, 'same');
+                x2 = filter2(self.filters{1}, im2, 'same'); % Sample squared intensities, sum up
+                
+                % Compute saliency maps (sampling with all circles)
+                for r = 2:M
+                    n = r*N; % Number of samples (on all circles so far)
                     
-                    x_2 = x_2 + sum_st2;
-                    n_average_x(:,:,r) = n_average_x(:,:,r-1) + sum_st;
+                    C = filter2(self.filters{r}, im, 'same'); % Sample intensities on the r-th circle, sum up
                     
-                    n_average_x2 = n_average_x(:,:,r).^2;
-                    xyc = xyc + sum_st.^2;
-                    total_ss(:,:,r) = (x_2-n_average_x2/n) + eps;
-                    saliency(:,:,r) = (xyc-n_average_x2/r)./total_ss(:,:,r)/N;
+                    avg(:,:,r) = avg(:,:,r-1) + C; % Update average
+                    avg2 = avg(:,:,r).^2;
                     
-                    total_ss(:,:,r) = sqrt((xyc-n_average_x2/r)/N/r/max_intensity);
+                    C2 = C2 + C.^2; % Update sum of squared C-maps
                     
-                    saliency(:,:,r) = averaging(saliency(:,:,r));
+                    % Update sum of squared intensity values (add sample on
+                    % r-th circle)
+                    x2 = x2 + filter2(self.filters{r}, im2, 'same');
+                    
+                    % Saliency map for r-th circle
+                    saliency(:,:,r) = (C2 - avg2/r) ./ (N * (x2 - avg2/n + eps));
+                    saliency(:,:,r) = averaging_filter(saliency(:,:,r)); % Smooth with averaging filter
+                    
+                    % Intensity-normalized variance map, used for
+                    % thresholding
+                    norm_std(:,:,r) = sqrt((C2 - avg2/r) / (n*max_intensity^2));
                 end
                 
-                if t == 1,
-                    R_min = 5;
-                else
-                    R_min = floor((M+1)/2);
-                end
+                % Detect features and compute their orientations
+                features_t = find_local_scale_space_maxima(self.min_circle, t, saliency, norm_std, avg, self.variance_threshold);
                 
-                features = vertcat(features, find_LSSM(R_min, t, saliency, total_ss, self.saliency_threshold, self.variance_threshold, n_average_x));
+                % Append along 2nd dimension!
+                features = [ features, features_t' ];  %#ok<AGROW>
                 
-                % Prepare image for next octave
-                if t == 1,
+                % Downsample for next octave
+                if t == 1
                     im = im_orig; % Original image (because first octave was upsampled)
                 else
-                    im = imresize(im, 0.5); % Downscale
+                    im = imresize(im, 0.5);
                 end
             end
             
-            %% Create output
-            % Limit the number of keypoints
-            num_keypoints = size(features, 1);
-            if num_keypoints > 20000,
-                [ ~ , idx] = sort(features(:,4), 'descend');
-                features = features(idx(1:20000), :);
-                num_keypoints = 20000;
-            end
+            features = features'; % Switch from column-major to row-major order
             
-            % Copy to OpenCV structure
-            keypoints = repmat(struct('pt', [ 0, 0 ], 'size', 0, 'angle', 0, 'response', int32(0), 'octave', 0, 'class_id', -1), num_keypoints, 1);
-            for p = 1:num_keypoints,
-                keypoints(p).pt =( [ features(p, 2), features(p, 1) ]) - 1; %(x,y)
-                keypoints(p).size = 1/ features(p, 3) + 1;
+            %% Create output
+            % Sort by response values, restrict number of returned
+            % keypoints, if necessary
+            [ ~ , idx] = sort(features(:,4), 'descend');
+            num_keypoints = min(size(features, 1), self.max_features);
+            features = features(idx(1:num_keypoints), :);
+            
+            % Create OpenCV keypoint array
+            keypoints = repmat(struct('pt', [ 0, 0 ], 'size', 0, 'angle', 0, 'response', 0, 'octave', int32(0), 'class_id', int32(-1)), 1, num_keypoints);
+            for p = 1:num_keypoints
+                keypoints(p).pt =( [ features(p, 1), features(p, 2) ]) - 1; % (x,y), 0-based indexing
+                keypoints(p).size = 1 / features(p, 3) + 1; % Keypoint size
                 keypoints(p).angle = features(p, 5);
-                keypoints(p).response = 0; %features(p, 4);
+                keypoints(p).response = features(p, 4);
                 keypoints(p).octave = 0;
                 keypoints(p).class_id = -1;
             end
         end
     end
-    
     
     methods (Access = protected)
         function identifier = get_identifier (self)
@@ -168,206 +186,234 @@ classdef FeatureRadial < vicos.keypoint_detector.KeypointDetector
     end
 end
 
-function features = find_LSSM(R_min, t, saliency, variance, saliency_threshold, variance_threshold, average)
-    % features = FIND_LSSM (R_min, t, saliency, variance, saliency_threshold, variance_threshold, average)
+
+function features = find_local_scale_space_maxima (min_scale, t, saliency, norm_std, avg, variance_threshold)
+    % features = FIND_LOCAL_SCALE_SPACE_MAXIMA (min_scale, t, saliency, norm_std, avg, variance_threshold)
     %
-    % Finds local scale-space maxima.
+    % Searches for local scale-space maxima in saliency maps, verifies
+    % them, and computes orientation.
     %
     % Input:
-    %  - R_min: R_min + 1 is the radius of the smallest feature
-    %  - t: octave; t - 1 tells us how many times the input image was
+    %  - min_scale: minimum keypoint radius
+    %  - t: octave; (t-2) indicates how many times the input image has been
     %    downsampled
     %  - saliency: saliency maps
-    %  - variance: variance of local region
-    %  - saliency_threshold: threshold for saliency
-    %  - variance_threshold: threshold for variance
-    %  - average: average value of local region
+    %  - norm_std: normalized variance maps
+    %  - avg: average maps (for orientation estimation)
+    %  - variance_threshold: variance threshold
+    %
+    % Output:
+    %  - features: Nx5 matrix with keypoint entries. Each entry consists of
+    %    the following values: [ x, y, size, response, angle ]
     
-    features = [];
-    M = size(saliency,3);
+    features = zeros(0, 5);
+    M = size(saliency, 3); % Number of circles 
     
-    D = 5; % Ignore border
-    
-    for sc = R_min:M-1,
-        tmp = saliency(sc+2+D:end-sc-1-D, sc+2+D:end-sc-1-D, sc);
+    for s = min_scale:M-1
+        tmp = saliency(s+2:end-s-1, s+2:end-s-1, s);
         
-        ct = variance(sc+2+D:end-sc-1-D, sc+2+D:end-sc-1-D,sc);
-        
-        % Maxima of three neighbour scales
-        v = max(saliency(sc+1+D:end-sc-D,sc+1+D:end-sc-D,sc-1:sc+1), [], 3); % Maximum across scales
+        % Maxima across three levels
+        ctm = max(norm_std(s+2:end-s-1,s+2:end-s-1,s-1:s+1), [], 3);
+        v   = max(saliency(s+1:end-s,s+1:end-s,s-1:s+1), [], 3);
         maxima = tmp >= v(2:end-1,1:end-2) & tmp >= v(2:end-1,3:end) & ...
                  tmp >= v(1:end-2,2:end-1) & tmp >= v(3:end,2:end-1) & ...
                  tmp >= v(1:end-2,1:end-2) & tmp >= v(1:end-2,3:end) & ...
                  tmp >= v(3:end  ,1:end-2) & tmp >= v(3:end,3:end)   & ...
-                 tmp == v(2:end-1,2:end-1) & ct > variance_threshold &  tmp >saliency_threshold ;
-             
-        [ y_loc, x_loc ] = find(maxima);
-        v = tmp(maxima > 0);
+                 tmp == v(2:end-1,2:end-1) & ctm > variance_threshold;
         
-        if size(x_loc,1) > 0,
-            [ x_loc, y_loc, v ] = validate_extrema(x_loc, y_loc, v, saliency(sc+D:end-sc+1-D, sc+D:end-sc+1-D, sc), 9.25);
-            scale = ones(length(x_loc),1)*sc;
-            xn = x_loc + 1 + sc + D;
-            yn = y_loc + 1 + sc + D;
-            [ xn, yn, scale, angle, v ] = compute_orientation(average(:,:,sc), xn, yn, scale, v);
-            rn = ones(size(xn,1),1) ./ ((scale-1).*2^(t-1));
+        [ y_loc, x_loc ] = find(maxima);
+        v = ctm(maxima > 0);
+        
+        % Verify and prune bad exterma
+        if size(x_loc, 1) > 0
+            [ x_loc, y_loc, v ] = validate_extrema(x_loc, y_loc, v, saliency(s:end-s+1, s:end-s+1, s), 9.25);
+            radius = s*ones(numel(x_loc), 1);
             
-            features = [ features; [ yn*2^(t-2)+0.5*(1-2^(t-2)), xn*2^(t-2)+0.5*(1-2^(t-2)), rn, v, angle] ];
+            % Coordinates in original saliency maps, saliency(:,:,s)
+            xn = x_loc + s + 1;
+            yn = y_loc + s + 1;
+            
+            % Compute orientation
+            [ xn, yn, radius, angle, response ] = compute_orientation(avg(:,:,s), xn, yn, radius, v);
+            scale = 1 ./ ((radius-1) .* 2^(t-1));
+            
+            % Keypoints in original images (undo scaling)
+            x = xn*2^(t-2) + 0.5*(1-2^(t-2));
+            y = yn*2^(t-2) + 0.5*(1-2^(t-2));
+            
+            features = vertcat(features, [ x, y, scale, response, angle ]); %#ok<AGROW>
         end
     end
 end
 
-function If = averaging (I)
-    % average of 9 neighboring pixels
+function Io = averaging_filter (I)
+    % Io = AVERAGING_FILTER (I)
+    %
+    % Filters given input image with 3x3 averaging filter.
+    
+    % Construct filter
+    h = ones(3, 3);
+    h = h / sum(h(:));
+    
+    % Filter; equivalent to cv.blur(I, 'KSize', [ 3, 3 ], 'BorderType', 'Replicate');
+    Io = imfilter(I, h, 'replicate');
+end
+
+function [ x_loc, y_loc, response ] = validate_extrema (x_loc, y_loc, response, saliency, threshold)
+    % [ x, y, v ] = VALIDATE_EXTREMA (x, y, v, saliency, threshold)
+    %
+    % Validates the given set of local scale-space extema, purging the ones
+    % with low contrast (same mechanism as in SIFT).
+    %
+    % Input:
+    %  - x_loc: Nx1 array of x coordinates in the given saliency map
+    %  - y_loc: Nx1 array of y coordinates in the given saliency map
+    %  - response: Nx1 array of corresponding responses
+    %  - saliency: saliency map
+    %  - threshold: edge threshold
+    %
+    % Output: filtered extrema
+    %  - x_loc: Mx1 array of x coordinates
+    %  - y_loc: Mx1 array of y coordinates
+    %  - response: Mx1 array of response values
+    
+    valid = false(numel(x_loc), 1);
+    
+    for i = 1:numel(x_loc)
+        % Shift due to larger input saliency map
+        x = x_loc(i) + 2;
+        y = y_loc(i) + 2;
+        
+        center_value = 2 * saliency(y,x);
+        dXX = saliency(y,x-1) + saliency(y,x+1) - center_value;
+        dYY = saliency(y+1,x) + saliency(y-1,x) - center_value;
+        dXY = 0.25 * (saliency(y+1,x+1) - saliency(y+1,x-1) - saliency(y-1,x+1) + saliency(y-1,x-1));
+        
+        TrH = dXX + dYY;
+        DetH = dXX * dYY - dXY^2;
+        if abs(TrH^2/DetH) <  threshold
+            valid(i) = true; % Keep
+        end
+    end
+    
+    % Purge invalid
+    x_loc(~valid) = [];
+    y_loc(~valid) = [];
+    response(~valid) = [];
+end
+
+
+function [ xo, yo, so, ao, vo ] = compute_orientation (I, xx, yy, ss, vv)
+    % [ xo, yo, so, ao, vo ] = COMPUTE_ORIENTATION (I, xx, yy, ss, vv)
+    %
+    % Computes orientation for given keypoints. If multiple orientations
+    % are possible, the keypoints are duplicated.
+    %
+    % Input:
+    %  - I: input image
+    %  - xx: Nx1 array of x coordinates in the image
+    %  - yy: Nx1 array of y coordinates in the image
+    %  - ss: Nx1 array of sampling circle radii
+    %  - vv: Nx1 array of corresponding response values
+    %
+    % Output:
+    %  - xo: Mx1 array of x coordinates
+    %  - yo: Mx1 array of y coordinates
+    %  - so: Mx1 array of radii
+    %  - ao: Mx1 array of angles
+    %  - vo: Mx1 array of response values
+    
+    % Compute image gradients
     height = size(I, 1);
     width = size(I, 2);
     
-    vect = zeros(height+2,width+2);
-    vect(2:1+height,2:width+1) = I;
-    vect(:,2:end-1) = vect(:,1:end-2) + vect(:,2:end-1) + vect(:,3:end);
-    vect(2:end-1,:) = vect(1:end-2,:) + vect(2:end-1,:) + vect(3:end,:);
-    
-    If = 1/9*vect(2:end-1,2:end-1);
-end
-
-
-function [ xo, yo, vo ] = validate_extrema (xx, yy, vv, s, tr)
-    num_points = size(xx, 1);
-    
-    valid = false(num_points, 1);
-    for i = 1:num_points,
-        x = xx(i) + 2;
-        y = yy(i) + 2;
-        
-        centerV = 2*s(y,x);
-        dXX = s(y,x-1) + s(y,x+1) - centerV;
-        dYY = s(y+1,x) + s(y-1,x) - centerV;
-        dXY = 0.25*(s(y+1,x+1) - s(y+1,x-1) - s(y-1,x+1) + s(y-1,x-1));
-        
-        TrH = dXX + dYY;
-        DetH = dXX*dYY - dXY^2;
-        
-        if abs(TrH^2/DetH)<  tr
-            valid(i) = true;
-        end
-    end
-    
-    xo = xx(valid,:);
-    yo = yy(valid,:);
-    vo = vv(valid,:);
-end 
-
-function [ xo, yo, so, angle, vo ] = compute_orientation (I, xx, yy, ss, v) 
-    image_height = size(I, 1);
-    image_width = size(I, 2);
-
-    % Compute gradient
-    dX = zeros(image_height, image_width);
-    dY = zeros(image_height, image_width);
- 
+    dX = zeros(height, width);
+    dY = zeros(height, width);
     dX(:,2:end-1) = I(:,3:end) - I(:,1:end-2);
     dY(2:end-1,:) = I(1:end-2,:) - I(3:end,:);
-    grad = sqrt(dX.^2 + dY.^2);
-    phi = atan2(dY,dX);
- 
-    % One bin is 10 degrees
-    phi = round(phi*18/pi+18)+1;
-    num_points = size(xx,1);
-    p = 0;
-    L = 36;
+    mag = sqrt(dX.^2 + dY.^2);
+    phi = atan2(dY, dX);
+    
+    % Discretize orientation; each bin covers 10 degrees; -pi is 1st bin,
+    % pi is 37th bin; at the end, 1st and 37th bin are combined
+    N = 36;
+    phi = round(phi*18/pi+18) + 1;
 
-    for n = 1:num_points,
-        h = zeros(round(36)+1,1);
+    % Process all keypoints
+    xo = [];
+    yo = [];
+    so = [];
+    ao = [];
+    vo = [];
+    
+    for n = 1:numel(xx)
         x = round(xx(n));
         y = round(yy(n));
-        s = ss(n);
-
-        sig = s*1.5;
-        s = round(3.5*s);
         
-        % Handle border cases
-        if x - s < 1,
-            xs = x - 1;
-        else
-            xs = s;
-        end
+        sigma = ss(n)*1.5; % Gaussian weighting for gradient
+        s = round(3.5*ss(n)); % Sampling radius
+    
+        % Sample gradient from patch
+        x1 = max(x-s, 1);
+        x2 = min(x+s, width);
+        y1 = max(y-s, 1);
+        y2 = min(y+s, height);
         
-        if y - s < 1,
-            ys = y - 1;
-        else
-            ys = s;
+        hist = zeros(N+1, 1); % One more bin to handle wrap-around
+        for j = y1:y2
+            for i = x1:x2
+                idx = phi(j,i); % Bin index
+                w = exp(-((x-i)^2 + (y-j)^2)/(2*sigma^2)); % Gaussian weight
+                hist(idx) = hist(idx) + w*mag(j,i);
+            end
         end
-        if x + s > image_width,
-            xe = image_width - x;
-        else
-            xe = s;
-        end
-        if y + s > image_height,
-            ye = image_height - y;
-        else
-            ye = s;
-        end
+        hist(1) = hist(1) + hist(end); % Merge first and last bin
+        hist(end) = 0;
         
-        % Build histogram
-        for i = -ys:ye,
-            for j = -xs:xe,
-                h(phi(y+i,x+j)) = h(phi(y+i,x+j)) + grad(y+i,x+j)*exp(-(i^2+j^2)/2/sig^2); 
-            end       
-        end
-        h(1) = h(1) + h(37); % Wrap-around
-        h(37)=0;
- 
-        indt = find(h > 0.85*max(h));
-        num_angles = size(indt,1);
-   
-        ii = 0;
-        for i = 1:num_angles,
-            if indt(i) == 1,
-                if h(1) > h(2) && h(1) > h(L),
-                    ii = ii + 1;
-                    ind(ii) = indt(i);
-               end
-           elseif indt(i) == L,
-               if h(L) > h(L-1) && h(L) > h(1),
-                   ii = ii + 1;
-                   ind(ii) = indt(i);
-               end
+        % Find all valid orientation. For each valid bin, check if it is a
+        % local maximum. If it is, interpolate orientation; otherwise,
+        % discard
+        valid_idx = find(hist > 0.85*max(hist));
+        
+        for i = 1:numel(valid_idx)
+            idx = valid_idx(i);
+            
+            % Handle wrap-around by explicitly considering the edge cases
+            if idx == 1
+                if hist(1) > hist(2) && hist(1) > hist(N)
+                    h1 = hist(N);
+                    h2 = hist(1);
+                    h3 = hist(2);
+                else
+                    continue;
+                end
+            elseif idx == N
+                if hist(N) > hist(N-1) && hist(N) > hist(1)
+                    h1 = hist(N-1);
+                    h2 = hist(N);
+                    h3 = hist(1);
+                else
+                    continue;
+                end
             else
-                if h(indt(i)) > h(indt(i)-1) && h(indt(i)) > h(indt(i)+1),
-                   ii = ii + 1;
-                   ind(ii) = indt(i);
+                if hist(idx) > hist(idx-1) && hist(idx) > hist(idx+1)
+                    h1 = hist(idx-1);
+                    h2 = hist(idx);
+                    h3 = hist(idx+1);
+                else
+                    continue;
                 end
             end
-        end
-        
-        num_angles = ii;
-        
-        for k = 1:num_angles,
-            p = p + 1;
-            x = (ind(k)-1) * 10;
-           if ind(k) == 1,
-                y1 = h(L);
-                y2 = h(1);
-                y3 = h(2); 
-           elseif ind(k) == L,
-                y1 = h(L-1); 
-                y2 = h(L);
-                y3 = h(1);
-           else
-                y1 = h(ind(k)-1);
-                y2 = h(ind(k));
-                y3 = h(ind(k)+1);
-           end
-       
-            xo(p,1) = xx(n);
-            yo(p,1) = yy(n);
-            so(p,1) = ss(n);
-            vo(p,1) = v(n);
-            if y1 == y3,
-                angle(p,1) = -x;
-            else   
-                angle(p,1) = -(x+5*(y1-y3)/(y1+y3-2*y2));
-            end
+            
+            % Interpolate angle
+            angle = 10*(idx-1) + 5*(h1 - h3)/(h1 + h3 - 2*h2);
+            
+            % Append to output
+            xo(end+1,1) = xx(n); %#ok<AGROW>
+            yo(end+1,1) = yy(n); %#ok<AGROW>
+            so(end+1,1) = ss(n); %#ok<AGROW>
+            ao(end+1,1) = -angle; %#ok<AGROW>
+            vo(end+1,1) = vv(n); %#ok<AGROW>
         end
     end
 end
