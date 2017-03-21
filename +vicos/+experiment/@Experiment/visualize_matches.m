@@ -57,8 +57,12 @@ function visualize_matches (self, I1, I2, kpts1, kpts2, match_idx, putative_matc
     offset1 = [ 0, vpad1 ];
     offset2 = [ size(I1, 2) + hpad, vpad2 ];
     
-    pt1 = bsxfun(@plus, offset1, pt1);
-    pt2 = bsxfun(@plus, offset2, pt2);
+    if ~isempty(pt1)
+        pt1 = bsxfun(@plus, offset1, pt1);
+    end
+    if ~isempty(pt2)
+        pt2 = bsxfun(@plus, offset2, pt2);
+    end
     
     %% Create visualization
     if isempty(tikz_code_path)
