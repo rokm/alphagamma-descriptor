@@ -5,7 +5,7 @@ function jasna_affine_experiment (experiment_ids, varargin)
     parser = inputParser();
     parser.addParameter('experiment_type', 'pairs', @ischar);
     parser.addParameter('sequences', {});
-    parser.addParameter('force_grayscale', false, @islogical);
+    parser.addParameter('force_grayscale', true, @islogical);
     parser.addParameter('cache_dir', '', @ischar);
     parser.parse(varargin{:});
     

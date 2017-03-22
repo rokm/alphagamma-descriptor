@@ -3,8 +3,8 @@ function jasna_dtu_experiment (experiment_ids, varargin)
     
     % Parser
     parser = inputParser();
-    parser.addParameter('image_sets', [ 7, 22, 44 ]);
-    parser.addParameter('force_grayscale', false, @islogical);
+    parser.addParameter('image_sets', [ 7, 22, 23, 49 ]);
+    parser.addParameter('force_grayscale', true, @islogical);
     parser.addParameter('cache_dir', '', @ischar);
     parser.parse(varargin{:});
     
