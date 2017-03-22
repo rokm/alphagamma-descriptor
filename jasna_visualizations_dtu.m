@@ -1,4 +1,6 @@
-function jasna_visualizations_dtu (varargin)          
+function jasna_visualizations_dtu (varargin)
+    % JASNA_VISUALIZATIONS_DTU (varargin)
+    
     % Parser
     parser = inputParser();
     parser.addParameter('experiment_ids', {});
@@ -68,7 +70,7 @@ function jasna_visualizations_dtu (varargin)
             fprintf('--- Running experiments with AG-float ---\n');
             experiment.run_experiment(keypoint_detector, alphagamma_float, sequence, 'reference_image', ref_image, 'test_images', test_image, 'visualize_matches', true, 'visualization_parameters', visualization_parameters);
 
-            % AG-60B
+            % AG-short
             fprintf('--- Running experiment with AG-short ---\n');
             experiment.run_experiment(keypoint_detector, alphagamma_short, sequence, 'reference_image', ref_image, 'test_images', test_image, 'visualize_matches', true, 'visualization_parameters', visualization_parameters);
         end
