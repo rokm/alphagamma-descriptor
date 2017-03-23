@@ -4,6 +4,7 @@ function startup ()
 
     %% This folder
     addpath(root_dir);
+    addpath(fullfile(root_dir, 'paper2017'));
 
     % mexopencv
     addpath( fullfile(root_dir, 'external', 'mexopencv') );
