@@ -153,7 +153,7 @@ function export_figure_as_tikz (results_map, title_str, field_name, is_percent, 
     template_str = fileread(template);
         
     % Substitute x-tick labels - label + number of correspondences
-    fmt = '%s\\\\%d';
+    fmt = '\\textbf{%s}\\\\%d';
     template_str = strrep(template_str, '$$TICK_SIFT$$',   sprintf(fmt, 'SIFT',   round(mean(results_map('sift').correspondences))));
     template_str = strrep(template_str, '$$TICK_SURF$$',   sprintf(fmt, 'SURF',   round(mean(results_map('surf').correspondences))));
     template_str = strrep(template_str, '$$TICK_KAZE$$',   sprintf(fmt, 'KAZE',   round(mean(results_map('kaze').correspondences))));
