@@ -1,38 +1,22 @@
-function jasna_affine_experiment (experiment_ids, varargin)
-    % JASNA_AFFINE_EXPERIMENT (experiment_ids, varargin)
+function jasna_experiment_webcam (experiment_ids, varargin)
+    % JASNA_EXPERIMENT_WEBCAM (experiment_ids, varargin)
     
     % Parser
     parser = inputParser();
-    parser.addParameter('experiment_type', 'pairs', @ischar);
-    parser.addParameter('sequences', {});
+    parser.addParameter('sequences', 'Frankfurt');
     parser.addParameter('force_grayscale', true, @islogical);
     parser.addParameter('cache_dir', '', @ischar);
     parser.parse(varargin{:});
     
-    experiment_type = parser.Results.experiment_type;
     sequences = parser.Results.sequences;
     force_grayscale = parser.Results.force_grayscale;
     cache_dir = parser.Results.cache_dir;
     
     % Default cache dir
     if isempty(cache_dir)
-        cache_dir = '_cache_affine';
-        
-        if ~isequal(experiment_type, 'pairs')
-            cache_dir = [ cache_dir, '-', experiment_type ];
-        end
-        
+        cache_dir = '_cache_webcam';
         if force_grayscale
             cache_dir = [ cache_dir, '-gray' ];
-        end
-    end
-    
-    % Default sequences (for non-pairs, use only graffiti)
-    if isempty(sequences)
-        if isequal(experiment_type, 'pairs')
-            sequences = { 'bikes', 'trees', 'leuven', 'boat', 'graffiti', 'wall' };
-        else
-            sequences = 'graffiti';
         end
     end
     
@@ -42,7 +26,7 @@ function jasna_affine_experiment (experiment_ids, varargin)
     end
     
     %% Create experiment
-    experiment = vicos.experiment.AffineEvaluation('cache_dir', cache_dir, 'force_grayscale', force_grayscale);
+    experiment = vicos.experiment.WebcamEvaluation('cache_dir', cache_dir, 'force_grayscale', force_grayscale);
 
     %% Run experiment(s)
     % If only one ID is given, make it into cell array
@@ -64,16 +48,16 @@ function jasna_affine_experiment (experiment_ids, varargin)
             % Native experiment (if native descriptor extractor exists)
             if ~isempty(descriptor_extractor)
                 fprintf('--- Running experiments with native descriptor ---\n');
-                experiment.run_experiment(keypoint_detector, descriptor_extractor, sequence, 'experiment_type', experiment_type);
+                experiment.run_experiment(keypoint_detector, descriptor_extractor, sequence);
             end
 
             % AG-float
             fprintf('--- Running experiments with AG-float ---\n');
-            experiment.run_experiment(keypoint_detector, alphagamma_float, sequence, 'experiment_type', experiment_type);
+            experiment.run_experiment(keypoint_detector, alphagamma_float, sequence);
 
             % AG-short
             fprintf('--- Running experiment with AG-short ---\n');
-            experiment.run_experiment(keypoint_detector, alphagamma_short, sequence, 'experiment_type', experiment_type);
+            experiment.run_experiment(keypoint_detector, alphagamma_short, sequence);
         end
     end
 end
