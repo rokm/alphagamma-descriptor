@@ -62,9 +62,9 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
     if ~isempty(self.cache_dir)
         if isequal(experiment_type, 'pairs')
             % No prefix for pairs (default) experiment type
-            results_file = sprintf('%s_%s+%s', sequence, keypoint_detector.identifier, descriptor_extractor.identifier);
+            results_file = sprintf('%s_%s+%s.mat', sequence, keypoint_detector.identifier, descriptor_extractor.identifier);
         else
-            results_file = sprintf('%s_%s_%s+%s', experiment_type, sequence, keypoint_detector.identifier, descriptor_extractor.identifier);
+            results_file = sprintf('%s_%s_%s+%s.mat', experiment_type, sequence, keypoint_detector.identifier, descriptor_extractor.identifier);
         end
         results_file = fullfile(self.cache_dir, results_file);
     end
@@ -72,7 +72,7 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
     if ~isempty(results_file) && exist(results_file, 'file')
         tmp = load(results_file);
         assert(isequal(tmp.experiment_type, experiment_type), 'Sanity check on results failed!'); % Sanity check
-        results = tmp_results;
+        results = tmp.results;
         return;
     end
     
