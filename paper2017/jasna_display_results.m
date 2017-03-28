@@ -75,6 +75,11 @@ function jasna_display_results (cache_dir, sequences, varargin)
             draw_figure(results_map, 'correct_matches', 'title', 'Average Number of Correct Matches', 'is_percent', false);
 
             drawnow();
+            
+            % Image pairs with precision > 60%
+            fig = figure('Name', sprintf('%s: pairs with precision > 60%%', sequence));
+            draw_figure(results_map, 'precision_over_60', 'title', 'Image pairs with precision > 60% [%]', 'is_percent', true, 'display_num_correspondences', false);
+            drawnow();
         end
         
         % Export figure
@@ -90,6 +95,9 @@ function jasna_display_results (cache_dir, sequences, varargin)
             
             output_file = fullfile(output_dir, sprintf('%s_avg_correct_matches.tex', sequence));
             export_figure_as_tikz(results_map, 'correct_matches', 'title', 'Average Number of Correct Matches', 'is_percent', false, 'output_filename', output_file);
+            
+            output_file = fullfile(output_dir, sprintf('%s_precision_over_60.tex', sequence));
+            export_figure_as_tikz(results_map, 'precision_over_60', 'title', 'Image pairs with precision > \SI{60}{%} [%]', 'is_percent', true, 'output_filename', output_file, 'display_num_correspondences', false);
         end
     end
 end
@@ -251,7 +259,7 @@ function output = process_results (results, use_unique)
     else
         output.precision = [ results.num_correct_matches ] ./ [ results.num_putative_matches ];
     end
-    
+
     % Recall: number of correct matches / number of correspondences
     if use_unique
         output.recall = [ results.num_correct_matches_unique ] ./ [ results.num_consistent_correspondences_unique ];
@@ -279,5 +287,8 @@ function output = process_results (results, use_unique)
     else
         output.correspondences = [ results.num_consistent_correspondences ];
     end
+    
+    % Compute portion of image pairs with precision over 60%
+    output.precision_over_60 = sum(output.precision > 0.6) / numel(output.precision);
 end
 
