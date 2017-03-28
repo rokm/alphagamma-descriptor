@@ -4,13 +4,11 @@ function jasna_display_results (cache_dir, sequences, varargin)
     % Parser
     parser = inputParser();
     parser.addParameter('display_figure', true, @islogical);
-    parser.addParameter('export_figure', false, @islogical);
     parser.addParameter('output_dir', '', @ischar);
     parser.addParameter('use_unique', false, @islogical);
     parser.parse(varargin{:});
     
     display_figure = parser.Results.display_figure;
-    export_figure = parser.Results.export_figure;
     output_dir = parser.Results.output_dir;
     use_unique = parser.Results.use_unique;
   
@@ -62,53 +60,62 @@ function jasna_display_results (cache_dir, sequences, varargin)
 
             % Average precision
             set(fig, 'CurrentAxes', ax(4));
-            draw_figure(results_map, 'Average Precision [%]', 'precision', true);
+            draw_figure(results_map, 'precision', 'title', 'Average Precision [%]', 'is_percent', true);
 
             % Average recall
             set(fig, 'CurrentAxes', ax(3));
-            draw_figure(results_map, 'Average Recall [%]', 'recall', true);
+            draw_figure(results_map, 'recall', 'title', 'Average Recall [%]', 'is_percent', true);
 
             % Average recognition rate
             set(fig, 'CurrentAxes', ax(1));
-            draw_figure(results_map, 'Average Recognition Rate [%]', 'recognition_rate', true);
+            draw_figure(results_map, 'recognition_rate', 'title', 'Average Recognition Rate [%]', 'is_percent', true);
 
             % Correct matches
             set(fig, 'CurrentAxes', ax(2));
-            draw_figure(results_map, 'Average Number of Correct Matches', 'correct_matches', false);
+            draw_figure(results_map, 'correct_matches', 'title', 'Average Number of Correct Matches', 'is_percent', false);
 
             drawnow();
         end
         
         % Export figure
-        if export_figure
+        if ~isempty(output_dir)
             output_file = fullfile(output_dir, sprintf('%s_avg_precision.tex', sequence));
-            export_figure_as_tikz(results_map, 'Average Precision [%]', 'precision', true, output_file);
+            export_figure_as_tikz(results_map, 'precision', 'title', 'Average Precision [%]', 'is_percent', true, 'output_filename', output_file);
             
             output_file = fullfile(output_dir, sprintf('%s_avg_recall.tex', sequence));
-            export_figure_as_tikz(results_map, 'Average Recall [%]', 'recall', true, output_file);
+            export_figure_as_tikz(results_map, 'recall', 'title', 'Average Recall [%]', 'is_percent', true, 'output_filename', output_file);
             
             output_file = fullfile(output_dir, sprintf('%s_avg_recognition_rate.tex', sequence));
-            export_figure_as_tikz(results_map, 'Average Recognition Rate [%]', 'recognition_rate', true, output_file);
+            export_figure_as_tikz(results_map, 'recognition_rate', 'title', 'Average Recognition Rate [%]', 'is_percent', true, 'output_filename', output_file);
             
             output_file = fullfile(output_dir, sprintf('%s_avg_correct_matches.tex', sequence));
-            export_figure_as_tikz(results_map, 'Average Number of Correct Matches', 'correct_matches', false, output_file);
+            export_figure_as_tikz(results_map, 'correct_matches', 'title', 'Average Number of Correct Matches', 'is_percent', false, 'output_filename', output_file);
         end
     end
 end
 
 
-function draw_figure (results_map, title_str, field_name, is_percent)
+function draw_figure (results_map, field_name, varargin)
+    parser = inputParser();
+    parser.addParameter('title', '', @ischar);
+    parser.addParameter('is_percent', true, @islogical);
+    parser.parse(varargin{:});
+    
+    title_str = parser.Results.title;
+    is_percent = parser.Results.is_percent;
+    
     % Bunch of more-or-less hard-coded stuff, because our graphs have fixed
     % appearance...
     entries = { 'sift', 'sift-ag', 'sift-ags', 'surf', 'surf-ag', 'surf-ags', 'kaze', 'kaze-ag', 'kaze-ags', 'brisk', 'brisk-ag', 'brisk-ags', 'orb', 'orb-ag', 'orb-ags', 'radial-ag', 'radial-ags' };
     xticks = [ 2, 5, 8, 11, 14, 16.5 ];
+    fmt = '%s\\newline(%d)';
     xticklabels = { ...
-        sprintf('SIFT\\newline(%d)', round(mean(results_map('sift').correspondences))), ...
-        sprintf('SURF\\newline(%d)', round(mean(results_map('surf').correspondences))), ...
-        sprintf('KAZE\\newline(%d)', round(mean(results_map('kaze').correspondences))), ...
-        sprintf('BRISK\\newline(%d)', round(mean(results_map('brisk').correspondences))), ...
-        sprintf('ORB\\newline(%d)', round(mean(results_map('orb').correspondences))), ...
-        sprintf('RADIAL\\newline(%d)', round(mean(results_map('radial-ag').correspondences))) };
+        sprintf(fmt, 'SIFT',   round(mean(results_map('sift').correspondences))), ...
+        sprintf(fmt, 'SURF',   round(mean(results_map('surf').correspondences))), ...
+        sprintf(fmt, 'KAZE',   round(mean(results_map('kaze').correspondences))), ...
+        sprintf(fmt, 'BRISK',  round(mean(results_map('brisk').correspondences))), ...
+        sprintf(fmt, 'ORB',    round(mean(results_map('orb').correspondences))), ...
+        sprintf(fmt, 'RADIAL', round(mean(results_map('radial-ag').correspondences))) };
     
     % Colormap
     colormap = [ ...
@@ -147,7 +154,17 @@ function draw_figure (results_map, title_str, field_name, is_percent)
     title(title_str);
 end
 
-function export_figure_as_tikz (results_map, title_str, field_name, is_percent, output_filename)
+function export_figure_as_tikz (results_map, field_name, varargin)
+    parser = inputParser();
+    parser.addParameter('title', '', @ischar);
+    parser.addParameter('is_percent', true, @islogical);
+    parser.addParameter('output_filename', '', @ischar);
+    parser.parse(varargin{:});
+    
+    title_str = parser.Results.title;
+    is_percent = parser.Results.is_percent;
+    output_filename = parser.Results.output_filename;
+    
     % Load template
     template= fullfile(fileparts(mfilename('fullpath')), 'bargraph.tmpl.tex');
     template_str = fileread(template);
