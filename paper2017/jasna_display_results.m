@@ -99,23 +99,30 @@ function draw_figure (results_map, field_name, varargin)
     parser = inputParser();
     parser.addParameter('title', '', @ischar);
     parser.addParameter('is_percent', true, @islogical);
+    parser.addParameter('display_num_correspondences', true, @islogical);
     parser.parse(varargin{:});
     
     title_str = parser.Results.title;
     is_percent = parser.Results.is_percent;
+    display_num_correspondences = parser.Results.display_num_correspondences;
     
     % Bunch of more-or-less hard-coded stuff, because our graphs have fixed
     % appearance...
     entries = { 'sift', 'sift-ag', 'sift-ags', 'surf', 'surf-ag', 'surf-ags', 'kaze', 'kaze-ag', 'kaze-ags', 'brisk', 'brisk-ag', 'brisk-ags', 'orb', 'orb-ag', 'orb-ags', 'radial-ag', 'radial-ags' };
     xticks = [ 2, 5, 8, 11, 14, 16.5 ];
-    fmt = '%s\\newline(%d)';
-    xticklabels = { ...
-        sprintf(fmt, 'SIFT',   round(mean(results_map('sift').correspondences))), ...
-        sprintf(fmt, 'SURF',   round(mean(results_map('surf').correspondences))), ...
-        sprintf(fmt, 'KAZE',   round(mean(results_map('kaze').correspondences))), ...
-        sprintf(fmt, 'BRISK',  round(mean(results_map('brisk').correspondences))), ...
-        sprintf(fmt, 'ORB',    round(mean(results_map('orb').correspondences))), ...
-        sprintf(fmt, 'RADIAL', round(mean(results_map('radial-ag').correspondences))) };
+    
+    if display_num_correspondences
+        fmt = '%s\\newline(%d)';
+        xticklabels = { ...
+            sprintf(fmt, 'SIFT',   round(mean(results_map('sift').correspondences))), ...
+            sprintf(fmt, 'SURF',   round(mean(results_map('surf').correspondences))), ...
+            sprintf(fmt, 'KAZE',   round(mean(results_map('kaze').correspondences))), ...
+            sprintf(fmt, 'BRISK',  round(mean(results_map('brisk').correspondences))), ...
+            sprintf(fmt, 'ORB',    round(mean(results_map('orb').correspondences))), ...
+            sprintf(fmt, 'RADIAL', round(mean(results_map('radial-ag').correspondences))) };
+    else
+        xticklabels = { 'SIFT', 'SURF', 'KAZE', 'BRISK', 'ORB', 'RADIAL' };
+    end
     
     % Colormap
     colormap = [ ...
@@ -158,25 +165,37 @@ function export_figure_as_tikz (results_map, field_name, varargin)
     parser = inputParser();
     parser.addParameter('title', '', @ischar);
     parser.addParameter('is_percent', true, @islogical);
+    parser.addParameter('display_num_correspondences', true, @islogical);
     parser.addParameter('output_filename', '', @ischar);
     parser.parse(varargin{:});
     
     title_str = parser.Results.title;
     is_percent = parser.Results.is_percent;
+    display_num_correspondences = parser.Results.display_num_correspondences;
     output_filename = parser.Results.output_filename;
     
     % Load template
     template= fullfile(fileparts(mfilename('fullpath')), 'bargraph.tmpl.tex');
     template_str = fileread(template);
         
-    % Substitute x-tick labels - label + number of correspondences
-    fmt = '\\textbf{%s}\\\\%d';
-    template_str = strrep(template_str, '$$TICK_SIFT$$',   sprintf(fmt, 'SIFT',   round(mean(results_map('sift').correspondences))));
-    template_str = strrep(template_str, '$$TICK_SURF$$',   sprintf(fmt, 'SURF',   round(mean(results_map('surf').correspondences))));
-    template_str = strrep(template_str, '$$TICK_KAZE$$',   sprintf(fmt, 'KAZE',   round(mean(results_map('kaze').correspondences))));
-    template_str = strrep(template_str, '$$TICK_BRISK$$',  sprintf(fmt, 'BRISK',  round(mean(results_map('brisk').correspondences))));
-    template_str = strrep(template_str, '$$TICK_ORB$$',    sprintf(fmt, 'ORB',    round(mean(results_map('orb').correspondences))));
-    template_str = strrep(template_str, '$$TICK_RADIAL$$', sprintf(fmt, 'RADIAL', round(mean(results_map('radial-ag').correspondences))));
+    % Substitute x-tick labels
+    if display_num_correspondences
+        % label + number of correspondences
+        fmt = '\\textbf{%s}\\\\%d';
+        template_str = strrep(template_str, '$$TICK_SIFT$$',   sprintf(fmt, 'SIFT',   round(mean(results_map('sift').correspondences))));
+        template_str = strrep(template_str, '$$TICK_SURF$$',   sprintf(fmt, 'SURF',   round(mean(results_map('surf').correspondences))));
+        template_str = strrep(template_str, '$$TICK_KAZE$$',   sprintf(fmt, 'KAZE',   round(mean(results_map('kaze').correspondences))));
+        template_str = strrep(template_str, '$$TICK_BRISK$$',  sprintf(fmt, 'BRISK',  round(mean(results_map('brisk').correspondences))));
+        template_str = strrep(template_str, '$$TICK_ORB$$',    sprintf(fmt, 'ORB',    round(mean(results_map('orb').correspondences))));
+        template_str = strrep(template_str, '$$TICK_RADIAL$$', sprintf(fmt, 'RADIAL', round(mean(results_map('radial-ag').correspondences))));
+    else
+        template_str = strrep(template_str, '$$TICK_SIFT$$',   'SIFT');
+        template_str = strrep(template_str, '$$TICK_SURF$$',   'SURF');
+        template_str = strrep(template_str, '$$TICK_KAZE$$',   'KAZE');
+        template_str = strrep(template_str, '$$TICK_BRISK$$',  'BRISK');
+        template_str = strrep(template_str, '$$TICK_ORB$$',    'ORB');
+        template_str = strrep(template_str, '$$TICK_RADIAL$$', 'RADIAL');
+    end
     
     % Substitute values
     if is_percent
