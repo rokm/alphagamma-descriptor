@@ -1,5 +1,21 @@
 function jasna_display_results (cache_dir, sequences, varargin)
     % JASNA_DISPLAY_RESULTS (varargin)
+    %
+    % Displays the results of JASNA_EXPERIMENT_AFFINE(), 
+    % JASNA_EXPERIMENT_DTU(), and JASNA_EXPERIMENT_WEBCAM().
+    %
+    % Input:
+    %  - cache_dir: cache directory with results
+    %  - sequences: cell array of sequence names; must correspond to base 
+    %    names of result (e.g., 'graffiti' for
+    %    Affine, 'SET007' for DTU, 'Frankfurt' for WebCam)
+    %  - varargin: optional key/value pairs:
+    %     - display_figure: display results in Matlab figure (default:
+    %       true)
+    %     - output_dir: output directory for TikZ/TeX code (default: '';
+    %       disabled)
+    %     - use_unique: whether to use unique matches instead of all
+    %       (default: false)
     
     % Parser
     parser = inputParser();

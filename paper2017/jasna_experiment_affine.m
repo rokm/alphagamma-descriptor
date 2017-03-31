@@ -1,5 +1,23 @@
 function jasna_experiment_affine (experiment_ids, varargin)
     % JASNA_EXPERIMENT_AFFINE (experiment_ids, varargin)
+    %
+    % Runs the experiments on the Oxford dataset.
+    %
+    % Input:
+    %  - experiment_ids: cell array of experiment IDs (for list of valid
+    %    IDs, see JASNA_GET_EXPERIMENT_DEFINITION())
+    %  - varargin: optional key/value pairs:
+    %     - experiment_type: experiment type (default: pairs)
+    %     - sequences: sequences to process (default: { 'bikes', 'trees', 
+    %       'leuven', 'boat', 'graffiti', 'wall' } for pairs experiment,
+    %       'graffiti' for others)
+    %     - force_grayscale: perform experiments on grayscale images
+    %       instead of color ones (default: true)
+    %     - cache_dir: cache directory (default: ''; auto-generated)
+    %
+    % Running the experiments will produce results files inside the cache
+    % directory. To visualize the results, use JASNA_DISPLAY_RESULTS()
+    % function.
     
     % Parser
     parser = inputParser();

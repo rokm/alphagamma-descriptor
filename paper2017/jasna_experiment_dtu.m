@@ -1,5 +1,20 @@
 function jasna_experiment_dtu (experiment_ids, varargin)
-    % JASNA_EXPERIMEN_DTUT (experiment_ids, varargin)
+    % JASNA_EXPERIMEN_DTU (experiment_ids, varargin)
+    %
+    % Runs the experiments on the DTU dataset sequences.
+    %
+    % Input:
+    %  - experiment_ids: cell array of experiment IDs (for list of valid
+    %    IDs, see JASNA_GET_EXPERIMENT_DEFINITION())
+    %  - varargin: optional key/value pairs:
+    %     - image_sets: sequences to process (default: [ 7, 22, 23, 49 ])
+    %     - force_grayscale: perform experiments on grayscale images
+    %       instead of color ones (default: true)
+    %     - cache_dir: cache directory (default: ''; auto-generated)
+    %
+    % Running the experiments will produce results files inside the cache
+    % directory. To visualize the results, use JASNA_DISPLAY_RESULTS()
+    % function.
     
     % Parser
     parser = inputParser();
