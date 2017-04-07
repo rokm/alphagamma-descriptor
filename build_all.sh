@@ -110,5 +110,10 @@ make -j4 MATLABDIR="${MATLABDIR}" -C "${ROOT_DIR}/external/mexopencv"
 ########################################################################
 # This could have been done from inside Matlab, but it is more convenient
 # to keep it inside a single script
-${MATLABDIR}/bin/matlab -nodisplay -nodesktop -r "try, run ${ROOT_DIR}/compile_code.m; catch; end; quit"
+echo "Building Mex files..."
+${MATLABDIR}/bin/matlab -nodisplay -nodesktop -r "try, run('${ROOT_DIR}/compile_code.m'); catch e, exit(-1); end; exit(0);"
+
+
+# End of script
+echo "Great success! Build script finished without errors!"
 
