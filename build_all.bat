@@ -79,10 +79,7 @@ cmake ^
     -DBUILD_opencv_ximgproc=OFF ^
     -DBUILD_opencv_xobjdetect=OFF ^
     -DBUILD_opencv_xphoto=OFF
-if %errorlevel% neq 0 (
-	echo OpenCV configuration failed!
-	exit /b %errorlevel%
-)
+if %errorlevel% neq 0 exit /b %errorlevel%
 
 cmake --build "%OPENCV_BUILD_DIR%" --target ALL_BUILD --config Release
 if %errorlevel% neq 0 exit /b %errorlevel%
