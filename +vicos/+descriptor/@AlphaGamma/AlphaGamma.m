@@ -58,30 +58,32 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             % Construct AlphaGamma descriptor extractor.
             %
             % Input: key/value pairs:
-            %  - num_circles: number of circles; default: 10
-            %  - num_rays: number of rays; default: 23
-            %  - circle_step: spacing between two circles; default: sqrt(2)
+            %  - num_circles: number of circles; default: 9
+            %  - num_rays: number of rays; default: 13
+            %  - circle_step: spacing between two circles; 
+            %    default: sqrt(2)*1.104
             %  - base_sigma: sigma for DoG filter of the base image;
             %    default: sqrt(1.7)
             %  - orientation_normalized: normalize w.r.t. keypoint
-            %    orientation (default: false). If compute_orientation is
+            %    orientation (default: true). If compute_orientation is
             %    specified, the orientation is estimated by descriptor
             %    extractor; otherwise, the keypoint's orientation is used.
-            %  - compute_orientation: whether to estimate orientation or
-            %    use the keypoint's angle value; default: true
+            %  - compute_orientation: whether to estimate orientation 
+            %    instead of using the keypoint's angle value; default: 
+            %    false (use keypoint's angle)
             %  - orientation_num_rays: number of rays used to estimate the
             %    orientation; default: [] (use num_rays value)
             %  - scale_normalized: whether to use keypoint's size parameter
             %    to extract descriptor from size-normalized patch;
             %    otherwise, descriptor is extracted from fixed-size region.
-            %    Default: false
+            %    Default: true
             %  - base_keypoint_size: base factor when converting keypoint
             %    size to patch size; default: 18.5
             %  - bilinear sampling: bilinear sampling of points. Default:
-            %    false
+            %    true
             %  - non_binarized_descriptor: whether to compute binarized
-            %    descriptor or floating-point descriptor. Default: true
-            %    (compute binarized)
+            %    descriptor or floating-point descriptor. Default: false
+            %    (compute floating-point descriptor)
             % - compute_type1: compute type 1 part of binarized descriptor.
             %   Default: true
             % - compute_type2: compute type 2 part of binarized descriptor.
@@ -97,7 +99,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             % - G: distance weight for gamma part of binarized descriptor.
             %   Default: 1
             % - use_bitstrings: store binarized descriptor as bitstrings
-            %   (instead of byte). Default: false
+            %   (instead of byte). Default: true
             %
             % Output:
             %  - self: @AlphaGamma instance
@@ -106,20 +108,20 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             parser = inputParser();
             parser.KeepUnmatched = true;            
 
-            parser.addParameter('num_circles', 10, @isscalar);
-            parser.addParameter('num_rays', 23, @isscalar);
-            parser.addParameter('circle_step', sqrt(2), @isscalar);
+            parser.addParameter('num_circles', 9, @isscalar);
+            parser.addParameter('num_rays', 13, @isscalar);
+            parser.addParameter('circle_step', sqrt(2)*1.104, @isscalar);
             parser.addParameter('base_sigma', sqrt(1.7), @isnumeric);
 
-            parser.addParameter('orientation_normalized', false, @islogical);
+            parser.addParameter('orientation_normalized', true, @islogical);
             parser.addParameter('compute_orientation', true, @islogical);
             parser.addParameter('orientation_num_rays', [], @isnumeric);
             
-            parser.addParameter('scale_normalized', false, @islogical);
+            parser.addParameter('scale_normalized', true, @islogical);
             parser.addParameter('base_keypoint_size', 18.5, @isnumeric);
 
-            parser.addParameter('bilinear_sampling', false, @islogical);
-            parser.addParameter('non_binarized_descriptor', false, @islogical);
+            parser.addParameter('bilinear_sampling', true, @islogical);
+            parser.addParameter('non_binarized_descriptor', true, @islogical);
             
             parser.addParameter('compute_type1', true, @islogical);
             parser.addParameter('compute_type2', true, @islogical);
@@ -127,7 +129,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             parser.addParameter('threshold_gamma', [], @isnumeric);
             parser.addParameter('A', 5.0, @isnumeric);
             parser.addParameter('G', 1.0, @isnumeric);
-            parser.addParameter('use_bitstrings', false, @islogical);
+            parser.addParameter('use_bitstrings', true, @islogical);
 
             parser.parse(varargin{:});
             
