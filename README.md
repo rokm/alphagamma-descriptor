@@ -332,7 +332,7 @@ Make sure that Matlab and CMake are in the PATH.
 
 Then, set the Visual Studio version and architecture (required for CMake),
 and run the build script from the working directory:
-```Shell
+```Batchfile
 set "DEFAULT_CMAKE_GENERATOR=Visual Studio 14"
 set "DEFAULT_CMAKE_ARCH=x64"
 
@@ -356,7 +356,112 @@ using the functions and objects from this project.
 
 ## Basic use
 
-TBA
+This package provides reference implementation for AlphaGamma descriptor
+and RADIAL keypoint detector, as well as wrappers for several OpenCV-provided
+detectoes and the descriptors.
+
+Keypoint detector and descriptor extractor classes are located inside
+```vicos.keypoint_detector``` and ```vicos.descriptor``` namespace, respectively.
+
+All detectors inherit the base class ```vicos.keypoint_detector.Detector```,
+with method ```vicos.keypoint_detector.Detector.detect()``` that is used
+for detecting keypoints in the image.
+
+Similarly, descriptor extractors inherit the base class ```vicos.descriptor.Descriptor```,
+with two main methods: ```vicos.descriptor.Descriptor.compute()``` is used
+to compute descriptors from given keypoints and image, while
+```vicos.descriptor.Descriptor.compute_pairwise_distances()``` is used
+to compute the distance matrix between two sets of exracted descriptors.
+
+The following example illustrates the use of RADIAL keypoints with
+AG and AGS descriptors. The static methods
+```vicos.descriptor.AlphaGamma.create_ag_float()```
+and
+```vicos.descriptor.AlphaGamma.create_ag_short()```
+provide the default parametrization of AG and AGS descriptor from the
+paper [1].
+
+```Matlab
+% Load images (assuming datasets were installed and that we are inside
+% the working directory)
+I1 = imread('datasets/affine/graffiti/img1.ppm');
+I2 = imread('datasets/affine/graffiti/img2.ppm');
+
+
+%% Keypoint detection
+% Create RADIAL keypoint detector
+detector = vicos.keypoint_detector.FeatureRadial();
+
+% Detect keypoints
+kpts1 = detector.detect(I1);
+kpts2 = detector.detect(I2);
+
+
+%% AG descriptor
+% Create floating-point AlphaGamma;
+ag_float = vicos.descriptor.AlphaGamma.create_ag_float('base_keypoint_size', 8.25);
+
+% Compute descriptors
+[ desc1, kpts1 ] = ag_float.compute(I1, kpts1);
+[ desc2, kpts2 ] = ag_float.compute(I2, kpts2);
+
+% Compute distance matrix
+M = ag_float.compute_pairwise_distances(desc1, desc2);
+
+
+%% AGS descriptor
+% Create binarized AlphaGamma
+ag_short = vicos.descriptor.AlphaGamma.create_ag_short('base_keypoint_size', 8.0);
+
+% Compute descriptors
+[ desc1, kpts1 ] = ag_short.compute(I1, kpts1);
+[ desc2, kpts2 ] = ag_short.compute(I2, kpts2);
+
+% Compute distance matrix
+M = ag_short.compute_pairwise_distances(desc1, desc2);
+```
+
+An example with SIFT keypoints:
+```Matlab
+% Load images (assuming datasets were installed and that we are inside
+% the working directory)
+I1 = imread('datasets/affine/graffiti/img1.ppm');
+I2 = imread('datasets/affine/graffiti/img2.ppm');
+
+
+%% Keypoint detection
+% Create SIFT keypoint detector
+detector = vicos.keypoint_detector.SIFT();
+
+% Detect keypoints
+kpts1 = detector.detect(I1);
+kpts2 = detector.detect(I2);
+
+
+%% SIFT descriptor
+sift = vicos.descriptor.SIFT();
+
+% Compute descriptors
+[ desc1, kpts1 ] = sift.compute(I1, kpts1);
+[ desc2, kpts2 ] = sift.compute(I2, kpts2);
+
+% Compute distance matrix
+M = sift.compute_pairwise_distances(desc1, desc2);
+
+
+%% AG descriptor
+% Create floating-point AlphaGamma; note that in general, different
+% keypoint types require different base_keypoint_size parameter.
+ag_float = vicos.descriptor.AlphaGamma.create_ag_float('base_keypoint_size', 3.25);
+
+% Compute descriptors
+[ desc1, kpts1 ] = ag_float.compute(I1, kpts1);
+[ desc2, kpts2 ] = ag_float.compute(I2, kpts2);
+
+% Compute distance matrix
+M = ag_float.compute_pairwise_distances(desc1, desc2);
+```
+
 
 ## Reproduction of experimental results
 
