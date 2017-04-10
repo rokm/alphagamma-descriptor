@@ -308,26 +308,26 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             
             %% Single-scale version
             if ~self.scale_normalized
-                pyramid = self.create_image_pyramid(I);
+                responses = self.compute_filter_responses(I);
             
                 for p = 1:num_points
-                    % Extract each point from the first-level pyramid
-                    % (which is also the only one we have). Note the 
-                    % 0-based to 1-based coordinate system conversion
-                    desc(:,p) = extract_descriptor_from_keypoint(self, pyramid, keypoints(p).pt + 1, 1.0, keypoints(p).angle); 
+                    % Extract each point from the first-level of responses
+                    % pyramid (which is also the only one we have). Note 
+                    % the 0-based to 1-based coordinate system conversion
+                    desc(:,p) = extract_descriptor_from_keypoint(self, responses, keypoints(p).pt + 1, 1.0, keypoints(p).angle); 
                 end
             else
                 %% Multi-scale version
                 num_octaves = 6;
                 
-                % Construct pyramids
-                pyramids = cell(1, num_octaves);
+                % Construct pyramid of image response maps
+                responses = cell(1, num_octaves);
                 
                 % Option 1: Resizing of filtered images
-                pyramids{1} = self.create_image_pyramid(imresize(I,2));
+                responses{1} = self.compute_filter_responses(imresize(I,2));
                 for i = 2:num_octaves
                     factor = 0.5^(i-1);
-                    pyramids{i} = imresize(pyramids{1}, factor);
+                    responses{i} = imresize(responses{1}, factor);
                 end
                 
                 % Process all keypoints
@@ -359,7 +359,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                     scale_factor = keypoint.size*2/(self.base_keypoint_size * 2^(octave-1));
                     
                     % Extract
-                    desc(:,p) = extract_descriptor_from_keypoint(self, pyramids{octave}, new_center, scale_factor, keypoint.angle);
+                    desc(:,p) = extract_descriptor_from_keypoint(self, responses{octave}, new_center, scale_factor, keypoint.angle);
                 end
             end
             
@@ -367,24 +367,26 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             desc = desc';
         end
         
-        function pyramid = create_image_pyramid (self, I)
-            % pyramid = CREATE_IMAGE_PYRAMID (self, I)
+        function response_maps = compute_filter_responses (self, I)
+            % pyramid = COMPUTE_FILTER_RESPONSES (self, I)
             %
-            % Creates and image pyramid from the given input image.
+            % Computes the stack of filter response maps. Each filter
+            % corresponds to a sampling circle radius, hence the output is
+            % HxWxM, with M being the number of sampling circles.
             
-            pyramid = zeros(size(I, 1), size(I, 2), self.num_circles);
+            response_maps = zeros(size(I, 1), size(I, 2), self.num_circles);
             
             if self.base_sigma ~= 0
-                pyramid(:,:,1) = filter2(create_dog_filter(self.base_sigma), I);
+                response_maps(:,:,1) = filter2(create_dog_filter(self.base_sigma), I);
             else
-                pyramid(:,:,1) = I;
+                response_maps(:,:,1) = I;
             end
             
             for i = 2:self.num_circles
                 if isempty(self.filters{i})
-                    pyramid(:,:,i) = pyramid(:,:,i-1);
+                    response_maps(:,:,i) = response_maps(:,:,i-1);
                 else
-                    pyramid(:,:,i) = filter2(self.filters{i}, pyramid(:,:,1));
+                    response_maps(:,:,i) = filter2(self.filters{i}, response_maps(:,:,1));
                 end
             end
         end
@@ -463,8 +465,8 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             keypoints(invalid_idx) = [];
         end
 
-        function descriptor = extract_descriptor_from_keypoint (self, pyramid, center, radius_factor, angle)
-            % descriptor = EXTRACT_DESCRIPTOR_FROM_KEYPOINT (self, pyramid, center, radius_factor, angle)
+        function descriptor = extract_descriptor_from_keypoint (self, responses, center, radius_factor, angle)
+            % descriptor = EXTRACT_DESCRIPTOR_FROM_KEYPOINT (self, responses, center, radius_factor, angle)
             %
             % Extracts alpha-gamma descriptor from a given keypoint.
 
@@ -482,8 +484,8 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                             y = radius_factor*self.orientation_sample_points{j}(2, i) + center(2);
 
                             % Clamp inside valid region
-                            x = max(min(x, size(pyramid, 2)), 1);
-                            y = max(min(y, size(pyramid, 1)), 1);
+                            x = max(min(x, size(responses, 2)), 1);
+                            y = max(min(y, size(responses, 1)), 1);
 
                             if self.bilinear_sampling
                                 % Bilinear interpolation
@@ -497,23 +499,23 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                                 a1 = 1 - a0;
                                 b1 = 1 - b0;
 
-                                val = a1*b1*pyramid(y0,x0,j);
+                                val = a1*b1*responses(y0,x0,j);
 
                                 if a0
-                                    val = val + a0*b1*pyramid(y0,x1,j);
+                                    val = val + a0*b1*responses(y0,x1,j);
                                 end
                                 if b0
-                                     val = val + a1*b0*pyramid(y1,x0,j);
+                                     val = val + a1*b0*responses(y1,x0,j);
                                 end
                                 if a0 && b0
-                                    val = val + a0*b0*pyramid(y1,x1,j);
+                                    val = val + a0*b0*responses(y1,x1,j);
                                 end
 
                                 field(i, j) = val;
                             else
                                 x = round(x);
                                 y = round(y);
-                                field(i, j) = pyramid(y, x, j);
+                                field(i, j) = responses(y, x, j);
                             end
                         end
                     end
@@ -537,8 +539,8 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                     y = -radius_factor*self.radii(j)*sin(point_angle) + center(2);
                     
                     % Clamp inside valid region
-                    x = max(min(x, size(pyramid, 2)), 1);
-                    y = max(min(y, size(pyramid, 1)), 1);
+                    x = max(min(x, size(responses, 2)), 1);
+                    y = max(min(y, size(responses, 1)), 1);
                     
                     if self.bilinear_sampling
                         % Bilinear interpolation
@@ -552,23 +554,23 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                         a1 = 1 - a0;
                         b1 = 1 - b0;
     
-                        val = a1*b1*pyramid(y0,x0,j);
+                        val = a1*b1*responses(y0,x0,j);
     
                         if a0
-                            val = val + a0*b1*pyramid(y0,x1,j);
+                            val = val + a0*b1*responses(y0,x1,j);
                         end
                         if b0
-                             val = val + a1*b0*pyramid(y1,x0,j);
+                             val = val + a1*b0*responses(y1,x0,j);
                         end
                         if a0 && b0
-                            val = val + a0*b0*pyramid(y1,x1,j);
+                            val = val + a0*b0*responses(y1,x1,j);
                         end
                         
                         field(i, j) = val;
                     else
                         x = round(x);
                         y = round(y);
-                        field(i, j) = pyramid(y, x, j);
+                        field(i, j) = responses(y, x, j);
                     end
                 end
             end
