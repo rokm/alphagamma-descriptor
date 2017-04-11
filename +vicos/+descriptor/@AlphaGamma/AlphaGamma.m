@@ -252,7 +252,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                     continue;
                 end
                 
-                self.filters{i} = create_dog_filter(sigmas(i));
+                self.filters{i} = create_gaussian_filter(sigmas(i));
             end
                         
             %% Orientation estimation parameters
@@ -377,7 +377,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             response_maps = zeros(size(I, 1), size(I, 2), self.num_circles);
             
             if self.base_sigma ~= 0
-                response_maps(:,:,1) = filter2(create_dog_filter(self.base_sigma), I);
+                response_maps(:,:,1) = filter2(create_gaussian_filter(self.base_sigma), I);
             else
                 response_maps(:,:,1) = I;
             end
@@ -660,10 +660,10 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
     end
 end
 
-function filt = create_dog_filter (sigma)
-    % filt = CREATE_DOG_FILTER (sigma)
+function filt = create_gaussian_filter (sigma)
+    % filt = CREATE_GAUSSIAN_FILTER (sigma)
     %
-    % Creates a DoG filter with specified sigma.
+    % Creates a Gaussian filter with specified sigma.
 
     sz = round(3*sigma);
     [ x, y ] = meshgrid(-sz:sz);
