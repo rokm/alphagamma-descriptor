@@ -465,4 +465,126 @@ M = ag_float.compute_pairwise_distances(desc1, desc2);
 
 ## Reproduction of experimental results
 
-TBA
+The experimental results from the paper [1] were all obtained using
+scripts that are located in the ```paper2017``` subfolder inside the
+code folder.
+
+By default, all experiment functions cache their intermediate
+and final results; when run subsequently, they will attempt to load
+cached results before running the experiment. Therefore, the longer
+experiments can be left to run unattended, and be later re-run with
+additional options to enable visualization of results.
+
+*NOTE:* it is assumed that the code snippets below are executed from the
+working directory as to avoid cluttering the code directory with cache
+directories and result files.
+
+
+### Synthetic deformations
+
+To reproduce results with synthetic image rotation (Fig. 6a), use
+function ```jasna_experiment_rotation()```:
+
+```Matlab
+% Run all experiments (or load cached results).
+jasna_experiment_rotation();
+
+% Run all experiments (or load cached results), display Matlab figure,
+% and export results to rotation.txt file
+jasna_experiment_rotation('display_results', true, 'result_file', 'rotation-results.txt');
+```
+
+Similarly, results for scale (Fig. 6b) and shear (Fig. 6c) can be
+reproduced using:
+
+```Matlab
+jasna_experiment_scale('display_results', true, 'result_file', 'scale-results.txt');
+
+jasna_experiment_shear('display_results', true, 'result_file', 'shear-results.txt');
+```
+
+### Experiments on image sequences
+
+The experiments on image sequences (Figs. 5, 7, 8, 9) can be reproduced
+by running the following functions:
+
+```Matlab
+% All experiments on sequences from Oxford dataset (by default, the
+% following sequences are used: bikes, trees, leuven, boat, graffiti,
+% and wall)
+jasna_experiment_affine({ 'sift', 'surf', 'kaze', 'brisk', 'orb', 'radial' });
+
+% All experiments on sequences from Frankfurt dataset (by default, the
+% following sequence is used: Frankfurt)
+jasna_experiment_webcam({ 'sift', 'surf', 'kaze', 'brisk', 'orb', 'radial' });
+
+% All experiments on sequences from DTU dataset (by default, the following
+% sequences are used: SET007, SET022, SET023, and SET049)
+jasna_experiment_dtu({ 'sift', 'surf', 'kaze', 'brisk', 'orb', 'radial' });
+```
+
+The mandatory argument is cell array containing the pre-defined names of
+experiments. For each experiment id, the keypoints are tested with the
+native descriptor and both AG and AGS (i.e., SIFT, AG, and AGS on SIFT
+keypoints for 'sift' experiment id).
+
+The experiments will take a while to run. A possible way to parallelize
+them is to run multiple Matlab instances, and execute the experiment
+functions with different subsets of above experiment IDs.
+
+The intermediate and final results are cached in corresponding cache
+directories. To display the final results as shown in paper, use the
+```jasna_display_results()``` function. Note that this function assumes
+that experiments have been run for all six experiment IDs that are
+shown above.
+
+```Matlab
+% Oxford sequences; show Matlab figures and export LaTeX code for graphs
+jasna_display_results('_cache_affine-gray', { 'bikes', 'trees', 'leuven', 'boat', 'graffiti', 'wall' }, 'display_figure', true, 'output_dir', 'graphs-affine');
+
+% Webcam sequence; show only Matlab figures (same as if 'display_figure' option was also omitted)
+jasna_display_results('_cache_webcam-gray', { 'Frankfurt' }, 'display_figure', true);
+
+% DTU sequences; do not display Matlab figures, but export the LaTeX code for graphs.
+jasna_display_results('_cache_dtu-gray', { 'SET007', 'SET022', 'SET023', 'SET049' }, 'output_dir', 'graphs-dtu', 'display_figure', false);
+```
+
+The first argument is the name of cache directory that was created by
+the experiment script. The second argument is cell array with names of
+sequences (used as prefix for result files inside cache directory).
+
+The 'display_figure' is an optional argument and controls whether
+Matlab figures with graphs should be created (enabled by default).
+
+The 'output_dir' is an optional argument and controls, whether LaTeX
+code for graphs is exported (to the specified directory), or not
+(disabled by default). The specified output directory will contain
+several .tex files, one for each graph.
+
+
+## Correct match visualizations
+
+Visualizations of correct matches in Fig. 10 were obtained using the
+following function:
+
+```Matlab
+jasna_visualizations_dtu();
+```
+
+The above function will run the relevant experiments. By default, it
+uses different cache directory than experiment scripts from the
+previous section. Inside this cache directory, called
+```_visualization_dtu-gray```, it will create several folders containing
+data and LaTeX code for visualizations. For example, folder
+_visualization_dtu-gray/SET010_Img025_08_Img119_08_SIFT_SIFT will
+contain LaTeX code and data for visualization of correct matches of
+SIFT descriptor on SIFT keypoints, when used on images 25 and 119 from
+DTU SET010.
+
+A similar function can be used to generate some visualizations for
+sequences from the WebCam dataset:
+```Matlab
+jasna_visualizations_webcam();
+```
+
+The resulting images were excluded from the paper due to page limit.
