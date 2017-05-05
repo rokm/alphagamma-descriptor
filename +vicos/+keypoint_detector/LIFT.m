@@ -37,4 +37,10 @@ classdef LIFT < vicos.keypoint_detector.KeypointDetector
             keypoints = self.wrapper.detect_lift_keypoints(I);
         end
     end
+    
+    methods (Access = protected)
+        function identifier = get_identifier (self)
+            identifier = 'LIFT';
+        end
+    end
 end

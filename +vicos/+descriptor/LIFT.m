@@ -47,9 +47,11 @@ classdef LIFT < vicos.descriptor.Descriptor
             % Fixed-size
             descriptor_size = 128; % 128 floating-point values
         end
-        
-        function desc = compute_from_patch (self, I)            
-           error('Not implemented!');
+    end
+    
+    methods (Access = protected)
+        function identifier = get_identifier (self)
+            identifier = 'LIFT';
         end
     end
 end

@@ -37,7 +37,7 @@ classdef LiftWrapper < handle
             % OpenCV dependency
             root_dir = fileparts(mfilename('fullpath'));
             
-            if isunix(),
+            if isunix()
                 % Linux wrapper scripts
                 self.wrapper_script_detector = fullfile(root_dir, 'run_lift_detector.sh');
                 self.wrapper_script_descriptor = fullfile(root_dir, 'run_lift_descriptor.sh');
@@ -85,7 +85,7 @@ classdef LiftWrapper < handle
             self.write_keypoints_to_file(keypoints, [ tmp_output_file, '.2.txt' ]);
             
             % Cleanup
-            if self.cleanup,
+            if self.cleanup
                 rmdir(tmp_dir, 's');
             end
         end
@@ -130,7 +130,7 @@ classdef LiftWrapper < handle
             [ keypoints, descriptors ] = self.read_descriptors_from_file(tmp_output_file);
             
             % Cleanup
-            if self.cleanup,
+            if self.cleanup
                 rmdir(tmp_dir, 's');
             end
         end 
@@ -169,7 +169,7 @@ classdef LiftWrapper < handle
             setenv('LD_LIBRARY_PATH', ld_library_path);
             
             %% Check script status
-            if status,
+            if status
                 error('Wrapper script failed! Output:\n%s\n', result);
             end
         end
@@ -205,7 +205,7 @@ classdef LiftWrapper < handle
             
             % Parse keypoints
             keypoints = repmat(struct('pt', [ 0, 0 ], 'size', 0, 'angle', 0, 'response', 0, 'octave', 0, 'class_id', 0), num_keypoints, 1);
-            for i = 1:num_keypoints,
+            for i = 1:num_keypoints
                 keypoints(i).pt = [ data(1, i), data(2, i) ];
                 keypoints(i).size = 2*data(3, i);
                 keypoints(i).angle = data(4, i);
@@ -269,7 +269,7 @@ classdef LiftWrapper < handle
             fprintf(fid, '%d\n', numel(keypoints));
             
             % Write keypoints
-            for i = 1:numel(keypoints),
+            for i = 1:numel(keypoints)
                 kpt = keypoints(i);
                 
                 % x, y
