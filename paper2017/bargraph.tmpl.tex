@@ -18,21 +18,25 @@
 % SURF
 \definecolor{color_surf}      {rgb}{0.620,0.1,0.6}
 \definecolor{color_surf_ag}   {rgb}{0.7,0.3,0.4}
-\definecolor{color_surf_ags}{rgb}{1,0.6961,0.8}
+\definecolor{color_surf_ags}  {rgb}{1,0.6961,0.8}
 % KAZE
 \definecolor{color_kaze}      {rgb}{0.4,0.20,0}
 \definecolor{color_kaze_ag}   {rgb}{0.6, 0.3, 0}
-\definecolor{color_kaze_ags}{rgb}{0.7529,0.5647,0}
+\definecolor{color_kaze_ags}  {rgb}{0.7529,0.5647,0}
 % BRISK
 \definecolor{color_brisk}      {rgb}{0,0,0.5961}
 \definecolor{color_brisk_ag}   {rgb}{0,0,1}
-\definecolor{color_brisk_ags}{rgb}{0.2,0.6,1}
+\definecolor{color_brisk_ags}  {rgb}{0.2,0.6,1}
 % ORB
 \definecolor{color_orb}      {rgb}{0.2196,0.3412,0.1373}
 \definecolor{color_orb_ag}   {rgb}{0.20,0.5176,0.2}
-\definecolor{color_orb_ags}{rgb}{0.5725,0.8157,0.3137}
+\definecolor{color_orb_ags}  {rgb}{0.5725,0.8157,0.3137}
+% LIFT
+\definecolor{color_lift}      {rgb}{0.5000,0.5000,0.5000}
+\definecolor{color_lift_ag}   {rgb}{0.6250,0.6250,0.6250}
+\definecolor{color_lift_ags}  {rgb}{0.7188,0.7188,0.7188}
 % RADIAL
-\definecolor{color_radial_ag}   {rgb}{0.8,0.0,0.0}
+\definecolor{color_radial_ag} {rgb}{0.8,0.0,0.0}
 \definecolor{color_radial_ags}{rgb}{0.6,0,0.1294}
 
 %% Bar grouping
@@ -57,9 +61,9 @@
 \begin{document}
 	
 \begin{tikzpicture}
-\clip (-1, -1) rectangle (10.25, 6.75);
+\clip (-1, -1) rectangle (12.25, 6.75);
 \begin{axis}[
-	width=10cm,
+	width=12cm,
 	height=6cm,
 	title=$$TITLE_STRING$$,
 	title style = {yshift=-1.5ex, font=\Large\bfseries},
@@ -71,9 +75,9 @@
 	xtick pos = left,
 	ytick pos = left,
     $$Y_AXIS_SPEC$$
-	symbolic x coords = { sift, surf, kaze, brisk, orb, radial },
-	xtick = { sift, surf, kaze, brisk, orb, radial },
-	xticklabels = { $$TICK_SIFT$$, $$TICK_SURF$$, $$TICK_KAZE$$, $$TICK_BRISK$$, $$TICK_ORB$$, $$TICK_RADIAL$$ },
+	symbolic x coords = { sift, surf, kaze, brisk, orb, lift, radial },
+	xtick = { sift, surf, kaze, brisk, orb, lift, radial },
+	xticklabels = { $$TICK_SIFT$$, $$TICK_SURF$$, $$TICK_KAZE$$, $$TICK_BRISK$$, $$TICK_ORB$$, $$TICK_LIFT$$, $$TICK_RADIAL$$ },
 	xticklabel style = {align=center},
 	axis background/.style = {fill=none},
 	major grid style = {white!85!black},
@@ -103,6 +107,11 @@
 \addplot[bar group size={0}{3},shaded bar={color_orb}{}]        coordinates {(orb,$$VALUE_ORB$$) };%
 \addplot[bar group size={1}{3},shaded bar={color_orb_ag}{}]     coordinates {(orb,$$VALUE_ORB_AG$$) };%
 \addplot[bar group size={2}{3},shaded bar={color_orb_ags}{}]    coordinates {(orb,$$VALUE_ORB_AGS$$) };%
+
+%% LIFT
+\addplot[bar group size={0}{3},shaded bar={color_lift}{}]       coordinates {(lift,$$VALUE_LIFT$$) };%
+\addplot[bar group size={1}{3},shaded bar={color_lift_ag}{}]    coordinates {(lift,$$VALUE_LIFT_AG$$) };%
+\addplot[bar group size={2}{3},shaded bar={color_lift_ags}{}]   coordinates {(lift,$$VALUE_LIFT_AGS$$) };%
 
 %% RADIAL
 \addplot[bar group size={0}{2},shaded bar={color_radial_ag}{}]  coordinates {(radial,$$VALUE_RADIAL_AG$$) };%

@@ -204,7 +204,7 @@ classdef LiftWrapper < handle
             fclose(fid);
             
             % Parse keypoints
-            keypoints = repmat(struct('pt', [ 0, 0 ], 'size', 0, 'angle', 0, 'response', 0, 'octave', 0, 'class_id', 0), num_keypoints, 1);
+            keypoints = repmat(struct('pt', [ 0, 0 ], 'size', 0, 'angle', 0, 'response', 0, 'octave', 0, 'class_id', -1), num_keypoints, 1);
             for i = 1:num_keypoints
                 keypoints(i).pt = [ data(1, i), data(2, i) ];
                 keypoints(i).size = 2*data(3, i);
@@ -234,8 +234,8 @@ classdef LiftWrapper < handle
             num_keypoints = size(data, 2);
             assert(size(data, 1) == 13, 'Invalid output data format!');
             
-            keypoints = repmat(struct('pt', [ 0, 0 ], 'size', 0, 'angle', 0, 'response', 0, 'octave', 0, 'class_id', 0), num_keypoints, 1);
-            for i = 1:num_keypoints,
+            keypoints = repmat(struct('pt', [ 0, 0 ], 'size', 0, 'angle', 0, 'response', 0, 'octave', 0, 'class_id', -1), num_keypoints, 1);
+            for i = 1:num_keypoints
                 keypoints(i).pt = [ data(1, i), data(2, i) ];
                 keypoints(i).size = 2*data(3, i);
                 keypoints(i).angle = data(4, i);

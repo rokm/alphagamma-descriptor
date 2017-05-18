@@ -34,7 +34,7 @@ function jasna_display_results (cache_dir, sequences, varargin)
     end
     
     %% Process
-    experiment_ids = { 'sift', 'surf', 'kaze', 'brisk', 'orb', 'radial' }; % The IDs of experiments for which results are to be gathered
+    experiment_ids = { 'sift', 'surf', 'kaze', 'brisk', 'orb', 'radial', 'lift' }; % The IDs of experiments for which results are to be gathered
     for i = 1:numel(sequences)
         sequence = sequences{i};
 
@@ -132,8 +132,9 @@ function draw_figure (results_map, field_name, varargin)
     
     % Bunch of more-or-less hard-coded stuff, because our graphs have fixed
     % appearance...
-    entries = { 'sift', 'sift-ag', 'sift-ags', 'surf', 'surf-ag', 'surf-ags', 'kaze', 'kaze-ag', 'kaze-ags', 'brisk', 'brisk-ag', 'brisk-ags', 'orb', 'orb-ag', 'orb-ags', 'radial-ag', 'radial-ags' };
-    xticks = [ 2, 5, 8, 11, 14, 16.5 ];
+    entries = { 'sift', 'sift-ag', 'sift-ags', 'surf', 'surf-ag', 'surf-ags', 'kaze', 'kaze-ag', 'kaze-ags', 'brisk', 'brisk-ag', 'brisk-ags', 'orb', 'orb-ag', 'orb-ags', 'lift', 'lift-ag', 'lift-ags', 'radial-ag', 'radial-ags' };
+    xticks = [ 2, 5, 8, 11, 14, 17, 19.5 ];
+    x_limit = [ 0, 21 ];
     
     if display_num_correspondences
         fmt = '%s\\newline(%d)';
@@ -143,9 +144,10 @@ function draw_figure (results_map, field_name, varargin)
             sprintf(fmt, 'KAZE',   round(mean(results_map('kaze').correspondences))), ...
             sprintf(fmt, 'BRISK',  round(mean(results_map('brisk').correspondences))), ...
             sprintf(fmt, 'ORB',    round(mean(results_map('orb').correspondences))), ...
+            sprintf(fmt, 'LIFT',   round(mean(results_map('lift').correspondences))), ...
             sprintf(fmt, 'RADIAL', round(mean(results_map('radial-ag').correspondences))) };
     else
-        xticklabels = { 'SIFT', 'SURF', 'KAZE', 'BRISK', 'ORB', 'RADIAL' };
+        xticklabels = { 'SIFT', 'SURF', 'KAZE', 'BRISK', 'ORB', 'LIFT', 'RADIAL' };
     end
     
     % Colormap
@@ -165,6 +167,9 @@ function draw_figure (results_map, field_name, varargin)
         0.2196,0.3412,0.1373;
         0.2000,0.5176,0.2;
         0.5725,0.8157,0.3137;
+        0.5000,0.5000,0.5000;
+        0.6250,0.6250,0.6250;
+        0.7188,0.7188,0.7188;
         0.8000,0.0,0.0;
         0.6000,0,0.1294 ];
     
@@ -181,6 +186,7 @@ function draw_figure (results_map, field_name, varargin)
     if is_percent
         ylim([ 0, 100 ]);
     end
+    xlim(x_limit);
     set(gca, 'YGrid', 'on', 'XTick', xticks, 'XTickLabel', xticklabels);
     title(title_str);
 end
@@ -211,6 +217,7 @@ function export_figure_as_tikz (results_map, field_name, varargin)
         template_str = strrep(template_str, '$$TICK_KAZE$$',   sprintf(fmt, 'KAZE',   round(mean(results_map('kaze').correspondences))));
         template_str = strrep(template_str, '$$TICK_BRISK$$',  sprintf(fmt, 'BRISK',  round(mean(results_map('brisk').correspondences))));
         template_str = strrep(template_str, '$$TICK_ORB$$',    sprintf(fmt, 'ORB',    round(mean(results_map('orb').correspondences))));
+        template_str = strrep(template_str, '$$TICK_LIFT$$',   sprintf(fmt, 'LIFT',   round(mean(results_map('lift').correspondences))));
         template_str = strrep(template_str, '$$TICK_RADIAL$$', sprintf(fmt, 'RADIAL', round(mean(results_map('radial-ag').correspondences))));
     else
         template_str = strrep(template_str, '$$TICK_SIFT$$',   'SIFT');
@@ -218,6 +225,7 @@ function export_figure_as_tikz (results_map, field_name, varargin)
         template_str = strrep(template_str, '$$TICK_KAZE$$',   'KAZE');
         template_str = strrep(template_str, '$$TICK_BRISK$$',  'BRISK');
         template_str = strrep(template_str, '$$TICK_ORB$$',    'ORB');
+        template_str = strrep(template_str, '$$TICK_LIFT$$',   'LIFT');
         template_str = strrep(template_str, '$$TICK_RADIAL$$', 'RADIAL');
     end
     
@@ -243,6 +251,9 @@ function export_figure_as_tikz (results_map, field_name, varargin)
     template_str = strrep(template_str, '$$VALUE_ORB$$',        sprintf('%g', scale*mean(results_map('orb').(field_name))));
     template_str = strrep(template_str, '$$VALUE_ORB_AG$$',     sprintf('%g', scale*mean(results_map('orb-ag').(field_name))));
     template_str = strrep(template_str, '$$VALUE_ORB_AGS$$',    sprintf('%g', scale*mean(results_map('orb-ags').(field_name))));
+    template_str = strrep(template_str, '$$VALUE_LIFT$$',       sprintf('%g', scale*mean(results_map('lift').(field_name))));
+    template_str = strrep(template_str, '$$VALUE_LIFT_AG$$',    sprintf('%g', scale*mean(results_map('lift-ag').(field_name))));
+    template_str = strrep(template_str, '$$VALUE_LIFT_AGS$$',   sprintf('%g', scale*mean(results_map('lift-ags').(field_name))));
     template_str = strrep(template_str, '$$VALUE_RADIAL_AG$$',  sprintf('%g', scale*mean(results_map('radial-ag').(field_name))));
     template_str = strrep(template_str, '$$VALUE_RADIAL_AGS$$', sprintf('%g', scale*mean(results_map('radial-ags').(field_name))));
     

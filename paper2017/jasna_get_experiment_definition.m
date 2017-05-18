@@ -46,6 +46,10 @@ function [ keypoint_detector, descriptor_extractor, alphagamma_float, alphagamma
             keypoint_detector = @() vicos.keypoint_detector.RADIAL();
             descriptor_extractor = [];
             base_keypoint_size = 4;
+        case 'lift'
+            keypoint_detector = @() vicos.keypoint_detector.LIFT();
+            descriptor_extractor = @() vicos.descriptor.LIFT();
+            base_keypoint_size = 3.25;
         otherwise
             error('Invalid experiment id: "%s"', experiment_id);
     end
