@@ -49,7 +49,7 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
     % Results filename (caching)
     results_file = '';
     if ~isempty(self.cache_dir)
-        results_file = sprintf('SET%03d_%s+%s', image_set, keypoint_detector.identifier, descriptor_extractor.identifier);
+        results_file = sprintf('SET%03d_%s+%s.mat', image_set, keypoint_detector.identifier, descriptor_extractor.identifier);
         results_file = fullfile(self.cache_dir, results_file);
     end
     
