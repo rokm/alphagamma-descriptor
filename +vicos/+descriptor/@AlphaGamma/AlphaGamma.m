@@ -335,20 +335,22 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                     keypoint = keypoints(p);
                     
                     % Determine octave and scale factors
-                    if keypoint.size <= 14
-                       octave = 1; 
-                    elseif keypoint.size <= 28
-                        octave = 2; % No downsampling
-                    elseif keypoint.size <= 56
-                        octave = 3; % 1x downsampled
-                    elseif keypoint.size <= 112
-                        octave = 4; % 2x downsampled
-                    elseif keypoint.size <= 224
-                        octave = 5; % 3x downsampled
-                    elseif keypoint.size <= 448
-                        octave = 6; % 4x downsampled
+                    normalized_size = keypoint.size / self.base_keypoint_size;
+                    
+                    if normalized_size <= 1.75
+                       octave = 1; % 1x upsampled image
+                    elseif normalized_size <= 2*1.75
+                        octave = 2; % Original image
+                    elseif normalized_size <= 4*1.75
+                        octave = 3; % 1x downsampled image
+                    elseif normalized_size <= 8*1.75
+                        octave = 4; % 2x downsampled image
+                    elseif normalized_size <= 16*1.75
+                        octave = 5; % 3x downsampled image
+                    elseif normalized_size <= 32*1.75
+                        octave = 6; % 4x downsampled image
                     else
-                        error('Keypoint too large: %f!', keypoint.size);
+                        octave = 6; % Same for the rest
                     end
                     
                     % Scale the keypoint's center
