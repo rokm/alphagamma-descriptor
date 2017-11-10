@@ -588,3 +588,114 @@ jasna_visualizations_webcam();
 ```
 
 The resulting images were excluded from the paper due to page limit.
+
+
+## LIFT keypoint detector/descriptor support
+
+This repository incorporates support for the LIFT keypoint detector and
+descriptor from: https://github.com/cvlab-epfl/LIFT
+
+As with other components, the code from above repository is incorporated
+as git submodule and wrapper classes (```vicos.keypoint_detector.LIFT``` and
+```vicos.descriptor.LIFT```). Due to CUDA and python dependencies
+(Theano, lasagne, etc.) and limited testing, the support is limited
+to linux-based operating systems for now.
+
+The instructions below are written for Fedora 25/26, where integration
+was developed and tested.
+
+
+### Dependencies
+
+LIFT code requires a CUDA-compatible GPU.
+
+For CUDA and CuDNN, Fedora packages are available in Negativo17 repository:
+https://negativo17.org/nvidia-driver
+
+After setting it up, install cuda and cudnn (version 5):
+```Shell
+sudo dnf install cuda-devel cuda-cudnn5.1-devel
+```
+
+On Fedora 25/26, the dependencies can be install directly from official
+repositories:
+
+```Shell
+sudo dnf install python2-opencv python2-h5py python2-flufl-lock python2-parse python2-scipy python2-theano
+```
+
+We also need python2-lasagne, but Fedora (at the time of writing)
+provides incompatible (outdated) 0.1 version, which does not work
+with Theano/LIFT. Hence, you need to install the development version
+on your own, or grab it from the following Copr repository: (TBA)
+
+### Building C++ part
+
+The LIFT code also includes some C++ code that needs to be compiled;
+this is handled by the master build script (from beginning of this README):
+
+```Shell
+./code/build_all.sh
+```
+
+### Setting up Theano
+
+Fedora 26 comes with gcc compiler version that is incompatible with
+CUDA 8. Installing cuda packages from Negativo17 repository should also
+pull in the compat-gcc-53 packages. However, we need to instruct
+Theano to use it when compiling generated code. Create ~/.theanorc
+file with the following content:
+
+```
+[nvcc]
+flags=-D_FORCE_INLINES -ccbin=/usr/bin/g++53
+
+[global]
+floatX = float32
+device = cuda0
+```
+
+The floatX and device settings are necessary to avoid  messages about
+using old gpu back-end and floatX=64.
+
+
+### Using LIFT wrapper
+
+LIFT detector/descriptor can be used in same way as other wrapped
+detectors and descriptors, e.g.:
+
+```Matlab
+% Load images (assuming datasets were installed and that we are inside
+% the working directory)
+I1 = imread('datasets/affine/graffiti/img1.ppm');
+I2 = imread('datasets/affine/graffiti/img2.ppm');
+
+
+%% Keypoint detection
+% Create LIFT keypoint detector
+detector = vicos.keypoint_detector.LIFT();
+
+% Detect keypoints
+kpts1 = detector.detect(I1);
+kpts2 = detector.detect(I2);
+
+
+%% LIFT descriptor
+lift = vicos.descriptor.LIFT();
+
+% Compute descriptors
+[ desc1, kpts1 ] = lift.compute(I1, kpts1);
+[ desc2, kpts2 ] = lift.compute(I2, kpts2);
+
+% Compute distance matrix
+M = lift.compute_pairwise_distances(desc1, desc2);
+```
+
+The first run may take a while as it, behind the scenes, performs
+compilation of auto-generated code.
+
+### Using LIFT in experiments code
+
+To activate LIFT experiments, use ```'lift'``` experiment name when calling
+```jasna_experiment_affine()```, ```jasna_experiment_webcam()```, and
+```jasna_experiment_dtu()```.
