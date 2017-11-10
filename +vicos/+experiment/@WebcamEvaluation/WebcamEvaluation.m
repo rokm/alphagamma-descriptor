@@ -22,6 +22,9 @@ classdef WebcamEvaluation < vicos.experiment.AffineEvaluation
         end
         
         results = run_experiment (self, keypoint_detector, descriptor_extractor, sequence, varargin)
+        
+        % List all sequences
+        sequences = list_all_sequences (self)
     end
 end
 

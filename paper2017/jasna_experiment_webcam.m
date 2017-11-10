@@ -35,14 +35,20 @@ function jasna_experiment_webcam (experiment_ids, varargin)
         end
     end
     
+    %% Create experiment
+    experiment = vicos.experiment.WebcamEvaluation('cache_dir', cache_dir, 'force_grayscale', force_grayscale);
+
+    %% Determine sequences
+    if isequal(sequences, '*')
+        % Wildcard support: use all sequences
+        sequences = experiment.list_all_sequences();
+    end
+    
     % If only one sequence is given, make it into cell array
     if ~iscell(sequences)
         sequences = { sequences };
     end
     
-    %% Create experiment
-    experiment = vicos.experiment.WebcamEvaluation('cache_dir', cache_dir, 'force_grayscale', force_grayscale);
-
     %% Run experiment(s)
     % If only one ID is given, make it into cell array
     if ~iscell(experiment_ids)

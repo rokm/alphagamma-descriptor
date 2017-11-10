@@ -44,7 +44,11 @@ function jasna_experiment_affine (experiment_ids, varargin)
             cache_dir = [ cache_dir, '-gray' ];
         end
     end
+        
+    %% Create experiment
+    experiment = vicos.experiment.AffineEvaluation('cache_dir', cache_dir, 'force_grayscale', force_grayscale);
     
+    %% Determine sequences
     % Default sequences (for non-pairs, use only graffiti)
     if isempty(sequences)
         if isequal(experiment_type, 'pairs')
@@ -52,15 +56,15 @@ function jasna_experiment_affine (experiment_ids, varargin)
         else
             sequences = 'graffiti';
         end
+    elseif isequal(sequences, '*')
+        % Wildcard support: use all sequences
+        sequences = experiment.list_all_sequences();
     end
     
     % If only one sequence is given, make it into cell array
     if ~iscell(sequences)
         sequences = { sequences };
     end
-    
-    %% Create experiment
-    experiment = vicos.experiment.AffineEvaluation('cache_dir', cache_dir, 'force_grayscale', force_grayscale);
 
     %% Run experiment(s)
     % If only one ID is given, make it into cell array

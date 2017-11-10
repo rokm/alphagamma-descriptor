@@ -94,6 +94,9 @@ classdef DtuRobotEvaluation < vicos.experiment.Experiment
             self.load_camera_calibration();
         end
         
+        % List all sequences
+        sequences = list_all_sequences (self)
+        
         % Reconstruction functionality of DTU experiment code
         grid = generate_structured_light_grid (self, image_set, reference_image)
         [ mu, sigma, valid ] = lookup_point_3d (self, grid, pt2d)

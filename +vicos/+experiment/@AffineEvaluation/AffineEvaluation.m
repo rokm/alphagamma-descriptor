@@ -24,6 +24,7 @@ classdef AffineEvaluation < vicos.experiment.Experiment
         function self = AffineEvaluation (varargin)
             parser = inputParser();
             parser.addParameter('dataset_path', '', @ischar);
+            parser.addParameter('dataset_name', 'affine', @ischar)
             parser.addParameter('half_size_images', true, @islogical);
             parser.addParameter('backprojection_threshold', 2.5, @isnumeric);
             parser.addParameter('putative_match_ratio', 0.8, @isnumeric);
@@ -43,19 +44,25 @@ classdef AffineEvaluation < vicos.experiment.Experiment
             % Grayscale images
             self.force_grayscale = parser.Results.force_grayscale;
             
-            % Default dataset path
+            % Default dataset path            
             self.dataset_path = parser.Results.dataset_path;
             if isempty(self.dataset_path)
+                % Dataset folder name
+                dataset_name = parser.Results.dataset_name;
+
                 % Determine code root path
                 code_root = fileparts(mfilename('fullpath'));
                 code_root = fullfile(code_root, '..', '..', '..');
-                self.dataset_path = fullfile(code_root, '..', 'datasets', 'affine');
+                self.dataset_path = fullfile(code_root, '..', 'datasets', dataset_name);
             end
             
             assert(exist(self.dataset_path, 'dir') ~= 0, 'Invalid dataset root path "%s"!', self.dataset_path);
         end
         
         results = run_experiment (self, keypoint_detector, descriptor_extractor, sequence, varargin)
+        
+        % List all sequences
+        sequences = list_all_sequences (self)
     end
     
     % Image pair retrieval

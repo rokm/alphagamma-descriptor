@@ -37,6 +37,12 @@ function jasna_experiment_dtu (experiment_ids, varargin)
         
     %% Create experiment
     experiment = vicos.experiment.DtuRobotEvaluation('cache_dir', cache_dir, 'force_grayscale', force_grayscale);
+    
+    %% Determine image sets
+    if isequal(image_sets, '*')
+        % Wildcard support: use all image sets
+        image_sets = experiment.list_all_sequences();
+    end
 
     %% Run experiment(s)
     % If only one ID is given, make it into cell array
