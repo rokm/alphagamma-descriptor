@@ -6,7 +6,7 @@ function [ keypoint_detector, descriptor_extractor, alphagamma_float, alphagamma
     %
     % Input:
     %  - experiment_id: experiment ID; valid values: surf, sift, brisk, 
-    %    orb, kaze, radial
+    %    orb, kaze, radial, rootsift
     %
     % Output:
     %  - keypoint_detector: factory function handle for keypoint detector
@@ -26,22 +26,26 @@ function [ keypoint_detector, descriptor_extractor, alphagamma_float, alphagamma
             keypoint_detector = @() vicos.keypoint_detector.SIFT();
             descriptor_extractor = @() vicos.descriptor.SIFT();
             base_keypoint_size = 3.25;
+        case 'rootsift'
+            keypoint_detector = @() vicos.keypoint_detector.SIFT();
+            descriptor_extractor = @() vicos.descriptor.RootSIFT();
+            base_keypoint_size = 3.25;
         case 'brisk'
             keypoint_detector = @() vicos.keypoint_detector.BRISK();
             descriptor_extractor = @() vicos.descriptor.BRISK();
             base_keypoint_size = 18.5;
         case 'orb'
-            keypoint_detector = @() vicos.keypoint_detector.ORB('MaxFeatures', 15000); % OpenCV-default is 500...
+            keypoint_detector = @() vicos.keypoint_detector.ORB('MaxFeatures', 5000); % OpenCV-default is 500...
             descriptor_extractor = @() vicos.descriptor.ORB();
             base_keypoint_size = 18.5;
         case 'kaze'
             keypoint_detector = @() vicos.keypoint_detector.KAZE();
             descriptor_extractor = @() vicos.descriptor.KAZE('Extended', false);
-            base_keypoint_size = 4.75;
+            base_keypoint_size = 4.5;
         case 'radial'
-            keypoint_detector = @() vicos.keypoint_detector.FeatureRadial('MaxFeatures', 15000);
+            keypoint_detector = @() vicos.keypoint_detector.FeatureRadial('MaxFeatures', 5000);
             descriptor_extractor = [];
-            base_keypoint_size = [ 8.25, 8.0 ];
+            base_keypoint_size = 4;
         otherwise
             error('Invalid experiment id: "%s"', experiment_id);
     end
