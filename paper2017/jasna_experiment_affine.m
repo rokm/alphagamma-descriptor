@@ -7,6 +7,7 @@ function jasna_experiment_affine (experiment_ids, varargin)
     %  - experiment_ids: cell array of experiment IDs (for list of valid
     %    IDs, see JASNA_GET_EXPERIMENT_DEFINITION())
     %  - varargin: optional key/value pairs:
+    %     - dataset: 'affine' or 'hpatches' (default: 'affine')
     %     - experiment_type: experiment type (default: pairs)
     %     - sequences: sequences to process (default: { 'bikes', 'trees', 
     %       'leuven', 'boat', 'graffiti', 'wall' } for pairs experiment,
@@ -21,12 +22,14 @@ function jasna_experiment_affine (experiment_ids, varargin)
     
     % Parser
     parser = inputParser();
+    parser.addParameter('dataset', 'affine', @ischar);
     parser.addParameter('experiment_type', 'pairs', @ischar);
     parser.addParameter('sequences', {});
     parser.addParameter('force_grayscale', true, @islogical);
     parser.addParameter('cache_dir', '', @ischar);
     parser.parse(varargin{:});
     
+    dataset = parser.Results.dataset;
     experiment_type = parser.Results.experiment_type;
     sequences = parser.Results.sequences;
     force_grayscale = parser.Results.force_grayscale;
@@ -34,7 +37,7 @@ function jasna_experiment_affine (experiment_ids, varargin)
     
     % Default cache dir
     if isempty(cache_dir)
-        cache_dir = '_cache_affine';
+        cache_dir = sprintf('_cache_%s', dataset);
         
         if ~isequal(experiment_type, 'pairs')
             cache_dir = [ cache_dir, '-', experiment_type ];
@@ -46,7 +49,7 @@ function jasna_experiment_affine (experiment_ids, varargin)
     end
         
     %% Create experiment
-    experiment = vicos.experiment.AffineEvaluation('cache_dir', cache_dir, 'force_grayscale', force_grayscale);
+    experiment = vicos.experiment.AffineEvaluation('dataset_name', dataset, 'cache_dir', cache_dir, 'force_grayscale', force_grayscale);
     
     %% Determine sequences
     % Default sequences (for non-pairs, use only graffiti)

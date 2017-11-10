@@ -19,10 +19,8 @@ function [ I1, I2, H12 ] = get_sheared_image (self, sequence, img, shear_x, shea
     % homography assumes a 0-based coordinate system (unlike the
     % Matlab's 1-based image coordinate system)
     
-    % Load
-    data_path = fullfile(self.dataset_path, sequence);
-    
-    I1 = imread( fullfile(data_path, sprintf('img%d.ppm', img)) );
+    % Load   
+    I1 = imread(self.get_image_filename(sequence, img));
     
     A = [       1, shear_y, 0;
           shear_x,       1, 0;

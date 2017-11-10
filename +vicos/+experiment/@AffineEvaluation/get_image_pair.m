@@ -15,9 +15,7 @@ function [ I1, I2, H12 ] = get_image_pair (self, sequence, i1, i2)
     %  - H12: homography between both images
     
     % Load
-    data_path = fullfile(self.dataset_path, sequence);
-    
-    I1 = imread( fullfile(data_path, sprintf('img%d.ppm', i1)) );
-    I2 = imread( fullfile(data_path, sprintf('img%d.ppm', i2)) );
-    H12 = load( fullfile(data_path, sprintf('H%dto%dp', i1, i2)) );
+    I1 = imread(self.get_image_filename(sequence, i1));
+    I2 = imread(self.get_image_filename(sequence, i2));
+    H12 = load(self.get_homography_filename(sequence, i1, i2));
 end

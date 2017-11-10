@@ -20,9 +20,7 @@ function [ I1, I2, H12 ] = get_rotated_image (self, sequence, img, angle)
     % Matlab's 1-based image coordinate system)
         
     % Load
-    data_path = fullfile(self.dataset_path, sequence);
-    
-    I1 = imread( fullfile(data_path, sprintf('img%d.ppm', img)) );
+    I1 = imread(self.get_image_filename(sequence, img));
     I2 = imrotate(I1, -angle, 'bilinear', 'loose'); % NOTE: imrotate rotates in counter-clockwise, while we expect rotation to be clockwise!
     
     % Construct the homography

@@ -3,6 +3,8 @@ classdef AffineEvaluation < vicos.experiment.Experiment
         % Dataset path
         dataset_path
         
+        dataset_type
+        
         % Back-projection error threshold for determining camera-geometry
         % consistency of a match (in pixels)
         backprojection_threshold
@@ -44,6 +46,10 @@ classdef AffineEvaluation < vicos.experiment.Experiment
             % Grayscale images
             self.force_grayscale = parser.Results.force_grayscale;
             
+            % Store dataset name as type (affine vs hpatches) so that we
+            % can support both file-naming schemes
+            self.dataset_type = parser.Results.dataset_name;
+            
             % Default dataset path            
             self.dataset_path = parser.Results.dataset_path;
             if isempty(self.dataset_path)
@@ -63,6 +69,11 @@ classdef AffineEvaluation < vicos.experiment.Experiment
         
         % List all sequences
         sequences = list_all_sequences (self)
+    end
+    
+    methods (Access = private)
+        filename = get_image_filename (self, sequence, img)
+        filename = get_homography_filename (self, sequence, img1, img2)
     end
     
     % Image pair retrieval
