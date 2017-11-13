@@ -55,7 +55,7 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
     
     if ~isempty(results_file) && exist(results_file, 'file')
         tmp = load(results_file);
-        results = tmp_results;
+        results = tmp.results;
         return;
     end
     
