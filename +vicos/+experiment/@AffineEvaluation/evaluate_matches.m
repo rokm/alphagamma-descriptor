@@ -30,13 +30,12 @@ function [ match_idx, match_dist, correct_matches, putative_matches ] = evaluate
         M = descriptor_extractor.compute_pairwise_distances(ref_descriptors, test_descriptors);
 
         % For each test keypoint (row in M), find the closest match
-        Mm = M;
-        [ min_dist1, min_idx1 ] = min(Mm, [], 2); % For each test keypoint, find the closest match
+        [ min_dist1, min_idx1 ] = min(M, [], 2); % For each test keypoint, find the closest match
 
         % Find the next closest match (by masking the closest one)
-        cidx = sub2ind(size(Mm), [ 1:numel(min_idx1) ]', min_idx1);
-        Mm(cidx) = inf;
-        [ min_dist2, min_idx2 ] = min(Mm, [], 2);
+        cidx = sub2ind(size(M), [ 1:numel(min_idx1) ]', min_idx1);
+        M(cidx) = inf;
+        [ min_dist2, min_idx2 ] = min(M, [], 2);
 
         % Store indices and distances
         match_idx = [ min_idx1, min_idx2 ];
