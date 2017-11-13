@@ -182,6 +182,9 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             parser.addParameter('G', 1.0, @isnumeric);
             parser.addParameter('use_bitstrings', true, @islogical);
 
+            parser.addParameter('custom_radii', [], @isnumeric);
+            parser.addParameter('custom_sigmas', [], @isnumeric);
+            
             parser.parse(varargin{:});
             
             self = self@vicos.descriptor.Descriptor(parser.Unmatched);
@@ -225,10 +228,27 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             if isempty(self.orientation_num_rays)
                 self.orientation_num_rays = self.num_rays;
             end
+
+            
+            %% Set radii and sigmas
+            sigmas = parser.Results.custom_sigmas;
+            radii = parser.Results.custom_radii;
+            
+            assert(isempty(sigmas) == isempty(radii), 'Both or neither custom radii and sigmas need to be provided!');
+            
+            if ~isempty(sigmas)
+                % Validate given parameters
+                assert(nume(sigmas) == self.num_circles, 'Number of elements in custom sigmas vector must match number of circles!');
+                assert(nume(sigmas) == self.num_circles, 'Number of elements in custom sigmas vector must match number of circles!');
+            else
+                % Compute radii and sigmas
+                sigmas = zeros(self.num_circles, 1);
+                radii = zeros(self.num_circles, 1);
+            end
+            
             
             %% Pre-compute filters
-            sigmas = zeros(self.num_circles, 1);
-            radii = zeros(self.num_circles, 1);
+            
             self.filters = cell(self.num_circles, 1);
 
             % Filter parameters (radius and sigma)
