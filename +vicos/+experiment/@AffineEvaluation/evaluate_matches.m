@@ -26,21 +26,10 @@ function [ match_idx, match_dist, correct_matches, putative_matches ] = evaluate
         correct_matches = tmp.correct_matches;
         putative_matches = tmp.putative_matches;
     else
-        % Compute descriptor distance matrix
-        M = descriptor_extractor.compute_pairwise_distances(ref_descriptors, test_descriptors);
-
-        % For each test keypoint (row in M), find the closest match
-        [ min_dist1, min_idx1 ] = min(M, [], 2); % For each test keypoint, find the closest match
-
-        % Find the next closest match (by masking the closest one)
-        cidx = sub2ind(size(M), [ 1:numel(min_idx1) ]', min_idx1);
-        M(cidx) = inf;
-        [ min_dist2, min_idx2 ] = min(M, [], 2);
-
-        % Store indices and distances
-        match_idx = [ min_idx1, min_idx2 ];
-        match_dist = [ min_dist1, min_dist2 ];
-
+        % Find closest matches
+        batch_size = 1000; % Limit memory consumption by splitting test descriptors into batches
+        [ match_idx, match_dist ] = find_closest_matches (descriptor_extractor, ref_descriptors, test_descriptors, batch_size);
+        
         % Determine geometric consistency of matches
         correct_matches = nan(numel(test_keypoints), 1);
         for j = 1:numel(test_keypoints)
@@ -67,7 +56,7 @@ function [ match_idx, match_dist, correct_matches, putative_matches ] = evaluate
             end
         end
 
-        putative_matches = (min_dist1 ./ min_dist2) < self.putative_match_ratio;
+        putative_matches = (match_dist(:,1) ./ match_dist(:,2)) < self.putative_match_ratio;
         
         % Save to cache
         if ~isempty(cache_file)
@@ -77,3 +66,73 @@ function [ match_idx, match_dist, correct_matches, putative_matches ] = evaluate
         end 
     end
 end
+
+function [ match_idx, match_dist ] = find_closest_matches (descriptor_extractor, ref_descriptors, test_descriptors, batch_size)
+    % [ match_idx, match_dist ] = FIND_CLOSEST_MATCHES (descriptor_extractor, ref_descriptors, test_descriptors, batch_size)
+    %
+    % For each test_descriptor, finds the 1st and 2nd closest match among
+    % the ref_descriptors, and returns their indices and distances.
+    %
+    % Input:
+    %  - descriptor_extractor: descriptor extractor instance (needed for
+    %    distance function)
+    %  - ref_descriptors: reference descriptors (NxD matrix)
+    %  - test_descriptors: test descriptors (MxD matrix)
+    %  - batch_size: optional batch size to limit memory consmuption
+    %    (default: inf)
+    %
+    % Output:
+    %  - match_idx: Mx2 array of match indices (1st and 2nd match) for each
+    %    test descriptor
+    %  - match_dist: Mx2 array of match distances (1st and 2nd match) for 
+    %    each test descriptor
+    
+    if ~exist('batch_size', 'var') || isempty(batch_size)
+        batch_size = inf;
+    end
+    
+     % We do not know the type of match distance (because it depends on 
+     % descriptor size), so we will allocate 
+    match_idx = [];
+    match_dist = [];
+    
+    num_test_descriptors = size(test_descriptors, 1);
+    num_processed = 0;
+    
+    if ~isfinite(batch_size)
+        batch_size = num_test_descriptors;
+    end
+    
+    while num_processed < num_test_descriptors
+        % Clamp batch size
+        batch_size = min(batch_size, num_test_descriptors - num_processed);
+        
+        % Determine indices
+        pos1 = num_processed + 1;
+        pos2 = pos1 + batch_size - 1;
+        
+        % Compute descriptor distance matrix
+        M = descriptor_extractor.compute_pairwise_distances(ref_descriptors, test_descriptors(pos1:pos2, :));
+        
+        % For each test keypoint (row in M), find the closest match
+        [ min_dist1, min_idx1 ] = min(M, [], 2); % For each test keypoint, find the closest match
+
+        % Find the next closest match (by masking the closest one)
+        cidx = sub2ind(size(M), (1:numel(min_idx1))', min_idx1);
+        M(cidx) = inf;
+        [ min_dist2, min_idx2 ] = min(M, [], 2);
+        
+        % Store indices and distances
+        if isempty(match_dist)
+            match_dist = zeros(num_test_descriptors, 2, 'like', min_dist1);
+            match_idx = zeros(num_test_descriptors, 2, 'like', min_idx1);
+        end
+        
+        match_dist(pos1:pos2,:) = [ min_dist1, min_dist2 ];
+        match_idx(pos1:pos2,:) = [ min_idx1, min_idx2 ];
+        
+        % Update the count
+        num_processed = num_processed + batch_size;
+    end
+end
+
