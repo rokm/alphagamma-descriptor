@@ -9,4 +9,4 @@
 	url = https://github.com/rokm/opencv_contrib
 [submodule "external/lift"]
 	path = external/lift
-	url = https://github.com/cvlab-epfl/LIFT/
+	url = https://github.com/rokm/LIFT/

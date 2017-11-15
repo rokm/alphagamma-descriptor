@@ -19,7 +19,8 @@ _LIFT_KP_FILE_NAME=$2
 _LIFT_ORI_FILE_NAME=$3
 
 # Number of keypoints is optionally passed via environment variable
-_LIFT_NUM_KEYPOINTS=${_LIFT_NUM_KEYPOINTS:-1000}
+# (leave empty by default!)
+#_LIFT_NUM_KEYPOINTS=${_LIFT_NUM_KEYPOINTS:-1000}
 
 # The root path to LIFT code must be passed via _LIFT_BASE_PATH environment
 # variable
