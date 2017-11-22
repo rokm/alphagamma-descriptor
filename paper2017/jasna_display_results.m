@@ -16,25 +16,36 @@ function jasna_display_results (cache_dir, sequences, varargin)
     %       disabled)
     %     - use_unique: whether to use unique matches instead of all
     %       (default: false)
+    %     - compute_overall: compute and display average of measures across 
+    %       all sequences instead of individual per-sequence values
+    %       (default: false)
+    %     - overall_name: name used for filename prefix used in overall
+    %       mode (default: overall)
     
     % Parser
     parser = inputParser();
     parser.addParameter('display_figure', true, @islogical);
     parser.addParameter('output_dir', '', @ischar);
     parser.addParameter('use_unique', false, @islogical);
+    parser.addParameter('compute_overall', false, @islogical);
+    parser.addParameter('overall_name', 'overall', @ischar);
     parser.parse(varargin{:});
     
     display_figure = parser.Results.display_figure;
     output_dir = parser.Results.output_dir;
     use_unique = parser.Results.use_unique;
+    compute_overall = parser.Results.compute_overall;
+    overall_name = parser.Results.overall_name;
   
     % If only one sequence is given, make it into cell array
     if ~iscell(sequences)
         sequences = { sequences };
     end
     
-    %% Process
     experiment_ids = { 'sift', 'rootsift', 'surf', 'kaze', 'brisk', 'radial', 'lift' }; % The IDs of experiments for which results are to be gathered
+    
+    %% Process
+    results_maps = cell(1, numel(sequences));
     for i = 1:numel(sequences)
         sequence = sequences{i};
 
@@ -68,6 +79,53 @@ function jasna_display_results (cache_dir, sequences, varargin)
             results = load(results_file); results = results.results;
             results_map(sprintf('%s-ags', experiment_id)) = process_results(results, use_unique);
         end
+        
+        results_maps{i} = results_map;
+    end
+       
+    % Do we need to compute average across sequences? If so, do it and
+    % override the sequences name to overall_name at the end...
+    if compute_overall
+        overall_map = containers.Map();
+        
+        keys = results_maps{1}.keys();
+        
+        for e = 1:numel(keys)
+            experiment_id = keys{e};
+            
+            % Initialize
+            overall = struct('precision', zeros(1, numel(sequences)), ...
+                             'recall', zeros(1, numel(sequences)), ...
+                             'recognition_rate', zeros(1, numel(sequences)), ...
+                             'correct_matches', zeros(1, numel(sequences)), ...
+                             'correspondences', zeros(1, numel(sequences)), ...
+                             'precision_over_60', zeros(1, numel(sequences)));
+                         
+            % Gather
+            for i = 1:numel(sequences)
+                results = results_maps{i}(experiment_id);
+                
+                overall.precision(i) = mean(results.precision);
+                overall.recall(i) = mean(results.recall);
+                overall.recognition_rate(i) = mean(results.recognition_rate);
+                overall.correct_matches(i) = mean(results.correct_matches);
+                overall.correspondences(i) = mean(results.correspondences);
+                overall.precision_over_60(i) = mean(results.precision_over_60);
+            end
+            
+            % Store
+            overall_map(experiment_id) = overall;
+        end
+        
+        % Override for display code below...
+        results_maps = { overall_map };
+        sequences = { overall_name };
+    end
+    
+    %% Display
+    for i = 1:numel(sequences)
+        sequence = sequences{i};
+        results_map = results_maps{i};
         
         % Display figure
         if display_figure
@@ -279,6 +337,7 @@ function output = process_results (results, use_unique)
     else
         output.precision = [ results.num_correct_matches ] ./ [ results.num_putative_matches ];
     end
+    output.precision(~isfinite(output.precision)) = 0; % NaN, Inf -> 0
 
     % Recall: number of correct matches / number of correspondences
     if use_unique
@@ -286,6 +345,7 @@ function output = process_results (results, use_unique)
     else
         output.recall = [ results.num_correct_matches ] ./ [ results.num_consistent_correspondences ];
     end
+    output.recall(~isfinite(output.recall)) = 0; % NaN, Inf -> 0
     
     % Recognition rate: number of correct matches / number of correspondences
     if use_unique
@@ -293,22 +353,26 @@ function output = process_results (results, use_unique)
     else
         output.recognition_rate = [ results.num_consistent_matches ] ./ [ results.num_consistent_correspondences ];
     end
-    
+    output.recognition_rate(~isfinite(output.recognition_rate)) = 0; % NaN, Inf -> 0
+
     % Correct matches
     if use_unique
         output.correct_matches = [ results.num_correct_matches_unique ];
     else
         output.correct_matches = [ results.num_correct_matches ];
     end
-    
+    output.correct_matches(~isfinite(output.correct_matches)) = 0; % NaN, Inf -> 0
+
     % Correspondences
     if use_unique
         output.correspondences = [ results.num_consistent_correspondences_unique ];
     else
         output.correspondences = [ results.num_consistent_correspondences ];
     end
+    output.correspondences(~isfinite(output.correspondences)) = 0; % NaN, Inf -> 0
     
     % Compute portion of image pairs with precision over 60%
     output.precision_over_60 = sum(output.precision > 0.6) / numel(output.precision);
+    output.precision_over_60(~isfinite(output.precision_over_60)) = 0; % NaN, Inf -> 0
 end
 
