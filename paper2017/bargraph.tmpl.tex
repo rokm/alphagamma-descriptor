@@ -12,10 +12,10 @@
 
 %% Colormap
 % SIFT
-\definecolor{color_sift}      {rgb}{1.0,0.0,0.0}
-\definecolor{color_sift_rsift}{rgb}{0.9294,0.4902,0.1923}
+\definecolor{color_sift}      {rgb}{0.9294,0.4902,0.1923}
+\definecolor{color_sift_rsift}{rgb}{0.9,0.65,0.4}
 \definecolor{color_sift_ag}   {rgb}{1,0.7529,0}
-\definecolor{color_sift_ags}  {rgb}{0.9,0.65,0.4}
+\definecolor{color_sift_ags}  {rgb}{1,0.98,0.8}
 % SURF
 \definecolor{color_surf}      {rgb}{0.620,0.1,0.6}
 \definecolor{color_surf_ag}   {rgb}{0.7,0.3,0.4}
@@ -44,7 +44,7 @@
 		/pgf/bar shift={%
 			% total width = n*w + (n-1)*skip
 			% -> subtract half for centering
-			-0.5*(#2*\pgfplotbarwidth + (#2-1)*\pgfkeysvalueof{/pgfplots/bar group skip})  + 
+			-0.5*(#2*\pgfplotbarwidth + (#2-1)*\pgfkeysvalueof{/pgfplots/bar group skip})  +
 			% the '0.5*w' is for centering
 			(.5+#1)*\pgfplotbarwidth + #1*\pgfkeysvalueof{/pgfplots/bar group skip}},%
 	},
@@ -56,19 +56,19 @@
 
 
 \begin{document}
-	
+
 \begin{tikzpicture}
-\clip (-1, -1) rectangle (12.25, 6.75);
+\clip (-1, -1) rectangle (10.25, 5.75);
 \begin{axis}[
-	width=12cm,
-	height=6cm,
+	width=10cm,
+	height=5cm,
 	title=$$TITLE_STRING$$,
 	title style = {yshift=-1.5ex, font=\Large\bfseries},
 	enlarge x limits = 0.15,
 	scale only axis,
 	ymajorgrids,
 	ybar,
-	bar width = 0.4cm,
+	bar width = 0.3cm,
 	xtick pos = left,
 	ytick pos = left,
     $$Y_AXIS_SPEC$$
@@ -112,5 +112,5 @@
 
 \end{axis}
 \end{tikzpicture}
-	
+
 \end{document}
