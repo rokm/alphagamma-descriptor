@@ -63,6 +63,14 @@ function [ keypoints, I ] = detect_keypoints_in_image (self, image_set, image_nu
         assert(image_size(1) == 1200 && image_size(2) == 1600, 'Full-sized images must be 1600x1200!')
     end
     
+    % Limit number of returned keypoints
+    if isfinite(self.max_keypoints) && numel(keypoints) > self.max_keypoints
+        % Sort descending by response, take top N
+        [ ~, sortidx ] = sort([ keypoints.response ], 'descend');
+        sortidx = sortidx(1:self.max_keypoints);
+        keypoints = keypoints(sortidx);
+    end
+    
     % Filter keypoints at image border
     image_height = image_size(1);
     image_width = image_size(2);

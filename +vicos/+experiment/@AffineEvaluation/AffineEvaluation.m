@@ -20,6 +20,9 @@ classdef AffineEvaluation < vicos.experiment.Experiment
         
         % Force experiments on grayscale images
         force_grayscale
+        
+        % Maximum number of keypoints
+        max_keypoints
     end
     
     methods
@@ -33,12 +36,15 @@ classdef AffineEvaluation < vicos.experiment.Experiment
             parser.addParameter('filter_border', 25, @isnumeric);
             parser.addParameter('cache_dir', '', @ischar);
             parser.addParameter('force_grayscale', false, @islogical);
+            parser.addParameter('max_keypoints', inf, @isnumeric);
             parser.parse(varargin{:});
             
             % Parameters
             self.filter_border = parser.Results.filter_border;
             self.backprojection_threshold = parser.Results.backprojection_threshold;
             self.putative_match_ratio = parser.Results.putative_match_ratio;
+            
+            self.max_keypoints = parser.Results.max_keypoints;
             
             % Global cache dir
             self.cache_dir = parser.Results.cache_dir;

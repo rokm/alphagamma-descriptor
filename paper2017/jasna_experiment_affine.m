@@ -15,6 +15,7 @@ function jasna_experiment_affine (experiment_ids, varargin)
     %     - force_grayscale: perform experiments on grayscale images
     %       instead of color ones (default: true)
     %     - cache_dir: cache directory (default: ''; auto-generated)
+    %     - max_keypoints: maximum number of keypoints (default: inf)
     %
     % Running the experiments will produce results files inside the cache
     % directory. To visualize the results, use JASNA_DISPLAY_RESULTS()
@@ -27,6 +28,7 @@ function jasna_experiment_affine (experiment_ids, varargin)
     parser.addParameter('sequences', {});
     parser.addParameter('force_grayscale', true, @islogical);
     parser.addParameter('cache_dir', '', @ischar);
+    parser.addParameter('max_keypoints', inf, @isnumeric);
     parser.parse(varargin{:});
     
     dataset = parser.Results.dataset;
@@ -34,7 +36,8 @@ function jasna_experiment_affine (experiment_ids, varargin)
     sequences = parser.Results.sequences;
     force_grayscale = parser.Results.force_grayscale;
     cache_dir = parser.Results.cache_dir;
-    
+    max_keypoints = parser.Results.max_keypoints;
+
     % Default cache dir
     if isempty(cache_dir)
         cache_dir = sprintf('_cache_%s', dataset);
@@ -49,7 +52,7 @@ function jasna_experiment_affine (experiment_ids, varargin)
     end
         
     %% Create experiment
-    experiment = vicos.experiment.AffineEvaluation('dataset_name', dataset, 'cache_dir', cache_dir, 'force_grayscale', force_grayscale);
+    experiment = vicos.experiment.AffineEvaluation('dataset_name', dataset, 'cache_dir', cache_dir, 'force_grayscale', force_grayscale, 'max_keypoints', max_keypoints);
     
     %% Determine sequences
     % Default sequences (for non-pairs, use only graffiti)

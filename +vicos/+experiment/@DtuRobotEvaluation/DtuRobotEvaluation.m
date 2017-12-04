@@ -33,6 +33,9 @@ classdef DtuRobotEvaluation < vicos.experiment.Experiment
         
         % Force experiments on grayscale images
         force_grayscale
+        
+        % Maximum number of keypoints
+        max_keypoints
     end
     
     methods (Static)
@@ -59,6 +62,7 @@ classdef DtuRobotEvaluation < vicos.experiment.Experiment
             parser.addParameter('filter_border', 25, @isnumeric);
             parser.addParameter('cache_dir', '', @ischar);
             parser.addParameter('force_grayscale', false, @islogical);
+            parser.addParameter('max_keypoints', inf, @isnumeric);
             parser.parse(varargin{:});
             
             % Half-size images?
@@ -72,7 +76,9 @@ classdef DtuRobotEvaluation < vicos.experiment.Experiment
             self.bbox_padding_3d = parser.Results.bbox_padding_3d;
             self.scale_margin = parser.Results.scale_margin;
             self.putative_match_ratio = parser.Results.putative_match_ratio;
-            
+
+            self.max_keypoints = parser.Results.max_keypoints;
+
             % Global cache dir
             self.cache_dir = parser.Results.cache_dir;
 
