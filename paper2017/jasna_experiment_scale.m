@@ -2,7 +2,7 @@ function jasna_experiment_scale (varargin)
     % JASNA_EXPERIMENT_SCALE (varargin)
     %
     % Performs scale experiment with SIFT keypoints and first image from
-    % Graffiti sequence.
+    % v_graffiti sequence in HPatches full-images dataset.
     %
     % Input:
     %  - varargin: optional key/value pairs:
@@ -36,7 +36,7 @@ function jasna_experiment_scale (varargin)
     end
     
     %% Create experiment
-    experiment = vicos.experiment.AffineEvaluation('cache_dir', cache_dir, 'force_grayscale', force_grayscale);
+    experiment = vicos.experiment.AffineEvaluation('dataset_name', 'hpatches', 'cache_dir', cache_dir, 'force_grayscale', force_grayscale);
     
     % Common parametrization for alpha-gamma descriptors
     base_keypoint_size = [ 3.25, 3.25 ];
@@ -66,7 +66,7 @@ function jasna_experiment_scale (varargin)
         keypoint_detector = experiment_ids{s,2}();
         descriptor_extractor = experiment_ids{s,3}();
     
-        results = experiment.run_experiment(keypoint_detector, descriptor_extractor, 'graffiti', 'experiment_type', 'scale', 'test_images', scales);
+        results = experiment.run_experiment(keypoint_detector, descriptor_extractor, 'v_graffiti', 'experiment_type', 'scale', 'test_images', scales);
         
         recognition_rate{s} = [ results.num_consistent_matches ] ./ [ results.num_consistent_correspondences ];
     end
