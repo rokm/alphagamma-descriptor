@@ -10,11 +10,11 @@
 This project contains the prototype implementation of the AlphaGamma
 keypoint descriptor, presented in:
 
-1. R. Mandeljc, D. Skočaj, and J. Maver, AGs: local descriptors based on
-dependent effects model, submitted to TPAMI
+1. R. Mandeljc and J. Maver, AGs: local descriptors based on
+dependent effects model, journal submission, 2017
 
 
-The code is provided as supplement to the TPAMI submission [1], and
+The code is provided as supplement to the journal submission [1], and
 provides reference/prototype implementation of the AlphaGamma descriptor,
 as well as the RADIAL keypoint detector. In addition, experimental
 framework and scripts for reproducing the experimental results from
