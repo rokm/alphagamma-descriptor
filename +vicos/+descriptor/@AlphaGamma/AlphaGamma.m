@@ -262,6 +262,8 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                     radii(i) = radii(i-1) + step*sigmas(i);
                 end
             end
+
+            radii(1) = 0; % Set first radius to 0 (= center)
     
             self.radii = radii;
             self.sigmas = sigmas;
