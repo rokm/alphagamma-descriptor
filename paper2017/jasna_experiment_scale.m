@@ -52,10 +52,10 @@ function jasna_experiment_scale (varargin)
         'SIFT-U', sift_u_detector_fcn, @() vicos.descriptor.SIFT('identifier', 'SIFT-U');
         'BRIEF-U', sift_u_detector_fcn, @() vicos.descriptor.BRIEF('identifier', 'BRIEF-U', 'Bytes', 64, 'UseOrientation', false);
         'LATCH-U', sift_u_detector_fcn, @() vicos.descriptor.LATCH('identifier', 'LATCH-U', 'Bytes', 64, 'RotationInvariance', false);
-        'AG-U',  sift_u_detector_fcn, @() vicos.descriptor.AlphaGamma('identifier', 'AG-U',  alphagamma_float_opts{:}, 'orientation_normalized', false, 'compute_orientation', false, 'scale_normalized', false);
-        'AGS-U', sift_u_detector_fcn, @() vicos.descriptor.AlphaGamma('identifier', 'AGS-U', alphagamma_short_opts{:}, 'orientation_normalized', false, 'compute_orientation', false, 'scale_normalized', false);
-        'AG-US',  sift_u_detector_fcn, @() vicos.descriptor.AlphaGamma('identifier', 'AG-US',  alphagamma_float_opts{:}, 'orientation_normalized', false, 'compute_orientation', false, 'scale_normalized', true);
-        'AGS-US', sift_u_detector_fcn, @() vicos.descriptor.AlphaGamma('identifier', 'AGS-US', alphagamma_short_opts{:}, 'orientation_normalized', false, 'compute_orientation', false, 'scale_normalized', true);
+        'AG-U',  sift_u_detector_fcn, @() vicos.descriptor.AlphaGamma('identifier', 'AG-U',  alphagamma_float_opts{:}, 'orientation_normalized', false, 'scale_normalized', false);
+        'AGS-U', sift_u_detector_fcn, @() vicos.descriptor.AlphaGamma('identifier', 'AGS-U', alphagamma_short_opts{:}, 'orientation_normalized', false, 'scale_normalized', false);
+        'AG-US',  sift_u_detector_fcn, @() vicos.descriptor.AlphaGamma('identifier', 'AG-US',  alphagamma_float_opts{:}, 'orientation_normalized', false, 'scale_normalized', true);
+        'AGS-US', sift_u_detector_fcn, @() vicos.descriptor.AlphaGamma('identifier', 'AGS-US', alphagamma_short_opts{:}, 'orientation_normalized', false, 'scale_normalized', true);
     };
     
     scales = 0.2:0.01:2.00;

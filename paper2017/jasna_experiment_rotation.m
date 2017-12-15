@@ -51,18 +51,15 @@ function jasna_experiment_rotation (varargin)
     %% Process all
     experiment_ids = { ...
         'SIFT', sift_detector_fcn, @() vicos.descriptor.SIFT('identifier', 'SIFT');
-        'AG',  sift_detector_fcn, @() vicos.descriptor.AlphaGamma('identifier', 'AG',  alphagamma_float_opts{:}, 'orientation_normalized', true, 'compute_orientation', false);
-        'AGS', sift_detector_fcn, @() vicos.descriptor.AlphaGamma('identifier', 'AGS', alphagamma_short_opts{:}, 'orientation_normalized', true, 'compute_orientation', false);
+        'AG',  sift_detector_fcn, @() vicos.descriptor.AlphaGamma('identifier', 'AG',  alphagamma_float_opts{:}, 'orientation_normalized', true);
+        'AGS', sift_detector_fcn, @() vicos.descriptor.AlphaGamma('identifier', 'AGS', alphagamma_short_opts{:}, 'orientation_normalized', true);
         % BRIEF and LATCH with SIFT orientation
         'BRIEF-O', sift_detector_fcn, @() vicos.descriptor.BRIEF('identifier', 'BRIEF-O', 'Bytes', 64, 'UseOrientation', true);
         'LATCH-O', sift_detector_fcn, @() vicos.descriptor.LATCH('identifier', 'LATCH-O', 'Bytes', 64, 'RotationInvariance', true);
         % SIFT, AGs without orientation
         'SIFT-U', sift_u_detector_fcn, @() vicos.descriptor.SIFT('identifier', 'SIFT-U');
-        'AG-U',  sift_u_detector_fcn, @() vicos.descriptor.AlphaGamma('identifier', 'AG-U',  alphagamma_float_opts{:}, 'orientation_normalized', false, 'compute_orientation', false);
-        'AGS-U', sift_u_detector_fcn, @() vicos.descriptor.AlphaGamma('identifier', 'AGS-U', alphagamma_short_opts{:}, 'orientation_normalized', false, 'compute_orientation', false);
-        % AGs with built-in orientation
-        'AG-O',  sift_u_detector_fcn, @() vicos.descriptor.AlphaGamma('identifier', 'AG-O',  alphagamma_float_opts{:}, 'orientation_normalized', true, 'compute_orientation', true);
-        'AGS-O', sift_u_detector_fcn, @() vicos.descriptor.AlphaGamma('identifier', 'AGS-O', alphagamma_short_opts{:}, 'orientation_normalized', true, 'compute_orientation', true);
+        'AG-U',  sift_u_detector_fcn, @() vicos.descriptor.AlphaGamma('identifier', 'AG-U',  alphagamma_float_opts{:}, 'orientation_normalized', false);
+        'AGS-U', sift_u_detector_fcn, @() vicos.descriptor.AlphaGamma('identifier', 'AGS-U', alphagamma_short_opts{:}, 'orientation_normalized', false);
         % BRIEF and LATCH without orientation
         'BRIEF-U', sift_u_detector_fcn, @() vicos.descriptor.BRIEF('identifier', 'BRIEF-U', 'Bytes', 64, 'UseOrientation', false);
         'LATCH-U', sift_u_detector_fcn, @() vicos.descriptor.LATCH('identifier', 'LATCH-U', 'Bytes', 64, 'RotationInvariance', false);

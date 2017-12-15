@@ -25,7 +25,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
         
         % Orientation normalization
         orientation_normalized
-        compute_orientation
         
         % Pre-computed stuff
         radii
@@ -66,7 +65,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             self = vicos.descriptor.AlphaGamma('identifier', 'AG', ...
                 'orientation_normalized', true, ...
                 'scale_normalized', true, ...
-                'compute_orientation', false, ...
                 'bilinear_sampling', true, ...
                 'use_bitstrings', true, ...
                 'non_binarized_descriptor', true, ...
@@ -90,7 +88,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             self = vicos.descriptor.AlphaGamma('identifier', 'AGS', ...
                 'orientation_normalized', true, ...
                 'scale_normalized', true, ...
-                'compute_orientation', false, ...
                 'bilinear_sampling', true, ...
                 'use_bitstrings', true, ...
                 'non_binarized_descriptor', false, ...
@@ -116,12 +113,8 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             %  - base_sigma: sigma for DoG filter of the base image;
             %    default: sqrt(1.7)
             %  - orientation_normalized: normalize w.r.t. keypoint
-            %    orientation (default: true). If compute_orientation is
-            %    specified, the orientation is estimated by descriptor
-            %    extractor; otherwise, the keypoint's orientation is used.
-            %  - compute_orientation: whether to estimate orientation 
-            %    instead of using the keypoint's angle value; default: 
-            %    false (use keypoint's angle)
+            %    orientation (default: true). The orientation needs to be
+            %    provided by keypoint detector.
             %  - orientation_num_rays: number of rays used to estimate the
             %    orientation; default: [] (use num_rays value)
             %  - scale_normalized: whether to use keypoint's size parameter
@@ -165,7 +158,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             parser.addParameter('base_sigma', sqrt(1.7), @isnumeric);
 
             parser.addParameter('orientation_normalized', true, @islogical);
-            parser.addParameter('compute_orientation', true, @islogical);
             parser.addParameter('orientation_num_rays', [], @isnumeric);
             
             parser.addParameter('scale_normalized', true, @islogical);
@@ -195,7 +187,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             self.base_sigma = parser.Results.base_sigma;
             
             self.orientation_normalized = parser.Results.orientation_normalized;
-            self.compute_orientation = parser.Results.compute_orientation;
             self.orientation_num_rays = parser.Results.orientation_num_rays;
                         
             self.scale_normalized = parser.Results.scale_normalized;
@@ -495,61 +486,10 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             % Extracts alpha-gamma descriptor from a given keypoint.
 
             %% Orientation
-            %% Handle orientation
             if self.orientation_normalized
-                % Override angle using built-in angle estimation
-                if self.compute_orientation
-                    % Sample points into the field
-                    field = nan(self.orientation_num_rays, self.num_circles);
-                    
-                    for j = 1:self.num_circles
-                        for i = 1:self.orientation_num_rays
-                            x = radius_factor*self.orientation_sample_points{j}(1, i) + center(1);
-                            y = radius_factor*self.orientation_sample_points{j}(2, i) + center(2);
-
-                            % Clamp inside valid region
-                            x = max(min(x, size(responses, 2)), 1);
-                            y = max(min(y, size(responses, 1)), 1);
-
-                            if self.bilinear_sampling
-                                % Bilinear interpolation
-                                x0 = floor(x);
-                                y0 = floor(y);
-                                x1 = x0 + 1;
-                                y1 = y0 + 1;
-
-                                a0 = x - x0;
-                                b0 = y - y0;
-                                a1 = 1 - a0;
-                                b1 = 1 - b0;
-
-                                val = a1*b1*responses(y0,x0,j);
-
-                                if a0
-                                    val = val + a0*b1*responses(y0,x1,j);
-                                end
-                                if b0
-                                     val = val + a1*b0*responses(y1,x0,j);
-                                end
-                                if a0 && b0
-                                    val = val + a0*b0*responses(y1,x1,j);
-                                end
-
-                                field(i, j) = val;
-                            else
-                                x = round(x);
-                                y = round(y);
-                                field(i, j) = responses(y, x, j);
-                            end
-                        end
-                    end
-                    
-                    % Compute
-                    moment_beta = sum(field, 2);
-                    angle = atan2d(self.orientation_sin * moment_beta, self.orientation_cos * moment_beta);
-                else
-                    angle = -angle;
-                end
+                % OpenCV keypoints seem to be using opposite angle
+                % direction than our code...
+                angle = -angle;
             else
                 angle = 0;
             end
