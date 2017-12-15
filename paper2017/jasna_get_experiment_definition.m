@@ -5,8 +5,8 @@ function [ keypoint_detector, descriptor_extractor, alphagamma_float, alphagamma
     % combinations used in the experiments.
     %
     % Input:
-    %  - experiment_id: experiment ID; valid values: surf, sift, brisk, 
-    %    orb, kaze, radial, rootsift
+    %  - experiment_id: experiment ID; valid values: surf, sift, rootsift,
+    %    brisk, orb, kaze, radial, lift
     %
     % Output:
     %  - keypoint_detector: factory function handle for keypoint detector
