@@ -33,14 +33,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
 
         bilinear_sampling
         
-        initial_filter
-        
-        % Orientation estimation
-        orientation_num_rays
-        orientation_sample_points
-        orientation_cos
-        orientation_sin
-
         % Distance function weights
         A
         G
@@ -115,8 +107,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             %  - orientation_normalized: normalize w.r.t. keypoint
             %    orientation (default: true). The orientation needs to be
             %    provided by keypoint detector.
-            %  - orientation_num_rays: number of rays used to estimate the
-            %    orientation; default: [] (use num_rays value)
             %  - scale_normalized: whether to use keypoint's size parameter
             %    to extract descriptor from size-normalized patch;
             %    otherwise, descriptor is extracted from fixed-size region.
@@ -158,7 +148,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             parser.addParameter('base_sigma', sqrt(1.7), @isnumeric);
 
             parser.addParameter('orientation_normalized', true, @islogical);
-            parser.addParameter('orientation_num_rays', [], @isnumeric);
             
             parser.addParameter('scale_normalized', true, @islogical);
             parser.addParameter('base_keypoint_size', 18.5, @isnumeric);
@@ -187,7 +176,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             self.base_sigma = parser.Results.base_sigma;
             
             self.orientation_normalized = parser.Results.orientation_normalized;
-            self.orientation_num_rays = parser.Results.orientation_num_rays;
                         
             self.scale_normalized = parser.Results.scale_normalized;
             self.base_keypoint_size = parser.Results.base_keypoint_size;
@@ -215,11 +203,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                 dof = self.num_rays - 1;
                 self.threshold_gamma = tinv(1 - 0.5/2, dof);
             end
-            
-            if isempty(self.orientation_num_rays)
-                self.orientation_num_rays = self.num_rays;
-            end
-
             
             %% Set radii and sigmas
             sigmas = parser.Results.custom_sigmas;
@@ -267,29 +250,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                 
                 self.filters{i} = create_gaussian_filter(sigmas(i));
             end
-                        
-            %% Orientation estimation parameters
-            self.orientation_sample_points = cell(self.num_circles, 1);
-
-            self.orientation_sample_points{1} = zeros(2, self.orientation_num_rays);
-            for j = 2:self.num_circles
-                points = zeros(2, self.orientation_num_rays);
-
-                for i = 1:self.orientation_num_rays
-                    angle = (i-1) * 2*pi/self.orientation_num_rays;
-                    x =  radii(j) * cos(angle);
-                    y = -radii(j) * sin(angle);
-
-                    points(:, i) = [ x; y ];
-                end
-
-                self.orientation_sample_points{j} = points;
-            end
-            
-            %% Orientation correction
-            i = 0:self.orientation_num_rays-1;
-            self.orientation_cos = cos(2*pi/self.orientation_num_rays*i);
-            self.orientation_sin = sin(2*pi/self.orientation_num_rays*i);
         end
 
         function [ desc, keypoints ] = compute (self, I, keypoints)
