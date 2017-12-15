@@ -62,7 +62,7 @@ function [ keypoint_detector, descriptor_extractor, alphagamma_float, alphagamma
     % Common options for alpha-gamma descriptor: orientation and scale
     % normalization, use external keypoint orientation, apply bilinear
     % sampling, use bitstrings (applicable to binarized version only)
-    alphagamma_common_opts = { 'orientation_normalized', true, 'scale_normalized', true, 'bilinear_sampling', true, 'use_bitstrings', true };
+    alphagamma_common_opts = { 'orientation_normalized', true, 'scale_normalized', true, 'bilinear_sampling', true };
     alphagamma_float_opts  = [ 'identifier', 'AG',  alphagamma_common_opts, { 'non_binarized_descriptor', true,  'num_rays', 13, 'num_circles',  9,  'circle_step', sqrt(2)*1.104, 'base_keypoint_size', base_keypoint_size(1) } ];
     alphagamma_short_opts  = [ 'identifier', 'AGS', alphagamma_common_opts, { 'non_binarized_descriptor', false, 'num_rays', 23, 'num_circles', 10,  'circle_step', sqrt(2)*1.042, 'base_keypoint_size', base_keypoint_size(2) } ];
     

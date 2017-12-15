@@ -40,7 +40,7 @@ function jasna_experiment_rotation (varargin)
     
     % Common parametrization for alpha-gamma descriptors
     base_keypoint_size = [ 3.25, 3.25 ];
-    alphagamma_common_opts = { 'scale_normalized', true, 'bilinear_sampling', true, 'use_bitstrings', true };
+    alphagamma_common_opts = { 'scale_normalized', true, 'bilinear_sampling', true };
     alphagamma_float_opts  = [ alphagamma_common_opts, { 'non_binarized_descriptor', true,  'num_rays', 13, 'num_circles',  9,  'circle_step', sqrt(2)*1.104, 'base_keypoint_size', base_keypoint_size(1) } ];
     alphagamma_short_opts  = [ alphagamma_common_opts, { 'non_binarized_descriptor', false, 'num_rays', 23, 'num_circles', 10,  'circle_step', sqrt(2)*1.042, 'base_keypoint_size', base_keypoint_size(2) } ];
     

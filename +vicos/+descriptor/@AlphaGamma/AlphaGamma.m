@@ -33,9 +33,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
         % Distance function weights
         A
         G
-        
-        %
-        use_bitstrings
     end
 
     % Helpers that create descriptors with parametrization from the paper
@@ -55,7 +52,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                 'orientation_normalized', true, ...
                 'scale_normalized', true, ...
                 'bilinear_sampling', true, ...
-                'use_bitstrings', true, ...
                 'non_binarized_descriptor', true, ...
                 'num_rays', 13, ...
                 'num_circles', 9, ...
@@ -78,7 +74,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                 'orientation_normalized', true, ...
                 'scale_normalized', true, ...
                 'bilinear_sampling', true, ...
-                'use_bitstrings', true, ...
                 'non_binarized_descriptor', false, ...
                 'num_rays', 23, ...
                 'num_circles', 10, ...
@@ -115,18 +110,16 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             %  - non_binarized_descriptor: whether to compute binarized
             %    descriptor or floating-point descriptor. Default: false
             %    (compute floating-point descriptor)
-            % - threshold_alpha: threshold value for alpha part of
-            %   binarized descriptor. Default: [] (compute from number of
-            %   circles)
-            % - threshold_gamma: threshold value for gamma part of
-            %   binarized descriptor. Default: [] (compute from number of
-            %   rays)
-            % - A: distance weight for alpha part of binarized descriptor.
-            %   Default: 5
-            % - G: distance weight for gamma part of binarized descriptor.
-            %   Default: 1
-            % - use_bitstrings: store binarized descriptor as bitstrings
-            %   (instead of byte). Default: true
+            %  - threshold_alpha: threshold value for alpha part of
+            %    binarized descriptor. Default: [] (compute from number of
+            %    circles)
+            %  - threshold_gamma: threshold value for gamma part of
+            %    binarized descriptor. Default: [] (compute from number of
+            %    rays)
+            %  - A: distance weight for alpha part of binarized descriptor.
+            %    Default: 5
+            %  - G: distance weight for gamma part of binarized descriptor.
+            %    Default: 1
             %
             % Output:
             %  - self: @AlphaGamma instance
@@ -152,7 +145,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             parser.addParameter('threshold_gamma', [], @isnumeric);
             parser.addParameter('A', 5.0, @isnumeric);
             parser.addParameter('G', 1.0, @isnumeric);
-            parser.addParameter('use_bitstrings', true, @islogical);
 
             parser.addParameter('custom_radii', [], @isnumeric);
             parser.addParameter('custom_sigmas', [], @isnumeric);
@@ -178,7 +170,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             self.threshold_gamma = parser.Results.threshold_gamma;
             self.A = parser.Results.A;
             self.G = parser.Results.G;
-            self.use_bitstrings = parser.Results.use_bitstrings;
                                     
             % Determine thresholds as the inverse of Student's T CDF with
             % number of elements in alpha or gamma (minus 1) as degrees of
@@ -381,11 +372,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                 distances = cv.batchDistance(desc2, desc1, 'K', 0, 'NormType', 'L1');
             else
                 % Binarized version
-                if self.use_bitstrings
-                    distances = alpha_gamma_distances_fast(desc1', desc2', self.num_circles, self.num_rays, self.A, self.G);
-                else
-                    distances = alpha_gamma_distances(desc1', desc2', self.num_circles, self.num_rays, self.A, self.G);
-                end
+                distances = alpha_gamma_distances_fast(desc1', desc2', self.num_circles, self.num_rays, self.A, self.G);
             end
         end
 
@@ -396,11 +383,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             else
                 % Binary version
                 descriptor_size = self.num_circles + self.num_circles*self.num_rays;
-
-                if self.use_bitstrings
-                    descriptor_size = ceil( descriptor_size/8 );
-                end
-
+                descriptor_size = ceil( descriptor_size/8 ); % Bitstrings
                 descriptor_size = 2*descriptor_size; % Type 1 and Type 2 effects
             end
         end
@@ -541,16 +524,10 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             end
 
             %% Write descriptor
-            if self.use_bitstrings
-                % Bitstring version
-                descriptor = [ ...
-                    convert_bytestring_to_bitstring( uint8([ desc_alpha; desc_gamma ]) ); ...
-                    convert_bytestring_to_bitstring( uint8([ desc_alpha_ext; desc_gamma_ext ]) ) ...
-                ];
-            else
-                % Original byte-string version
-                descriptor = [ desc_alpha; desc_gamma; desc_alpha_ext; desc_gamma_ext ];
-            end
+            descriptor = [ ...
+                convert_bytestring_to_bitstring( uint8([ desc_alpha; desc_gamma ]) ); ...
+                convert_bytestring_to_bitstring( uint8([ desc_alpha_ext; desc_gamma_ext ]) ) ...
+            ];
         end
     end
 end
