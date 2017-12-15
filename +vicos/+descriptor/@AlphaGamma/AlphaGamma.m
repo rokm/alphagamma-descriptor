@@ -9,9 +9,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
         
         base_sigma
         circle_step
-
-        compute_type1
-        compute_type2
         
         threshold_alpha
         threshold_gamma
@@ -118,10 +115,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             %  - non_binarized_descriptor: whether to compute binarized
             %    descriptor or floating-point descriptor. Default: false
             %    (compute floating-point descriptor)
-            % - compute_type1: compute type 1 part of binarized descriptor.
-            %   Default: true
-            % - compute_type2: compute type 2 part of binarized descriptor.
-            %   Default: true
             % - threshold_alpha: threshold value for alpha part of
             %   binarized descriptor. Default: [] (compute from number of
             %   circles)
@@ -155,8 +148,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             parser.addParameter('bilinear_sampling', true, @islogical);
             parser.addParameter('non_binarized_descriptor', true, @islogical);
             
-            parser.addParameter('compute_type1', true, @islogical);
-            parser.addParameter('compute_type2', true, @islogical);
             parser.addParameter('threshold_alpha', [], @isnumeric); % compute from LUT for num_circles-1!
             parser.addParameter('threshold_gamma', [], @isnumeric);
             parser.addParameter('A', 5.0, @isnumeric);
@@ -183,8 +174,6 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             self.bilinear_sampling = parser.Results.bilinear_sampling;
             self.non_binarized_descriptor = parser.Results.non_binarized_descriptor;
             
-            self.compute_type1 = parser.Results.compute_type1;
-            self.compute_type2 = parser.Results.compute_type2;
             self.threshold_alpha = parser.Results.threshold_alpha;
             self.threshold_gamma = parser.Results.threshold_gamma;
             self.A = parser.Results.A;
@@ -412,7 +401,7 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
                     descriptor_size = ceil( descriptor_size/8 );
                 end
 
-                descriptor_size = self.compute_type1*descriptor_size + self.compute_type2*descriptor_size;
+                descriptor_size = 2*descriptor_size; % Type 1 and Type 2 effects
             end
         end
     end
@@ -531,13 +520,13 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             end
             
             % "Type 1" part of descriptor
-            if self.compute_type1
+            if true
                 desc_alpha = reshape(a > 0, [], 1);
                 desc_gamma = reshape(gamma > 0, [], 1);
             end
             
             % "Type 2" part of descriptor
-            if self.compute_type2
+            if true
                 % Alpha part
                 sa = sqrt( sum(a.*a) / (self.num_circles-1) );
                 aa = abs(a) > sa*self.threshold_alpha;
@@ -554,31 +543,13 @@ classdef AlphaGamma < vicos.descriptor.Descriptor
             %% Write descriptor
             if self.use_bitstrings
                 % Bitstring version
-                if self.compute_type1 && self.compute_type2
-                    % Both types
-                    descriptor = [ ...
-                        convert_bytestring_to_bitstring( uint8([ desc_alpha; desc_gamma ]) ); ...
-                        convert_bytestring_to_bitstring( uint8([ desc_alpha_ext; desc_gamma_ext ]) ) ...
-                    ];
-                elseif self.compute_type1
-                    % Type 1 only
-                    descriptor = convert_bytestring_to_bitstring( uint8( [ desc_alpha; desc_gamma ]) );
-                elseif self.compute_type2
-                    % Type 2 only
-                    descriptor = convert_bytestring_to_bitstring( uint8( [ desc_alpha_ext; desc_gamma_ext ]) );
-                end
+                descriptor = [ ...
+                    convert_bytestring_to_bitstring( uint8([ desc_alpha; desc_gamma ]) ); ...
+                    convert_bytestring_to_bitstring( uint8([ desc_alpha_ext; desc_gamma_ext ]) ) ...
+                ];
             else
                 % Original byte-string version
-                if self.compute_type1 && self.compute_type2
-                    % Both types
-                    descriptor = [ desc_alpha; desc_gamma; desc_alpha_ext; desc_gamma_ext ];
-                elseif self.compute_type1
-                    % Type 1 only
-                    descriptor = [ desc_alpha; desc_gamma ];
-                elseif self.compute_type2
-                    % Type 2 only
-                    descriptor = [ desc_alpha_ext; desc_gamma_ext ];
-                end
+                descriptor = [ desc_alpha; desc_gamma; desc_alpha_ext; desc_gamma_ext ];
             end
         end
     end
