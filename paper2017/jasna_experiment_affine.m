@@ -9,7 +9,7 @@ function jasna_experiment_affine (experiment_ids, varargin)
     %  - varargin: optional key/value pairs:
     %     - dataset: 'affine' or 'hpatches' (default: 'affine')
     %     - experiment_type: experiment type (default: pairs)
-    %     - sequences: sequences to process (default: { 'bikes', 'trees', 
+    %     - sequences: sequences to process (default: { 'bikes', 'trees',
     %       'leuven', 'boat', 'graffiti', 'wall' } for pairs experiment,
     %       'graffiti' for others)
     %     - force_grayscale: perform experiments on grayscale images
@@ -20,7 +20,7 @@ function jasna_experiment_affine (experiment_ids, varargin)
     % Running the experiments will produce results files inside the cache
     % directory. To visualize the results, use JASNA_DISPLAY_RESULTS()
     % function.
-    
+
     % Parser
     parser = inputParser();
     parser.addParameter('dataset', 'affine', @ischar);
@@ -30,7 +30,7 @@ function jasna_experiment_affine (experiment_ids, varargin)
     parser.addParameter('cache_dir', '', @ischar);
     parser.addParameter('max_keypoints', inf, @isnumeric);
     parser.parse(varargin{:});
-    
+
     dataset = parser.Results.dataset;
     experiment_type = parser.Results.experiment_type;
     sequences = parser.Results.sequences;
@@ -41,32 +41,34 @@ function jasna_experiment_affine (experiment_ids, varargin)
     % Default cache dir
     if isempty(cache_dir)
         cache_dir = sprintf('_cache_%s', dataset);
-        
+
         if ~isequal(experiment_type, 'pairs')
             cache_dir = [ cache_dir, '-', experiment_type ];
         end
-        
+
         if force_grayscale
             cache_dir = [ cache_dir, '-gray' ];
         end
     end
-        
+
     %% Create experiment
     experiment = vicos.experiment.AffineEvaluation('dataset_name', dataset, 'cache_dir', cache_dir, 'force_grayscale', force_grayscale, 'max_keypoints', max_keypoints);
-    
+
     %% Determine sequences
     % Default sequences (for non-pairs, use only graffiti)
     if isempty(sequences)
         if isequal(experiment_type, 'pairs')
-            sequences = { 'bikes', 'trees', 'leuven', 'boat', 'graffiti', 'wall' };
+            sequences = '*';
         else
             sequences = 'graffiti';
         end
-    elseif isequal(sequences, '*')
+    end
+
+    if isequal(sequences, '*')
         % Wildcard support: use all sequences
         sequences = experiment.list_all_sequences();
     end
-    
+
     % If only one sequence is given, make it into cell array
     if ~iscell(sequences)
         sequences = { sequences };
@@ -77,7 +79,7 @@ function jasna_experiment_affine (experiment_ids, varargin)
     if ~iscell(experiment_ids)
         experiment_ids = { experiment_ids };
     end
-    
+
     for e = 1:numel(experiment_ids)
         % Experiment parametrization
         experiment_id = experiment_ids{e};
