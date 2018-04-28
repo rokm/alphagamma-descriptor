@@ -18,7 +18,7 @@ function [ descriptors, keypoints ] = extract_descriptors_from_keypoints (self, 
     
     % Construct cache filename
     cache_file = '';
-    if ~isempty(self.cache_dir)
+    if self.cache_descriptors && ~isempty(self.cache_dir)
         cache_path = fullfile(self.cache_dir, '_descriptors', sprintf('%s+%s', keypoint_detector.identifier, descriptor_extractor.identifier), sequence);
         cache_file = fullfile(cache_path, sprintf('%s.descriptors.mat', image_id));
     end

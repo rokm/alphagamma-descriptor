@@ -30,6 +30,9 @@ classdef DtuRobotEvaluation < vicos.experiment.Experiment
 
         % Global cache directory settings
         cache_dir
+        
+        % Cache descriptors
+        cache_descriptors
 
         % Force experiments on grayscale images
         force_grayscale
@@ -63,6 +66,7 @@ classdef DtuRobotEvaluation < vicos.experiment.Experiment
             parser.addParameter('cache_dir', '', @ischar);
             parser.addParameter('force_grayscale', false, @islogical);
             parser.addParameter('max_keypoints', inf, @isnumeric);
+            parser.addParameter('cache_descriptors', false, @islogical);
             parser.parse(varargin{:});
 
             % Half-size images?
@@ -81,6 +85,8 @@ classdef DtuRobotEvaluation < vicos.experiment.Experiment
 
             % Global cache dir
             self.cache_dir = parser.Results.cache_dir;
+            
+            self.cache_descriptors = parser.Results.cache_descriptors;
 
             % Grayscale images
             self.force_grayscale = parser.Results.force_grayscale;
