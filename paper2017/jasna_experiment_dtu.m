@@ -76,12 +76,16 @@ function jasna_experiment_dtu (experiment_ids, varargin)
             end
 
             % AG-float
-            fprintf('--- Running experiments with AG-float ---\n');
-            experiment.run_experiment(keypoint_detector, alphagamma_float, image_set);
+            if ~isempty(alphagamma_float)
+                fprintf('--- Running experiments with AG-float ---\n');
+                experiment.run_experiment(keypoint_detector, alphagamma_float, image_set);
+            end
 
             % AG-short
-            fprintf('--- Running experiment with AG-short ---\n');
-            experiment.run_experiment(keypoint_detector, alphagamma_short, image_set);
+            if ~isempty(alphagamma_short)
+                fprintf('--- Running experiment with AG-short ---\n');
+                experiment.run_experiment(keypoint_detector, alphagamma_short, image_set);
+            end
         end
     end
 end

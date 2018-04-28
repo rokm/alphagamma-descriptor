@@ -98,12 +98,16 @@ function jasna_experiment_affine (experiment_ids, varargin)
             end
 
             % AG-float
-            fprintf('--- Running experiments with AG-float ---\n');
-            experiment.run_experiment(keypoint_detector, alphagamma_float, sequence, 'experiment_type', experiment_type);
+            if ~isempty(alphagamma_float)
+                fprintf('--- Running experiments with AG-float ---\n');
+                experiment.run_experiment(keypoint_detector, alphagamma_float, sequence, 'experiment_type', experiment_type);
+            end
 
             % AG-short
-            fprintf('--- Running experiment with AG-short ---\n');
-            experiment.run_experiment(keypoint_detector, alphagamma_short, sequence, 'experiment_type', experiment_type);
+            if ~isempty(alphagamma_short)
+                fprintf('--- Running experiment with AG-short ---\n');
+                experiment.run_experiment(keypoint_detector, alphagamma_short, sequence, 'experiment_type', experiment_type);
+            end
         end
     end
 end

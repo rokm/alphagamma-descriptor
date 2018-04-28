@@ -17,6 +17,10 @@ function [ keypoint_detector, descriptor_extractor, alphagamma_float, alphagamma
     %  - alphagamma_short: factory function handle for AGS, parametrized for
     %    the selected keypoint detector
     
+    descriptor_extractor = [];
+    alphagamma_float = [];
+    alphagamma_short = [];
+    
     switch lower(experiment_id)
         case 'surf'
             keypoint_detector = @() vicos.keypoint_detector.SURF();
@@ -50,6 +54,32 @@ function [ keypoint_detector, descriptor_extractor, alphagamma_float, alphagamma
             keypoint_detector = @() vicos.keypoint_detector.LIFT();
             descriptor_extractor = @() vicos.descriptor.LIFT();
             base_keypoint_size = 3.25;
+        % Extra definitions for VGG120 - the ScaleFactor parameter is as
+        % per OpenCV documentation
+        case 'surf+vgg120'
+            keypoint_detector = @() vicos.keypoint_detector.SURF();
+            descriptor_extractor = @() vicos.descriptor.VGG('ScaleFactor', 6.25);
+            return;
+        case 'sift+vgg120'
+            keypoint_detector = @() vicos.keypoint_detector.SIFT();
+            descriptor_extractor = @() vicos.descriptor.VGG('ScaleFactor', 6.75);
+            return;
+        case 'brisk+vgg120'
+            keypoint_detector = @() vicos.keypoint_detector.BRISK();
+            descriptor_extractor = @() vicos.descriptor.VGG('ScaleFactor', 5.00);
+            return;
+        case 'kaze+vgg120'
+            keypoint_detector = @() vicos.keypoint_detector.KAZE();
+            descriptor_extractor = @() vicos.descriptor.VGG('ScaleFactor', 6.25);
+            return;
+        case 'radial+vgg120'
+            keypoint_detector = @() vicos.keypoint_detector.RADIAL();
+            descriptor_extractor = @() vicos.descriptor.VGG('ScaleFactor', 5.0);
+            return;
+        case 'lift+vgg120'
+            keypoint_detector = @() vicos.keypoint_detector.LIFT();
+            descriptor_extractor = @() vicos.descriptor.VGG('ScaleFactor', 6.75);
+            return;
         otherwise
             error('Invalid experiment id: "%s"', experiment_id);
     end
