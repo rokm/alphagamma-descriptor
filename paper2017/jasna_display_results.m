@@ -1,5 +1,5 @@
 function jasna_display_results (cache_dir, sequences, varargin)
-    % JASNA_DISPLAY_RESULTS (varargin)
+    % JASNA_DISPLAY_RESULTS (cache_dir, sequences, varargin)
     %
     % Displays the results of JASNA_EXPERIMENT_AFFINE(), 
     % JASNA_EXPERIMENT_DTU(), and JASNA_EXPERIMENT_WEBCAM().
