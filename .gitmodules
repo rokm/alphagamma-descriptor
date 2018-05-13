@@ -10,3 +10,6 @@
 [submodule "external/lift"]
 	path = external/lift
 	url = https://github.com/rokm/LIFT/
+[submodule "external/deepdesc-release"]
+	path = external/deepdesc-release
+	url = https://github.com/etrulls/deepdesc-release.git

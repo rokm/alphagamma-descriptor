@@ -119,7 +119,7 @@ classdef LiftWrapper < handle
             %    number of keypoints
             %  - keypoints: structure array of OpenCV keypoints
 
-             % Temporary folder for data exchange
+            % Temporary folder for data exchange
             tmp_dir = tempname();
             mkdir(tmp_dir);
 
