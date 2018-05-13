@@ -15,6 +15,8 @@ classdef DeepDesc < vicos.descriptor.Descriptor
         patch_extractor
         model_file
         lua_script
+        
+        batch_size
     end
 
     methods
@@ -32,6 +34,8 @@ classdef DeepDesc < vicos.descriptor.Descriptor
             %  - orientation_normalized: use keypoint-provided orientations
             %    to orientation-normalize patches before computing
             %    descriptors (default: false)
+            %  - batch_size: batch size to avoid running out of memory
+            %    (default: 1000)
             %
             % Output:
             %  - self:
@@ -42,10 +46,13 @@ classdef DeepDesc < vicos.descriptor.Descriptor
             parser.addParameter('model_file', 5, @isnumeric);
             parser.addParameter('scale_factor', 5, @isnumeric);
             parser.addParameter('orientation_normalized', false, @isnumeric);
+            parser.addParameter('batch_size', 1000, @isnumeric);
             parser.parse(varargin{:});
 
             self = self@vicos.descriptor.Descriptor(parser.Unmatched);
 
+            self.batch_size = parser.Results.batch_size;
+            
             % Create patch extractor
             scale_factor = parser.Results.scale_factor;
             orientation_normalized = parser.Results.orientation_normalized;
@@ -72,37 +79,68 @@ classdef DeepDesc < vicos.descriptor.Descriptor
 
         function [ descriptors, keypoints ] = compute (self, I, keypoints)
             %% Use patch extractor to extract patches
-            [ patches, keypoints ] = self.patch_extractor.extract_patches(I, keypoints);
+            [ all_patches, keypoints ] = self.patch_extractor.extract_patches(I, keypoints);
             
-            %% Temporary folder for data exchange
+            % Sanity check
+            assert(size(all_patches, 1) == 64 && size(all_patches, 2) == 64 && size(all_patches, 3) == 1, 'Patches must be 64x64x1!');
+
+            %% Prepare command
+            % Temporary folder for data exchange
             tmp_dir = tempname();
             mkdir(tmp_dir);
             
+            % Input and output file
             tmp_patch_file = fullfile(tmp_dir, 'patches.mat');
             tmp_desc_file = fullfile(tmp_dir, 'descriptors.mat');
-            
-            %% Save patches
-            assert(size(patches, 1) == 64 && size(patches, 2) == 64 && size(patches, 3) == 1, 'Patches must be 64x64x1!');
-            
-            save(tmp_patch_file, 'patches', '-v7.3');
-            
-            %% Run lua script
-            command = sprintf('th "%s" --model "%s" --input "%s" --output "%s"', self.lua_script, self.model_file, tmp_patch_file, tmp_desc_file);
-            [ status, result ] = system(command);
 
-            %% Check script status
-            if status
-                error('Wrapper script failed! Output:\n%s\n', result);
+            % Command
+            command = sprintf('th "%s" --model "%s" --input "%s" --output "%s"', self.lua_script, self.model_file, tmp_patch_file, tmp_desc_file);
+            
+            %% Compute descriptors
+            % Allocate descriptors
+            descriptors = nan(numel(keypoints), self.get_descriptor_size(), 'single');
+            
+            num_descriptors = size(descriptors, 1);
+            num_processed = 0;
+            batch_size = self.batch_size;
+
+            if ~isfinite(batch_size)
+                batch_size = num_descriptors;
             end
+
+            while num_processed < num_descriptors
+                % Clamp batch size
+                batch_size = min(batch_size, num_descriptors - num_processed);
+
+                % Determine indices
+                pos1 = num_processed + 1;
+                pos2 = pos1 + batch_size - 1;
+                
+                % Save patches
+                patches = all_patches(:,:,:,pos1:pos2);
+                save(tmp_patch_file, 'patches', '-v7.3');
+                
+                % Run lua script
+                [ status, result ] = system(command);
+                
+                % Check script status
+                if status
+                    error('Wrapper script failed! Output:\n%s\n', result);
+                end
+                
+                % Read descriptors
+                tmp = load(tmp_desc_file);
             
-            %% Read descriptors
-            tmp = load(tmp_desc_file);
-            
-            % Convert descriptors from double-precision to single-precision
-            % (because lua-side export supports only double-precision).
-            % Also, transpose to Nx128 to be consistent with our framework.
-            descriptors = single(tmp.x');
-            
+                % Convert descriptors from double-precision to single-precision
+                % (because lua-side export supports only double-precision).
+                % Also, transpose to Nx128 to be consistent with our framework.
+                descriptors(pos1:pos2,:) = single(tmp.x');
+
+
+                % Update the count
+                num_processed = num_processed + batch_size;
+            end
+
             %% Cleanup
             if true
                 rmdir(tmp_dir, 's');
@@ -121,6 +159,10 @@ classdef DeepDesc < vicos.descriptor.Descriptor
         end
     end
 
+    methods (Access = protected)
+        
+    end
+    
     methods (Access = protected)
         function identifier = get_identifier (self)
             identifier = 'DeepDesc';
