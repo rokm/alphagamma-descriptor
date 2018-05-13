@@ -80,6 +80,12 @@ function [ keypoint_detector, descriptor_extractor, alphagamma_float, alphagamma
             keypoint_detector = @() vicos.keypoint_detector.LIFT();
             descriptor_extractor = @() vicos.descriptor.VGG('ScaleFactor', 6.75);
             return;
+        % Extra definitions for DeepDesc - using same scale_factor settings
+        % as for VGG above
+        case 'sift+deepdesc'
+            keypoint_detector = @() vicos.keypoint_detector.SIFT();
+            descriptor_extractor = @() vicos.descriptor.DeepDesc('scale_factor', 6.75);
+            return;
         otherwise
             error('Invalid experiment id: "%s"', experiment_id);
     end
