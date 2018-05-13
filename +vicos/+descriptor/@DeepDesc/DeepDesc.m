@@ -29,6 +29,9 @@ classdef DeepDesc < vicos.descriptor.Descriptor
             %    by the original source.
             %  - scale_factor: scale factor to enlarge the keypoint's area
             %    of interest (default: 5)
+            %  - orientation_normalized: use keypoint-provided orientations
+            %    to orientation-normalize patches before computing
+            %    descriptors (default: false)
             %
             % Output:
             %  - self:
@@ -38,17 +41,20 @@ classdef DeepDesc < vicos.descriptor.Descriptor
             parser.KeepUnmatched = true;
             parser.addParameter('model_file', 5, @isnumeric);
             parser.addParameter('scale_factor', 5, @isnumeric);
+            parser.addParameter('orientation_normalized', false, @isnumeric);
             parser.parse(varargin{:});
 
             self = self@vicos.descriptor.Descriptor(parser.Unmatched);
 
             % Create patch extractor
             scale_factor = parser.Results.scale_factor;
+            orientation_normalized = parser.Results.orientation_normalized;
+            
             self.patch_extractor = vicos.utils.PatchExtractor(...
-                'scale_factor', scale_factor, ... % Use user-provided scale factor
+                'scale_factor', scale_factor, ... % User-provided value
                 'target_size', 64, ... % Torch code expects 64x64 patches
                 'replicate_border', true, ... % Replicate border
-                'normalize_orientation', false, ... % TODO: make this a parameter
+                'normalize_orientation', orientation_normalized, ... % User-provided parameter
                 'color_patches', false ... % Torch code expects single-channel patches
             );
         
