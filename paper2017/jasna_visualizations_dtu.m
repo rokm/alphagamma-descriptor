@@ -7,13 +7,15 @@ function jasna_visualizations_dtu (varargin)
     parser.addParameter('sequences', {});
     parser.addParameter('force_grayscale', true, @islogical);
     parser.addParameter('cache_dir', '', @ischar);
+    parser.addParameter('max_keypoints', inf, @isnumeric);
     parser.parse(varargin{:});
     
     experiment_ids = parser.Results.experiment_ids;
     sequences = parser.Results.sequences;
     force_grayscale = parser.Results.force_grayscale;
     cache_dir = parser.Results.cache_dir;
-    
+    max_keypoints = parser.Results.max_keypoints;
+
     % Default cache dir
     if isempty(cache_dir)
         cache_dir = '_visualization_dtu';
@@ -39,7 +41,7 @@ function jasna_visualizations_dtu (varargin)
     visualization_parameters = { 'image_scale', 0.5, 'caption_color', 'green' };
     
     %% Create experiment
-    experiment = vicos.experiment.DtuRobotEvaluation('cache_dir', cache_dir, 'force_grayscale', force_grayscale);
+    experiment = vicos.experiment.DtuRobotEvaluation('cache_dir', cache_dir, 'force_grayscale', force_grayscale, 'max_keypoints', max_keypoints);
 
     %% Run experiment(s)
     % If only one ID is given, make it into cell array
@@ -67,12 +69,16 @@ function jasna_visualizations_dtu (varargin)
             end
 
             % AG-float
-            fprintf('--- Running experiments with AG-float ---\n');
-            experiment.run_experiment(keypoint_detector, alphagamma_float, sequence, 'reference_image', ref_image, 'test_images', test_image, 'visualize_matches', true, 'visualization_parameters', visualization_parameters);
+            if ~isempty(alphagamma_float)
+                fprintf('--- Running experiments with AG-float ---\n');
+                experiment.run_experiment(keypoint_detector, alphagamma_float, sequence, 'reference_image', ref_image, 'test_images', test_image, 'visualize_matches', true, 'visualization_parameters', visualization_parameters);
+            end
 
             % AG-short
-            fprintf('--- Running experiment with AG-short ---\n');
-            experiment.run_experiment(keypoint_detector, alphagamma_short, sequence, 'reference_image', ref_image, 'test_images', test_image, 'visualize_matches', true, 'visualization_parameters', visualization_parameters);
+            if ~isempty(alphagamma_short)
+                fprintf('--- Running experiment with AG-short ---\n');
+                experiment.run_experiment(keypoint_detector, alphagamma_short, sequence, 'reference_image', ref_image, 'test_images', test_image, 'visualize_matches', true, 'visualization_parameters', visualization_parameters);
+            end
         end
     end
 end
