@@ -12,6 +12,13 @@ local params = cmd:parse(arg)
 local input = mattorch.load( params.input )
 local patches = input.patches:float()
 
+-- handle the case when only a single input patch is provided
+-- we need to add singleton dimensions: 64x64 -> 1x1x64x64
+if patches:nDimension() == 2 then
+    patches = nn.utils.addSingletonDimension(patches, 1)
+    patches = nn.utils.addSingletonDimension(patches, 1)
+end
+
 -- load model and mean
 local data = torch.load( params.model )
 local desc = data.desc
