@@ -91,8 +91,8 @@ classdef PatchExtractor < handle
             valid_patch = false(numel(keypoints), 1);
             
             for i = 1:numel(keypoints)
-                x = keypoints(i).pt(1);
-                y = keypoints(i).pt(2);
+                x = keypoints(i).pt(1) + 1; % OpenCV/C -> Matlab coordinates
+                y = keypoints(i).pt(2) + 1;
                 
                 % If we normalize the patch orientation, we need to sample
                 % a larger patch to rotate and then crop it again...
@@ -145,8 +145,8 @@ classdef PatchExtractor < handle
                     P = imrotate(P, keypoints(i).angle, 'bilinear', 'crop');
                     
                     % Crop the original size
-                    x = (size(P, 2) - 1) / 2;
-                    y = (size(P, 1) - 1) / 2;
+                    x = (size(P, 2) - 1)/2 + 1; % Make sure coordinates are in Matlab's 1-based coordinate system
+                    y = (size(P, 1) - 1)/2 + 1;
                     radius = round(0.5*keypoints(i).size * self.scale_factor);
                     
                     x1 = x - radius;
