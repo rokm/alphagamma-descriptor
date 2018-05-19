@@ -13,3 +13,6 @@
 [submodule "external/deepdesc-release"]
 	path = external/deepdesc-release
 	url = https://github.com/etrulls/deepdesc-release.git
+[submodule "external/tfeat"]
+	path = external/tfeat
+	url = https://github.com/vbalnt/tfeat.git
