@@ -11,6 +11,10 @@ classdef PatchExtractor < handle
         normalize_orientation
         replicate_border
         color_patches
+        
+        transpose_patches
+        
+        opencv_resize
     end
     
     methods
@@ -33,6 +37,12 @@ classdef PatchExtractor < handle
             %    Conversely, if this option is enabled and a color input
             %    image is provided, it will be converted to grayscale prior
             %    to patch extraction.
+            %  - transpose_patches: transpose patches to achieve row-major
+            %    layout (at patch level) instead of Matlab's column-major
+            %    one. Default: false
+            %  - opencv_resize: use OpenCV resize method instead of
+            %    imresize. The flag is used mostly for debugging (i.e., to
+            %    match the behavior of OpenCV-based code). Default: false
             %
             % Output:
             %  - self:
@@ -43,6 +53,8 @@ classdef PatchExtractor < handle
             parser.addParameter('replicate_border', true, @islogical);
             parser.addParameter('normalize_orientation', false, @islogical);
             parser.addParameter('color_patches', false, @islogical);
+            parser.addParameter('transpose_patches', false, @islogical);
+            parser.addParameter('opencv_resize', false, @islogical);
             parser.parse(varargin{:});
             
             self.scale_factor = parser.Results.scale_factor;
@@ -50,6 +62,8 @@ classdef PatchExtractor < handle
             self.replicate_border = parser.Results.replicate_border;
             self.color_patches = parser.Results.color_patches;
             self.normalize_orientation = parser.Results.normalize_orientation;
+            self.transpose_patches = parser.Results.transpose_patches;
+            self.opencv_resize = parser.Results.opencv_resize;
         end
         
         function [ patches, keypoints ] = extract_patches (self, I, keypoints)
@@ -157,7 +171,19 @@ classdef PatchExtractor < handle
                     P = P(y1:y2, x1:x2, :);
                 end    
                 
-                patches(:, :, :, i) = imresize(P, [ self.target_size, self.target_size ]);
+                % Resize to target size
+                if self.opencv_resize
+                    P = cv.resize(P, [ self.target_size, self.target_size ]);
+                else
+                    P = imresize(P, [ self.target_size, self.target_size ]);
+                end
+                
+                % Transpose?
+                if self.transpose_patches
+                    P = permute(P, [ 2, 1, 3 ]);
+                end
+                
+                patches(:, :, :, i) = P;
                 valid_patch(i) = true;
             end
             

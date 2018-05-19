@@ -14,6 +14,9 @@ set -e
 OPENCV_LIB="${ROOT_DIR}/external/opencv-bin/lib/"
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${OPENCV_LIB}
 
+# Caffe
+CAFFE_LIB="${ROOT_DIR}/external/caffe-bin/lib64/"
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${CAFFE_LIB}
 
 # Run MATLAB
 ${MATLABDIR}/bin/matlab -r "run ${ROOT_DIR}/startup.m"
