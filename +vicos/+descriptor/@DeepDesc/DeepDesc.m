@@ -43,7 +43,7 @@ classdef DeepDesc < vicos.descriptor.Descriptor
             % Input parser
             parser = inputParser();
             parser.KeepUnmatched = true;
-            parser.addParameter('model_file', 5, @isnumeric);
+            parser.addParameter('model_file', '', @ischar);
             parser.addParameter('scale_factor', 5, @isnumeric);
             parser.addParameter('orientation_normalized', false, @isnumeric);
             parser.addParameter('batch_size', 1000, @isnumeric);
@@ -51,6 +51,7 @@ classdef DeepDesc < vicos.descriptor.Descriptor
 
             self = self@vicos.descriptor.Descriptor(parser.Unmatched);
 
+            self.model_file = parser.Results.model_file;
             self.batch_size = parser.Results.batch_size;
             
             % Create patch extractor
@@ -159,10 +160,6 @@ classdef DeepDesc < vicos.descriptor.Descriptor
         end
     end
 
-    methods (Access = protected)
-        
-    end
-    
     methods (Access = protected)
         function identifier = get_identifier (self)
             identifier = 'DeepDesc';
