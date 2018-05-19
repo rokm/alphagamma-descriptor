@@ -16,3 +16,6 @@
 [submodule "external/tfeat"]
 	path = external/tfeat
 	url = https://github.com/vbalnt/tfeat.git
+[submodule "external/caffe"]
+	path = external/caffe
+	url = https://github.com/rokm/caffe.git

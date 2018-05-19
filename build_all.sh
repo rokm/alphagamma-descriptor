@@ -133,5 +133,41 @@ cmake \
 make -C "${LIFT_BUILD_DIR}"
 
 
+########################################################################
+#                         Build Caffe for TFeat                        #
+########################################################################
+echo "Building Caffe..."
+
+CAFFE_SOURCE_DIR="${ROOT_DIR}/external/caffe"
+CAFFE_BUILD_DIR="${CAFFE_SOURCE_DIR}/build"
+CAFFE_INSTALL_DIR="${ROOT_DIR}/external/caffe-bin"
+
+# Make sure the submodule has been checked out
+if [ ! -f "${CAFFE_SOURCE_DIR}/.git" ]; then
+    echo "The caffe submodule does not appear to be checked out!"
+    exit 1
+fi
+
+# Build and install
+mkdir -p "${CAFFE_BUILD_DIR}"
+
+cmake \
+    -H"${CAFFE_SOURCE_DIR}" \
+    -B"${CAFFE_BUILD_DIR}" \
+    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+    -DCMAKE_INSTALL_PREFIX="${CAFFE_INSTALL_DIR}" \
+    -DBLAS=open \
+    -DUSE_OPENCV=OFF \
+    -DCUDA_ARCH_NAME="Pascal" \
+    -DCUDA_HOST_COMPILER=/usr/bin/cuda-g++ \
+    -DBUILD_matlab=ON \
+    -DMatlab_DIR=${MATLABDIR}
+
+
+make -j4 -C "${CAFFE_BUILD_DIR}"
+make install -C "${CAFFE_BUILD_DIR}"
+
+
+
 # End of script
 echo "Great success! Build script finished without errors!"
