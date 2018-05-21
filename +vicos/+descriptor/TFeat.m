@@ -99,7 +99,7 @@ classdef TFeat < vicos.descriptor.Descriptor
                 'normalize_orientation', orientation_normalized, ... % User-provided parameter
                 'color_patches', false, ... % Model expects single-channel patches
                 'transpose_patches', true, ... % We need to transpose patches to match row-major layout
-                'opencv_resize', true ...
+                'opencv_resize', false ... % Enable this for easier comparison with bundled python-based example
             );
         end
 
