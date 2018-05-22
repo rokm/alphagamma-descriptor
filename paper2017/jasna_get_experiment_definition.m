@@ -85,8 +85,6 @@ function [ keypoint_detector, descriptor_extractor, alphagamma_float, alphagamma
         case 'sift+deepdesc'
             keypoint_detector = @() vicos.keypoint_detector.SIFT();
             descriptor_extractor = @() vicos.descriptor.DeepDesc('scale_factor', 6.75);
-            %descriptor_extractor = @() vicos.descriptor.DeepDesc('scale_factor', 5.0, 'identifier', 'DeepDesc-5x');
-            %descriptor_extractor = @() vicos.descriptor.DeepDesc('scale_factor', 10.0, 'identifier', 'DeepDesc-10x');
             return;
         case 'surf+deepdesc'
             keypoint_detector = @() vicos.keypoint_detector.SURF();
@@ -107,6 +105,32 @@ function [ keypoint_detector, descriptor_extractor, alphagamma_float, alphagamma
         case 'lift+deepdesc'
             keypoint_detector = @() vicos.keypoint_detector.LIFT();
             descriptor_extractor = @() vicos.descriptor.DeepDesc('scale_factor', 6.75);
+            return;
+        % Extra definitions for TFeat - using same scale_factor settings
+        % as for VGG above
+        case 'sift+tfeat'
+            keypoint_detector = @() vicos.keypoint_detector.SIFT();
+            descriptor_extractor = @() vicos.descriptor.TFeat('scale_factor', 6.75);
+            return;
+        case 'surf+tfeat'
+            keypoint_detector = @() vicos.keypoint_detector.SURF();
+            descriptor_extractor = @() vicos.descriptor.TFeat('scale_factor', 6.25);
+            return;
+        case 'brisk+tfeat'
+            keypoint_detector = @() vicos.keypoint_detector.BRISK();
+            descriptor_extractor = @() vicos.descriptor.TFeat('scale_factor', 5.00);
+            return;
+        case 'kaze+tfeat'
+            keypoint_detector = @() vicos.keypoint_detector.KAZE();
+            descriptor_extractor = @() vicos.descriptor.TFeat('scale_factor', 6.25);
+            return;
+        case 'radial+tfeat'
+            keypoint_detector = @() vicos.keypoint_detector.RADIAL();
+            descriptor_extractor = @() vicos.descriptor.TFeat('scale_factor', 5.0);
+            return;
+        case 'lift+tfeat'
+            keypoint_detector = @() vicos.keypoint_detector.LIFT();
+            descriptor_extractor = @() vicos.descriptor.TFeat('scale_factor', 6.75);
             return;
         otherwise
             error('Invalid experiment id: "%s"', experiment_id);

@@ -121,7 +121,7 @@ classdef TFeat < vicos.descriptor.Descriptor
             for b = 1:num_batches
                 cur_batch_size = min(num_patches, self.batch_size);
 
-                fprintf('Batch #%d: %d patches (%d ~ %d)\n', b, cur_batch_size, idx, idx+cur_batch_size-1);
+                % fprintf('Batch #%d: %d patches (%d ~ %d)\n', b, cur_batch_size, idx, idx+cur_batch_size-1);
 
                 % Process a batch
                 patches = all_patches(:,:,:,idx:idx+cur_batch_size-1);
