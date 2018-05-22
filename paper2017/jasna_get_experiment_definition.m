@@ -85,6 +85,28 @@ function [ keypoint_detector, descriptor_extractor, alphagamma_float, alphagamma
         case 'sift+deepdesc'
             keypoint_detector = @() vicos.keypoint_detector.SIFT();
             descriptor_extractor = @() vicos.descriptor.DeepDesc('scale_factor', 6.75);
+            %descriptor_extractor = @() vicos.descriptor.DeepDesc('scale_factor', 5.0, 'identifier', 'DeepDesc-5x');
+            %descriptor_extractor = @() vicos.descriptor.DeepDesc('scale_factor', 10.0, 'identifier', 'DeepDesc-10x');
+            return;
+        case 'surf+deepdesc'
+            keypoint_detector = @() vicos.keypoint_detector.SURF();
+            descriptor_extractor = @() vicos.descriptor.DeepDesc('scale_factor', 6.25);
+            return;
+        case 'brisk+deepdesc'
+            keypoint_detector = @() vicos.keypoint_detector.BRISK();
+            descriptor_extractor = @() vicos.descriptor.DeepDesc('scale_factor', 5.00);
+            return;
+        case 'kaze+deepdesc'
+            keypoint_detector = @() vicos.keypoint_detector.KAZE();
+            descriptor_extractor = @() vicos.descriptor.DeepDesc('scale_factor', 6.25);
+            return;
+        case 'radial+deepdesc'
+            keypoint_detector = @() vicos.keypoint_detector.RADIAL();
+            descriptor_extractor = @() vicos.descriptor.DeepDesc('scale_factor', 5.0);
+            return;
+        case 'lift+deepdesc'
+            keypoint_detector = @() vicos.keypoint_detector.LIFT();
+            descriptor_extractor = @() vicos.descriptor.DeepDesc('scale_factor', 6.75);
             return;
         otherwise
             error('Invalid experiment id: "%s"', experiment_id);
