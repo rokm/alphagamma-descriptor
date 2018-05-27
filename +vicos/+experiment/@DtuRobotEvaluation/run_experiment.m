@@ -94,7 +94,11 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
                             'num_consistent_matches_unique', [], ...
                             'num_putative_matches_unique', [], ...
                             'num_correct_matches_unique', [], ...
-                            'num_consistent_correspondences', []), 1, numel(test_images));
+                            'num_consistent_correspondences', [], ...
+                            'time_per_keypoint', [], ...
+                            'time_per_descriptor', [], ...
+                            'time_per_distance', []), ...
+                     1, numel(test_images));
     
     %% Process all test images
     for i = 1:numel(test_images)
@@ -105,10 +109,10 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
         %% Process test image
         % Detect keypoints
         It = [];
-        [ test_keypoints_raw, It ] = self.detect_keypoints_in_image(image_set, test_image, light_number, It, keypoint_detector);
+        [ test_keypoints_raw, It, time_per_keypoint ] = self.detect_keypoints_in_image(image_set, test_image, light_number, It, keypoint_detector);
 
         % Extract descriptors
-        [ test_descriptors, test_keypoints ] = self.extract_descriptors_from_keypoints(image_set, test_image, light_number, It, keypoint_detector, test_keypoints_raw, descriptor_extractor);
+        [ test_descriptors, test_keypoints, time_per_descriptor ] = self.extract_descriptors_from_keypoints(image_set, test_image, light_number, It, keypoint_detector, test_keypoints_raw, descriptor_extractor);
         
         %% Evaluate consistent correspondences
         % Note: the results are cached on per-keypoint detector level (i.e,
@@ -122,7 +126,7 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
         num_consistent_correspondences(~valid_correspondences) = -1;
         
         %% Evaluate putative and correct matches
-        [ match_idx, match_dist, consistent_matches, putative_matches ] = self.evaluate_matches(image_set, ref_image, test_image, light_number, quad3d, keypoint_detector, descriptor_extractor, ref_keypoints, ref_descriptors, test_keypoints, test_descriptors);
+        [ match_idx, match_dist, consistent_matches, putative_matches, time_per_distance ] = self.evaluate_matches(image_set, ref_image, test_image, light_number, quad3d, keypoint_detector, descriptor_extractor, ref_keypoints, ref_descriptors, test_keypoints, test_descriptors);
         [ roc, area ] = self.compute_roc_curve(match_dist(:,1)./match_dist(:,2), consistent_matches);
 
         %% FIXME: visualization
@@ -174,6 +178,11 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
         % geometrically-consistent match)
         results(i).num_consistent_correspondences = sum(num_consistent_correspondences >= 1);
 
+        % Amortized run-time (always for test image)
+        results(i).time_per_keypoint = time_per_keypoint;
+        results(i).time_per_descriptor = time_per_descriptor;
+        results(i).time_per_distance = time_per_distance;
+        
         %% Visualization of matches
         if visualize_matches
             tikz_output_path = '';

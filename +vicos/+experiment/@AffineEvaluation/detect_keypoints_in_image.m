@@ -1,4 +1,4 @@
-function keypoints = detect_keypoints_in_image (self, sequence, image_id, I, keypoint_detector)
+function [ keypoints, time_per_keypoint ] = detect_keypoints_in_image (self, sequence, image_id, I, keypoint_detector)
     % keypoints = DETECT_KEYPOINTS_IN_IMAGE (self, sequence, image_id, I, keypoint_detector)
     %
     % Detects keypoints in the image.
@@ -12,6 +12,7 @@ function keypoints = detect_keypoints_in_image (self, sequence, image_id, I, key
     %
     % Output:
     %  - keypoints
+    %  - time_per_keypoint: amortized detection time per keypoint
     
     % Construct cache filename
     cache_file = '';
@@ -26,6 +27,7 @@ function keypoints = detect_keypoints_in_image (self, sequence, image_id, I, key
         tmp = load(cache_file);
         keypoints = tmp.keypoints;
         image_size = tmp.image_size;
+        time_keypoints = tmp.time_keypoints;
         
         % Sanity check
         assert(isequal(image_size, size(I)), 'Inconsistent image size!');
@@ -44,6 +46,11 @@ function keypoints = detect_keypoints_in_image (self, sequence, image_id, I, key
             save(cache_file, '-v7.3', '-struct', 'tmp');
         end
     end
+    
+    % Compute amortized detection time per keypoint
+    % It is important to compute this before we limit the number of
+    % keypoints we return...
+    time_per_keypoint = time_keypoints / numel(keypoints);
     
     % Limit number of returned keypoints
     if isfinite(self.max_keypoints) && numel(keypoints) > self.max_keypoints

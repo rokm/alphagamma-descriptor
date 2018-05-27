@@ -97,11 +97,11 @@ classdef AffineEvaluation < vicos.experiment.Experiment
     end
     
     methods
-        keypoints = detect_keypoints_in_image (self, sequence, image_id, I, keypoint_detector)
+        [ keypoints, time_per_keypoint ] = detect_keypoints_in_image (self, sequence, image_id, I, keypoint_detector)
             
-        [ descriptors, keypoints ] = extract_descriptors_from_keypoints (self, sequence, image_id, I, keypoint_detector, keypoints, descriptor_extractor)
+        [ descriptors, keypoints, time_per_descriptor ] = extract_descriptors_from_keypoints (self, sequence, image_id, I, keypoint_detector, keypoints, descriptor_extractor)
         
-        [ match_idx, match_dist, correct_matches, putative_matches ] = evaluate_matches (self, sequence, ref_image_id, test_image, H21, image_size, keypoint_detector, descriptor_extractor, ref_keypoints, ref_descriptors, test_keypoints, test_descriptors)
+        [ match_idx, match_dist, correct_matches, putative_matches, time_per_distance ] = evaluate_matches (self, sequence, ref_image_id, test_image, H21, image_size, keypoint_detector, descriptor_extractor, ref_keypoints, ref_descriptors, test_keypoints, test_descriptors)
         
         [ correspondences, valid ] = evaluate_consistent_correspondences (self, sequence, ref_image_id, test_image_id, image_size, H21, keypoint_detector, ref_keypoints, test_keypoints)
     end

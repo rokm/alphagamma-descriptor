@@ -124,7 +124,10 @@ classdef DtuRobotEvaluation < vicos.experiment.Experiment
         % Processing steps
         results = run_experiment (self, experiment_name, keypoint_detector, descriptor_extractor, image_set, varargin)
 
-        [ keypoints, I ] = detect_keypoints_in_image (self, cache_root, I, keypoint_detector, image_set, image_number, light_number)
-        [ descriptors, keypoints ] = extract_descriptors_from_keypoints (self, cache_root, I, keypoints, keypoint_detector, descriptor_extractor, image_set, image_number, light_number)
+        [ keypoints, I, time_per_keypoint ] = detect_keypoints_in_image (self, cache_root, I, keypoint_detector, image_set, image_number, light_number)
+        [ descriptors, keypoints, time_per_descriptor ] = extract_descriptors_from_keypoints (self, cache_root, I, keypoints, keypoint_detector, descriptor_extractor, image_set, image_number, light_number)
+        
+        [ match_idx, match_dist, correct_matches, putative_matches, time_per_distance ] = evaluate_matches (self, image_set, ref_image, test_image, light_number, quad3d, keypoint_detector, descriptor_extractor, ref_keypoints, ref_descriptors, test_keypoints, test_descriptors)
+        [ correspondences, valid ] = evaluate_consistent_correspondences (self, image_set, ref_image, test_image, light_number, quad3d, keypoint_detector, ref_keypoints, test_keypoints)
     end
 end

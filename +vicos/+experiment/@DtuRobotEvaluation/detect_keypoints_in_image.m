@@ -1,4 +1,4 @@
-function [ keypoints, I ] = detect_keypoints_in_image (self, image_set, image_number, light_number, I, keypoint_detector)
+function [ keypoints, I, time_per_keypoint ] = detect_keypoints_in_image (self, image_set, image_number, light_number, I, keypoint_detector)
     % [ keypoints, I ] = DETECT_KEYPOINTS_IN_IMAGE (self, image_set, image_number, light_number, I, keypoint_detector)
     % 
     % Detects keypoints in the specified image, with support for optional
@@ -18,7 +18,8 @@ function [ keypoints, I ] = detect_keypoints_in_image (self, image_set, image_nu
     % Output:
     %  - keypoints: 1xN array of OpenCV keypoint structures
     %  - I: image data (empty if image loading was not required)
-    
+    %  - time_per_keypoint: amortized detection time per keypoint
+
     % Construct cache filename
     cache_file = '';
     if ~isempty(self.cache_dir)
@@ -32,6 +33,7 @@ function [ keypoints, I ] = detect_keypoints_in_image (self, image_set, image_nu
         tmp = load(cache_file);
         keypoints = tmp.keypoints;
         image_size = tmp.image_size;
+        time_keypoints = tmp.time_keypoints;
     else
         % Load image if necessary
         if isempty(I)
@@ -62,6 +64,11 @@ function [ keypoints, I ] = detect_keypoints_in_image (self, image_set, image_nu
     else
         assert(image_size(1) == 1200 && image_size(2) == 1600, 'Full-sized images must be 1600x1200!')
     end
+    
+    % Compute amortized detection time per keypoint
+    % It is important to compute this before we limit the number of
+    % keypoints we return...
+    time_per_keypoint = time_keypoints / numel(keypoints);
     
     % Limit number of returned keypoints
     if isfinite(self.max_keypoints) && numel(keypoints) > self.max_keypoints

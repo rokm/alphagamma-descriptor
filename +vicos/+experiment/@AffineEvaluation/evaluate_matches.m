@@ -1,5 +1,5 @@
-function [ match_idx, match_dist, correct_matches, putative_matches ] = evaluate_matches (self, sequence, ref_image_id, test_image_id, H21, image_size, keypoint_detector, descriptor_extractor, ref_keypoints, ref_descriptors, test_keypoints, test_descriptors)
-    % [ match_idx, match_dist, correct_matches, putative_matches ] = EVALUATE_MATCHES (self, sequence, ref_image_id, test_image_id, image_set, ref_image, test_image, light_number, quad3d, keypoint_detector, descriptor_extractor, ref_keypoints, ref_descriptors, test_keypoints, test_descriptors)
+function [ match_idx, match_dist, correct_matches, putative_matches, time_per_distance ] = evaluate_matches (self, sequence, ref_image_id, test_image_id, H21, image_size, keypoint_detector, descriptor_extractor, ref_keypoints, ref_descriptors, test_keypoints, test_descriptors)
+    % [ match_idx, match_dist, correct_matches, putative_matches, time_per_distance ] = EVALUATE_MATCHES (self, sequence, ref_image_id, test_image_id, image_set, ref_image, test_image, light_number, quad3d, keypoint_detector, descriptor_extractor, ref_keypoints, ref_descriptors, test_keypoints, test_descriptors)
     %
     % Evaluates the keypoint/descriptor matches in terms of putative and
     % correct matches.
@@ -25,10 +25,11 @@ function [ match_idx, match_dist, correct_matches, putative_matches ] = evaluate
         match_dist = tmp.match_dist;
         correct_matches = tmp.correct_matches;
         putative_matches = tmp.putative_matches;
+        time_per_distance = tmp.time_per_distance;
     else
         % Find closest matches
         batch_size = 1000; % Limit memory consumption by splitting test descriptors into batches
-        [ match_idx, match_dist ] = find_closest_matches (descriptor_extractor, ref_descriptors, test_descriptors, batch_size);
+        [ match_idx, match_dist, time_per_distance ] = find_closest_matches (descriptor_extractor, ref_descriptors, test_descriptors, batch_size);
         
         % Determine geometric consistency of matches
         correct_matches = nan(numel(test_keypoints), 1);
@@ -61,14 +62,14 @@ function [ match_idx, match_dist, correct_matches, putative_matches ] = evaluate
         % Save to cache
         if ~isempty(cache_file)
             vicos.utils.ensure_path_exists(cache_file);
-            tmp = struct('match_idx', match_idx, 'match_dist', match_dist, 'correct_matches', correct_matches, 'putative_matches', putative_matches); %#ok<NASGU>
+            tmp = struct('match_idx', match_idx, 'match_dist', match_dist, 'correct_matches', correct_matches, 'putative_matches', putative_matches, 'time_per_distance', time_per_distance); %#ok<NASGU>
             save(cache_file, '-v7.3', '-struct', 'tmp');
         end 
     end
 end
 
-function [ match_idx, match_dist ] = find_closest_matches (descriptor_extractor, ref_descriptors, test_descriptors, batch_size)
-    % [ match_idx, match_dist ] = FIND_CLOSEST_MATCHES (descriptor_extractor, ref_descriptors, test_descriptors, batch_size)
+function [ match_idx, match_dist, time_per_distance ] = find_closest_matches (descriptor_extractor, ref_descriptors, test_descriptors, batch_size)
+    % [ match_idx, match_dist, time_per_distance ] = FIND_CLOSEST_MATCHES (descriptor_extractor, ref_descriptors, test_descriptors, batch_size)
     %
     % For each test_descriptor, finds the 1st and 2nd closest match among
     % the ref_descriptors, and returns their indices and distances.
@@ -86,6 +87,8 @@ function [ match_idx, match_dist ] = find_closest_matches (descriptor_extractor,
     %    test descriptor
     %  - match_dist: Mx2 array of match distances (1st and 2nd match) for 
     %    each test descriptor
+    %  - time_per_distance: amortized computation time per distance between
+    %    two descriptors
     
     if ~exist('batch_size', 'var') || isempty(batch_size)
         batch_size = inf;
@@ -103,6 +106,8 @@ function [ match_idx, match_dist ] = find_closest_matches (descriptor_extractor,
         batch_size = num_test_descriptors;
     end
     
+    time_per_distance = [];
+    
     while num_processed < num_test_descriptors
         % Clamp batch size
         batch_size = min(batch_size, num_test_descriptors - num_processed);
@@ -112,7 +117,9 @@ function [ match_idx, match_dist ] = find_closest_matches (descriptor_extractor,
         pos2 = pos1 + batch_size - 1;
         
         % Compute descriptor distance matrix
+        t = tic();
         M = descriptor_extractor.compute_pairwise_distances(ref_descriptors, test_descriptors(pos1:pos2, :));
+        time_per_distance(end+1) = toc(t) / numel(M); %#ok<AGROW>
         
         % For each test keypoint (row in M), find the closest match
         [ min_dist1, min_idx1 ] = min(M, [], 2); % For each test keypoint, find the closest match
@@ -134,5 +141,7 @@ function [ match_idx, match_dist ] = find_closest_matches (descriptor_extractor,
         % Update the count
         num_processed = num_processed + batch_size;
     end
+    
+    time_per_distance = mean(time_per_distance); % Average across all batches
 end
 

@@ -1,4 +1,4 @@
-function [ descriptors, keypoints ] = extract_descriptors_from_keypoints (self, sequence, image_id, I, keypoint_detector, keypoints, descriptor_extractor)
+function [ descriptors, keypoints, time_per_descriptor ] = extract_descriptors_from_keypoints (self, sequence, image_id, I, keypoint_detector, keypoints, descriptor_extractor)
     % [ descriptors, keypoints ] = EXTRACT_DESCRIPTORS_FROM_KEYPOINTS (self, sequence, image_id, I, keypoint_detector, keypoints, descriptor_extractor)
     %
     % Extracts descriptors from keypoints.
@@ -15,6 +15,7 @@ function [ descriptors, keypoints ] = extract_descriptors_from_keypoints (self, 
     % Output:
     %  - descriptors:
     %  - keypoints:
+    %  - time_per_descriptor: amortized computation time per descriptor
     
     % Construct cache filename
     cache_file = '';
@@ -29,6 +30,7 @@ function [ descriptors, keypoints ] = extract_descriptors_from_keypoints (self, 
         tmp = load(cache_file);
         keypoints = tmp.keypoints;
         descriptors = tmp.descriptors;
+        time_descriptors = tmp.time_descriptors;
     else
         % Augment keypoints with sequential class IDs, so we can track
         % which points were dropped by descriptor extractor
@@ -49,4 +51,7 @@ function [ descriptors, keypoints ] = extract_descriptors_from_keypoints (self, 
             save(cache_file, '-v7.3', '-struct', 'tmp');
         end
     end
+    
+    % Compute amortized computation time per descriptor
+    time_per_descriptor = time_descriptors / size(descriptors, 1);
 end

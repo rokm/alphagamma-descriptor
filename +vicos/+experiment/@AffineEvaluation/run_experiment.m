@@ -94,7 +94,11 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
                             'num_consistent_matches_unique', [], ...
                             'num_putative_matches_unique', [], ...
                             'num_correct_matches_unique', [], ...
-                            'num_consistent_correspondences', []), 1, numel(test_images));
+                            'num_consistent_correspondences', [], ...
+                            'time_per_keypoint', [], ...
+                            'time_per_descriptor', [], ...
+                            'time_per_distance', []), ...
+                     1, numel(test_images));
     
     %% Process all pairs
     for i = 1:numel(test_images)
@@ -135,11 +139,11 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
          [ ref_descriptors, ref_keypoints ] = self.extract_descriptors_from_keypoints(sequence, ref_image_id, I1, keypoint_detector, ref_keypoints_raw, descriptor_extractor);
          
         %% Process test image
-        test_keypoints_raw = self.detect_keypoints_in_image(sequence, test_image_id, I2, keypoint_detector); 
-        [ test_descriptors, test_keypoints ] = self.extract_descriptors_from_keypoints(sequence, test_image_id, I2, keypoint_detector, test_keypoints_raw, descriptor_extractor);
+        [ test_keypoints_raw, time_per_keypoint ] = self.detect_keypoints_in_image(sequence, test_image_id, I2, keypoint_detector); 
+        [ test_descriptors, test_keypoints, time_per_descriptor ] = self.extract_descriptors_from_keypoints(sequence, test_image_id, I2, keypoint_detector, test_keypoints_raw, descriptor_extractor);
          
         %% Evaluate matches
-        [ match_idx, match_dist, consistent_matches, putative_matches ] = self.evaluate_matches(sequence, ref_image_id, test_image_id, H21, size(I1), keypoint_detector, descriptor_extractor, ref_keypoints, ref_descriptors, test_keypoints, test_descriptors);
+        [ match_idx, match_dist, consistent_matches, putative_matches, time_per_distance ] = self.evaluate_matches(sequence, ref_image_id, test_image_id, H21, size(I1), keypoint_detector, descriptor_extractor, ref_keypoints, ref_descriptors, test_keypoints, test_descriptors);
          
         %% Evaluate consistent correspondences
         [ consistent_correspondences, valid_correspondences ] = self.evaluate_consistent_correspondences(sequence, ref_image_id, test_image_id, size(I1), H21, keypoint_detector, ref_keypoints_raw, test_keypoints_raw);
@@ -193,6 +197,11 @@ function results = run_experiment (self, keypoint_detector, descriptor_extractor
         % Number of consistent correspondences (at least one
         % geometrically-consistent match)
         results(i).num_consistent_correspondences = sum(num_consistent_correspondences >= 1);
+        
+        % Amortized run-time (always for test image)
+        results(i).time_per_keypoint = time_per_keypoint;
+        results(i).time_per_descriptor = time_per_descriptor;
+        results(i).time_per_distance = time_per_distance;
         
         %% Visualization of matches
         if visualize_correct_matches
