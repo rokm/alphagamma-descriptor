@@ -74,7 +74,9 @@ function jasna_summarize_results_in_table (cache_dir, sequences, varargin)
             experiment_id = keys{e};
             
             % Initialize
-            overall = struct('precision', zeros(1, numel(sequences)), ...
+            overall = struct('putative_match_ratio', zeros(1, numel(sequences)), ...
+                             'precision', zeros(1, numel(sequences)), ...
+                             'matching_score', zeros(1, numel(sequences)), ...
                              'recall', zeros(1, numel(sequences)), ...
                              'recognition_rate', zeros(1, numel(sequences)), ...
                              'correct_matches', zeros(1, numel(sequences)), ...
@@ -85,7 +87,9 @@ function jasna_summarize_results_in_table (cache_dir, sequences, varargin)
             for i = 1:numel(sequences)
                 results = results_maps{i}(experiment_id);
                 
+                overall.putative_match_ratio(i) = mean(results.putative_match_ratio);
                 overall.precision(i) = mean(results.precision);
+                overall.matching_score(i) = mean(results.matching_score);
                 overall.recall(i) = mean(results.recall);
                 overall.recognition_rate(i) = mean(results.recognition_rate);
                 overall.correct_matches(i) = mean(results.correct_matches);
@@ -138,10 +142,12 @@ function display_table (sequence, results_map, fid)
     
     fprintf(fid, 'Combination\t');
     fprintf(fid, 'Avg. num. correspondences\t');
+    fprintf(fid, 'Avg. putative match ratio\t');
+    fprintf(fid, 'Avg. precision\t');
+    fprintf(fid, 'Avg. matching score\t');
+    fprintf(fid, 'Avg. recall\t');
     fprintf(fid, 'Avg. recog. rate\t');
-    fprintf(fid, 'Average recall\t');
-    fprintf(fid, 'Average precision\t');
-    fprintf(fid, 'Average num. correct. matches\t');
+    fprintf(fid, 'Avg. num. correct. matches\t');
     fprintf(fid, 'Avg. img. pairs with prec. >= 60%%\n');
     
     % Print results
@@ -156,9 +162,11 @@ function display_table (sequence, results_map, fid)
         
         fprintf(fid, '%s\t', experiment_id);
         fprintf(fid, '%d\t', round(mean(results.correspondences)));
-        fprintf(fid, '%.2f\t', 100*mean(results.recognition_rate));
-        fprintf(fid, '%.2f\t', 100*mean(results.recall));
+        fprintf(fid, '%.2f\t', 100*mean(results.putative_match_ratio));
         fprintf(fid, '%.2f\t', 100*mean(results.precision));
+        fprintf(fid, '%.2f\t', 100*mean(results.matching_score));
+        fprintf(fid, '%.2f\t', 100*mean(results.recall));
+        fprintf(fid, '%.2f\t', 100*mean(results.recognition_rate));
         fprintf(fid, '%.0f\t', mean(results.correct_matches));
         fprintf(fid, '%.2f\n', 100*mean(results.precision_over_60));
     end
@@ -173,25 +181,29 @@ function display_table_latex (sequence, results_map, fid)
     % Print header
     fprintf(fid, '\n\n%% *** Sequence: %s ***\n', sequence);
     
-    fprintf(fid, '\\begin{tabular}{l c cccc c}\n');
+    fprintf(fid, '\\begin{tabular}{l c cccc c c c}\n');
     
     fprintf(fid, '\\toprule\n');
       
-    fprintf(fid, 'Combination & ');
-    fprintf(fid, 'Avg.\\ num.\\ & ');
-    fprintf(fid, 'Average & ');
-    fprintf(fid, 'Average & ');
-    fprintf(fid, 'Average & ');
-    fprintf(fid, 'Avg.\\ num.\\ & ');
-    fprintf(fid, 'Avg.\\ img.\\ pairs \\\\\n');
+    fprintf(fid, 'Combination & '); % Combination
+    fprintf(fid, 'Avg.\\ num.\\ & '); % Average number of correspondences
+    fprintf(fid, 'Avg.\\ putative & '); % Average putative match ratio
+    fprintf(fid, 'Average & '); % Average precision
+    fprintf(fid, 'Average & '); % Average matching score
+    fprintf(fid, 'Average & '); % Average recall
+    fprintf(fid, 'Average & '); % Average recognition rate
+    fprintf(fid, 'Avg.\\ num.\\ & '); % Average number of correct matches
+    fprintf(fid, 'Avg.\\ img.\\ pairs \\\\\n'); % Average number of image pairs with precision >= 60%
     
-    fprintf(fid, ' & ');
-    fprintf(fid, 'corresp. & ');
-    fprintf(fid, 'recog.\\ rate & ');
-    fprintf(fid, 'recall & ');
-    fprintf(fid, 'precision & ');
-    fprintf(fid, 'corr.\\ matches & ');
-    fprintf(fid, 'with prec.\\ >= 60\\%% \\\\\n');
+    fprintf(fid, ' & '); % Combination
+    fprintf(fid, 'corresp. & '); % Average number of correspondences
+    fprintf(fid, 'match ratio & '); % Average putative match ratio
+    fprintf(fid, 'precision & '); % Average precision
+    fprintf(fid, 'matching score & '); % Average matching score
+    fprintf(fid, 'recall & '); % Average recall
+    fprintf(fid, 'recog.\\ rate & '); % Average recognition rate
+    fprintf(fid, 'corr.\\ matches & '); % Average number of correct matches
+    fprintf(fid, 'with prec.\\ >= 60\\%% \\\\\n'); % Average number of image pairs with precision >= 60%
     
     fprintf(fid, '\\midrule\n');
     
@@ -208,9 +220,11 @@ function display_table_latex (sequence, results_map, fid)
         
         fprintf(fid, '%s & ', experiment_id);
         fprintf(fid, '%d & ', round(mean(results.correspondences)));
-        fprintf(fid, '%.2f & ', 100*mean(results.recognition_rate));
-        fprintf(fid, '%.2f & ', 100*mean(results.recall));
+        fprintf(fid, '%.2f & ', 100*mean(results.putative_match_ratio));
         fprintf(fid, '%.2f & ', 100*mean(results.precision));
+        fprintf(fid, '%.2f & ', 100*mean(results.matching_score));
+        fprintf(fid, '%.2f & ', 100*mean(results.recall));
+        fprintf(fid, '%.2f & ', 100*mean(results.recognition_rate));
         fprintf(fid, '%.0f & ', mean(results.correct_matches));
         fprintf(fid, '%.2f \\\\\n', 100*mean(results.precision_over_60));
     end
@@ -290,6 +304,17 @@ function output = process_results (results, use_unique)
         use_unique = false;
     end
     
+    % Putative match ratio: number of putative matches / number of
+    % keypoints
+    if use_unique
+        num_keypoints_unique = min([ results.num_keypoints_in_ref_unique; results.num_keypoints_in_test_unique ]);
+        output.putative_match_ratio = [ results.num_putative_matches_unique ] ./ num_keypoints_unique;
+    else
+        num_keypoints = min([ results.num_keypoints_in_ref; results.num_keypoints_in_test ]);
+        output.putative_match_ratio = [ results.num_putative_matches ] ./ num_keypoints;
+    end
+    output.putative_match_ratio(~isfinite(output.putative_match_ratio)) = 0; % NaN, Inf -> 0
+
     % Precision: number of correct matches / number of putative matches
     if use_unique
         output.precision = [ results.num_correct_matches_unique ] ./ [ results.num_putative_matches_unique ];
@@ -298,6 +323,16 @@ function output = process_results (results, use_unique)
     end
     output.precision(~isfinite(output.precision)) = 0; % NaN, Inf -> 0
 
+    % Matching score: number of correct matches / number of keypoints
+    if use_unique
+        num_keypoints_unique = min([ results.num_keypoints_in_ref_unique; results.num_keypoints_in_test_unique ]);
+        output.matching_score = [ results.num_correct_matches_unique ] ./ num_keypoints_unique;
+    else
+        num_keypoints = min([ results.num_keypoints_in_ref; results.num_keypoints_in_test ]);
+        output.matching_score = [ results.num_correct_matches ] ./ num_keypoints;
+    end
+    output.matching_score(~isfinite(output.matching_score)) = 0; % NaN, Inf -> 0
+    
     % Recall: number of correct matches / number of correspondences
     if use_unique
         output.recall = [ results.num_correct_matches_unique ] ./ [ results.num_consistent_correspondences_unique ];
