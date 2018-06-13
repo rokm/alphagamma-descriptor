@@ -45,40 +45,79 @@ cmake ^
     -DWITH_OPENCL=OFF ^
     -DWITH_GPHOTO2=OFF ^
     ^
+    ^
+    -DBUILD_opencv_apps=OFF ^
+    -DBUILD_opencv_calib3d=ON ^
+    -DBUILD_opencv_core=ON ^
+    -DBUILD_opencv_cudaarithm=OFF ^
+    -DBUILD_opencv_cudabgsegm=OFF ^
+    -DBUILD_opencv_cudacodec=OFF ^
+    -DBUILD_opencv_cudafeatures2d=OFF ^
+    -DBUILD_opencv_cudafilters=OFF ^
+    -DBUILD_opencv_cudaimgproc=OFF ^
+    -DBUILD_opencv_cudalegacy=OFF ^
+    -DBUILD_opencv_cudaobjdetect=OFF ^
+    -DBUILD_opencv_cudaoptflow=OFF ^
+    -DBUILD_opencv_cudastereo=OFF ^
+    -DBUILD_opencv_cudawarping=OFF ^
+    -DBUILD_opencv_cudev=OFF ^
+    -DBUILD_opencv_dnn=ON ^
+    -DBUILD_opencv_features2d=ON ^
+    -DBUILD_opencv_flann=ON ^
+    -DBUILD_opencv_highgui=ON ^
+    -DBUILD_opencv_imgcodecs=ON ^
+    -DBUILD_opencv_imgproc=ON ^
     -DBUILD_opencv_java=OFF ^
+    -DBUILD_opencv_ml=ON ^
+    -DBUILD_opencv_objdetect=ON ^
+    -DBUILD_opencv_photo=ON ^
     -DBUILD_opencv_python2=OFF ^
     -DBUILD_opencv_python3=OFF ^
-    ^
+    -DBUILD_opencv_shape=ON ^
+    -DBUILD_opencv_stitching=ON ^
+    -DBUILD_opencv_superres=ON ^
     -DBUILD_opencv_ts=OFF ^
+    -DBUILD_opencv_video=ON ^
+    -DBUILD_opencv_videoio=ON ^
+    -DBUILD_opencv_videostab=ON ^
     -DBUILD_opencv_viz=OFF ^
+    -DBUILD_opencv_world=OFF ^
     ^
-    -DBUILD_opencv_aruco=OFF ^
-    -DBUILD_opencv_bgsegm=OFF ^
-    -DBUILD_opencv_bioinspired=OFF ^
+    -DBUILD_opencv_aruco=ON ^
+    -DBUILD_opencv_bgsegm=ON ^
+    -DBUILD_opencv_bioinspired=ON ^
     -DBUILD_opencv_ccalib=OFF ^
+    -DBUILD_opencv_cnn_3dobj=OFF ^
     -DBUILD_opencv_contrib_world=OFF ^
     -DBUILD_opencv_cvv=OFF ^
-    -DBUILD_opencv_datasets=OFF ^
-    -DBUILD_opencv_dnn=OFF ^
-    -DBUILD_opencv_dpm=OFF ^
-    -DBUILD_opencv_face=OFF ^
+    -DBUILD_opencv_datasets=ON ^
+    -DBUILD_opencv_dnn_modern=OFF ^
+    -DBUILD_opencv_dnns_easily_fooled=OFF ^
+    -DBUILD_opencv_dpm=ON ^
+    -DBUILD_opencv_face=ON ^
+    -DBUILD_opencv_freetype=OFF ^
     -DBUILD_opencv_fuzzy=OFF ^
     -DBUILD_opencv_hdf=OFF ^
-    -DBUILD_opencv_line_descriptor=OFF ^
+    -DBUILD_opencv_img_hash=ON ^
+    -DBUILD_opencv_line_descriptor=ON ^
     -DBUILD_opencv_matlab=OFF ^
-    -DBUILD_opencv_optflow=OFF ^
+    -DBUILD_opencv_optflow=ON ^
+    -DBUILD_opencv_phase_unwrapping=OFF ^
+    -DBUILD_opencv_plot=ON ^
     -DBUILD_opencv_reg=OFF ^
     -DBUILD_opencv_rgbd=OFF ^
-    -DBUILD_opencv_saliency=OFF ^
+    -DBUILD_opencv_saliency=ON ^
     -DBUILD_opencv_sfm=OFF ^
     -DBUILD_opencv_stereo=OFF ^
     -DBUILD_opencv_structured_light=OFF ^
     -DBUILD_opencv_surface_matching=OFF ^
-    -DBUILD_opencv_text=OFF ^
-    -DBUILD_opencv_tracking=OFF ^
-    -DBUILD_opencv_ximgproc=OFF ^
-    -DBUILD_opencv_xobjdetect=OFF ^
-    -DBUILD_opencv_xphoto=OFF
+    -DBUILD_opencv_text=ON ^
+    -DBUILD_opencv_tracking=ON ^
+    -DBUILD_opencv_xfeatures2d=ON ^
+    -DBUILD_opencv_ximgproc=ON ^
+    -DBUILD_opencv_xobjdetect=ON ^
+    -DBUILD_opencv_xphoto=ON
+
 if %errorlevel% neq 0 exit /b %errorlevel%
 
 cmake --build "%OPENCV_BUILD_DIR%" --target ALL_BUILD --config Release
