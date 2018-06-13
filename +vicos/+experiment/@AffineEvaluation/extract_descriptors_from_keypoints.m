@@ -32,13 +32,6 @@ function [ descriptors, keypoints, time_per_descriptor ] = extract_descriptors_f
         descriptors = tmp.descriptors;
         time_descriptors = tmp.time_descriptors;
     else
-        % Augment keypoints with sequential class IDs, so we can track
-        % which points were dropped by descriptor extractor
-        assert(all([ keypoints.class_id ] == -1), 'Keypoints do not have their class_id field set to -1! This may mean that the keypoint detector/descriptor extractor is using this field for its own purposes, which is not supported by this evaluation framework!');
-        
-        ids = num2cell(1:numel(keypoints));
-        [ keypoints.class_id ] = deal(ids{:});
-        
         % Extract descriptors
         t = tic();
         [ descriptors, keypoints ] = descriptor_extractor.compute(I, keypoints);
