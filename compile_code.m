@@ -10,11 +10,14 @@ function compile_code ()
     % OpenCV
     opencv_bin_dir = fullfile(root_directory, 'external', 'opencv-bin');
     opencv_include_dir = fullfile(opencv_bin_dir, 'include');
-    opencv_library_dir = fullfile(opencv_bin_dir, vicos.utils.opencv.get_arch_id(), vicos.utils.opencv.get_compiler_id(), 'lib');
-    
+
     if ispc()
-        opencv_libs = '-lopencv_core320';
+        # Windows
+        opencv_library_dir = fullfile(opencv_bin_dir, vicos.utils.opencv.get_arch_id(), vicos.utils.opencv.get_compiler_id(), 'lib');
+        opencv_libs = '-lopencv_core341';
     else
+        # Linux
+        opencv_library_dir = fullfile(opencv_bin_dir, 'lib64');
         opencv_libs = '-lopencv_core';
     end
     
