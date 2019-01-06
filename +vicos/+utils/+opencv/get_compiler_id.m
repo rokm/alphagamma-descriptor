@@ -21,6 +21,7 @@ function str = get_compiler_id ()
         if ~isempty(strfind(cpp.Name, 'Visual'))
             % Visual Studio
             switch cpp.Version
+                case '15.0', str = 'vc15'; % VS2017
                 case '14.0', str = 'vc14'; % VS2015
                 case '12.0', str = 'vc12'; % VS2013
                 case '11.0', str = 'vc11'; % VS2012
@@ -32,7 +33,7 @@ function str = get_compiler_id ()
         elseif ~isempty(strfind(cpp.Name, 'SDK'))
             % Windows SDK
             switch cpp.Version
-                case '10.0', str = 'vc14'; % VS2015
+                case '10.0', str = 'vc14'; % VS2015 or VS2017
                 case '8.1',  str = 'vc12'; % VS2013
                 case '8.0',  str = 'vc11'; % VS2012
                 case '7.1',  str = 'vc10'; % VS2010
