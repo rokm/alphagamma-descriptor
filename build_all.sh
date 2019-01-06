@@ -3,6 +3,9 @@
 # Matlab directory; set only if not already set
 MATLABDIR=${MATLABDIR:-/usr/local/MATLAB/R2016b}
 
+# CUDA host compiler
+CUDA_HOST_COMPILER=${HOST_COMPILER:-/usr/bin/g++}
+
 # Get the project's root directory (i.e., the location of this script)
 ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -13,10 +16,6 @@ set -e
 ########################################################################
 #                             Build OpenCV                             #
 ########################################################################
-# NOTE: for the time being, we build and use a private branch of OpenCV
-# with various improvements for integration of descriptors into our
-# evaluation framework.
-#
 # Fedora dependencies:
 #  libtiff-devel libjpeg-devel libwebp-devel jasper-devel OpenEXR-devel
 #  ffmpeg-devel
@@ -139,8 +138,7 @@ make install -C "${OPENCV_BUILD_DIR}"
 echo "Building mexopencv..."
 export PKG_CONFIG_PATH=${OPENCV_INSTALL_DIR}/lib64/pkgconfig:${PKG_CONFIG_PATH}
 
-make -j4 MATLABDIR="${MATLABDIR}" -C "${ROOT_DIR}/external/mexopencv"
-
+make all contrib -j4 MATLABDIR="${MATLABDIR}" LDFLAGS="LDFLAGS='-Wl,--as-needed $LDFLAGS'" -C "${ROOT_DIR}/external/mexopencv"
 
 ########################################################################
 #                    Build Matlab/MEX dependencies                     #
@@ -195,8 +193,8 @@ cmake \
     -DCMAKE_INSTALL_PREFIX="${CAFFE_INSTALL_DIR}" \
     -DBLAS=open \
     -DUSE_OPENCV=OFF \
-    -DCUDA_ARCH_NAME="Pascal" \
-    -DCUDA_HOST_COMPILER=/usr/bin/cuda-g++ \
+    -DCUDA_ARCH_NAME=Manual \
+    -DCUDA_HOST_COMPILER="${CUDA_HOST_COMPILER}" \
     -DBUILD_matlab=ON \
     -DMatlab_DIR=${MATLABDIR}
 
