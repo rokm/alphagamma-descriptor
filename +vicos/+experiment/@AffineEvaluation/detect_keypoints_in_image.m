@@ -25,7 +25,7 @@ function [ keypoints, time_per_keypoint ] = detect_keypoints_in_image (self, seq
     if ~isempty(cache_file) && exist(cache_file, 'file')
         % Load from cache
         tmp = load(cache_file);
-        keypoints = tmp.keypoints;
+        keypoints = vicos.utils.keypoints_from_structure_of_arrays(tmp.keypoints);
         image_size = tmp.image_size;
         time_keypoints = tmp.time_keypoints;
         
@@ -42,7 +42,7 @@ function [ keypoints, time_per_keypoint ] = detect_keypoints_in_image (self, seq
         % Save to cache
         if ~isempty(cache_file)
             vicos.utils.ensure_path_exists(cache_file);
-            tmp = struct('keypoints', keypoints, 'time_keypoints', time_keypoints, 'image_size', image_size); %#ok<NASGU>
+            tmp = struct('keypoints', vicos.utils.keypoints_to_structure_of_arrays(keypoints), 'time_keypoints', time_keypoints, 'image_size', image_size); %#ok<NASGU>
             save(cache_file, '-v7.3', '-struct', 'tmp');
         end
     end
