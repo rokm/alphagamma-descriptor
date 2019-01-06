@@ -130,13 +130,13 @@ if %errorlevel% neq 0 exit /b %errorlevel%
 echo Building mexopencv...
 
 set "MEXOPENCV_DIR=%ROOT_DIR%\external\mexopencv"
-matlab -nodisplay -nodesktop -nosplash -minimize -wait -r "try, addpath('%MEXOPENCV_DIR%'); mexopencv.make('opencv_path', '%OPENCV_INSTALL_DIR%', 'progress', true); catch e, exit(-1); end; exit(0);"
+matlab -nodisplay -nodesktop -nosplash -minimize -wait -r "try, addpath('%MEXOPENCV_DIR%'); mexopencv.make('opencv_path', '%OPENCV_INSTALL_DIR%', 'progress', true, 'opencv_contrib', true); catch e, fprintf('Error while compiling mexopencv!\n\n'); display(getReport(e)); uiwait(msgbox('Failed to compile mexopencv! Check main window for error message, then press OK to close Matlab!', 'Error', 'error')); exit(-1); end; exit(0);"
 if %errorlevel% neq 0 exit /b %errorlevel%
 
 :: Build Matlab/MEX dependencies
 echo Building MEX files...
 
-matlab -nodisplay -nodesktop -nosplash -minimize -wait -r "try, run('%ROOT_DIR%\compile_code.m'); catch e, exit(-1); end; exit(0);"
+matlab -nodisplay -nodesktop -nosplash -minimize -wait -r "try, run('%ROOT_DIR%\compile_code.m'); catch e, fprintf('Error while compiling AlphaGamma MEX files!\n\n'); display(getReport(e)); uiwait(msgbox('Failed to compile AlphaGamma MEX files! Check main window for error message, then press OK to close Matlab!', 'Error', 'error')); exit(-1); end; exit(0);"
 if %errorlevel% neq 0 exit /b %errorlevel%
 
 :: End of script
