@@ -10,8 +10,10 @@
 This project contains the prototype implementation of the AlphaGamma
 keypoint descriptor, presented in:
 
-1. R. Mandeljc and J. Maver, AGs: local descriptors based on
-dependent effects model, journal submission, 2017
+1. R. Mandeljc and J. Maver, AGs: Local descriptors dervied from the
+   dependent effects model, Journal of Visual Communication and Image
+   Representation, Volume 58, p. 503-514, January 2019.
+   DOI: [10.1016/j.jvcir.2018.12.008](https://doi.org/10.1016/j.jvcir.2018.12.008)
 
 
 The code is provided as supplement to the journal submission [1], and
