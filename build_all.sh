@@ -192,9 +192,10 @@ cmake \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
     -DCMAKE_INSTALL_PREFIX="${CAFFE_INSTALL_DIR}" \
     -DBLAS=open \
-    -DUSE_OPENCV=OFF \
     -DCUDA_ARCH_NAME=Manual \
     -DCUDA_HOST_COMPILER="${CUDA_HOST_COMPILER}" \
+    -DUSE_OPENCV=OFF \
+    -DBUILD_python=OFF \
     -DBUILD_matlab=ON \
     -DMatlab_DIR=${MATLABDIR}
 
