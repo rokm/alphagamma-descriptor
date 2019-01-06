@@ -165,7 +165,7 @@ function keypoints = RADIALdetector(I, Threshold, NumScales, MinScale, MaxFeatur
         %      rectangle('Position',[feature_r(p, 2)-1/ feature_r(p, 3)/2-0.5, ...
         %      feature_r(p, 1)-1/ feature_r(p, 3)/2-0.5, 1/ feature_r(p, 3) + 1, 1/ feature_r(p, 3) + 1],'Curvature',[1 1],'EdgeColor','g')
         
-        keypoints(p).size = 1/ feature_r(p, 3) + 1;
+        keypoints(p).size = 1/ feature_r(p, 3);
         keypoints(p).angle = feature_r(p, 5);
         keypoints(p).response = feature_r(p, 4);
         keypoints(p).octave = 0;
