@@ -6,6 +6,10 @@ MATLABDIR=${MATLABDIR:-/usr/local/MATLAB/R2016b}
 # CUDA host compiler
 CUDA_HOST_COMPILER=${HOST_COMPILER:-/usr/bin/g++}
 
+# Optional components (disabled by default)
+BUILD_LIFT=${BUILD_LIFT:-0}
+BUILD_CAFFE=${BUILD_CAFFE:-0}
+
 # Get the project's root directory (i.e., the location of this script)
 ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -152,6 +156,8 @@ ${MATLABDIR}/bin/matlab -nodisplay -nodesktop -r "try, run('${ROOT_DIR}/compile_
 ########################################################################
 #                        Build LIFT dependencies                       #
 ########################################################################
+if [ ${BUILD_LIFT} -ne 0 ]; then
+
 echo "Building LIFT..."
 
 LIFT_SOURCE_DIR="${ROOT_DIR}/external/lift/c-code"
@@ -167,10 +173,14 @@ cmake \
 
 make -C "${LIFT_BUILD_DIR}"
 
+fi
+
 
 ########################################################################
 #                         Build Caffe for TFeat                        #
 ########################################################################
+if [ ${BUILD_CAFFE} -ne 0 ]; then
+
 echo "Building Caffe..."
 
 CAFFE_SOURCE_DIR="${ROOT_DIR}/external/caffe"
@@ -203,6 +213,7 @@ cmake \
 make -j4 -C "${CAFFE_BUILD_DIR}"
 make install -C "${CAFFE_BUILD_DIR}"
 
+fi
 
 
 # End of script
